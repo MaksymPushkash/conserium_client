@@ -42,11 +42,12 @@ async function request<T>(path: string, init: RequestInit = {}, retry = true): P
   const response = await fetch(`${API_V1_URL}${path}`, {
     ...init,
     headers,
+    credentials: "include",
   });
 
-  if (response.status === 401 && retry && refreshToken) {
+  if (response.status === 401 && retry) {
     try {
-      const refreshed = await refreshSession(refreshToken);
+      const refreshed = await refreshSession(refreshToken ?? undefined);
       setSession(refreshed.access_token, refreshed.refresh_token);
       return request<T>(path, init, false);
     } catch {
@@ -77,12 +78,50 @@ async function readPayload(response: Response) {
 
 function errorMessage(payload: unknown, fallback: string) {
   if (payload && typeof payload === "object" && "detail" in payload) {
-    return String((payload as { detail: unknown }).detail);
+    return formatErrorDetail((payload as { detail: unknown }).detail, fallback);
   }
   if (payload && typeof payload === "object" && "error" in payload) {
-    return String((payload as { error: unknown }).error);
+    return formatErrorDetail((payload as { error: unknown }).error, fallback);
   }
   return fallback || "Request failed";
+}
+
+function formatErrorDetail(detail: unknown, fallback: string): string {
+  if (typeof detail === "string") {
+    return detail;
+  }
+
+  if (Array.isArray(detail)) {
+    const messages = detail.map(formatValidationError).filter(Boolean);
+    if (messages.length) {
+      return messages.join("; ");
+    }
+  }
+
+  if (detail && typeof detail === "object") {
+    if ("msg" in detail && typeof detail.msg === "string") {
+      return detail.msg;
+    }
+    if ("message" in detail && typeof detail.message === "string") {
+      return detail.message;
+    }
+  }
+
+  return fallback || "Request failed";
+}
+
+function formatValidationError(error: unknown): string | null {
+  if (!error || typeof error !== "object") {
+    return null;
+  }
+
+  const message = "msg" in error && typeof error.msg === "string" ? error.msg : null;
+  const location = "loc" in error && Array.isArray(error.loc) ? error.loc.join(".") : null;
+
+  if (message && location) {
+    return `${location}: ${message}`;
+  }
+  return message;
 }
 
 export async function register(payload: { email: string; password: string; display_name?: string | null }) {
@@ -93,10 +132,13 @@ export async function login(payload: { email: string; password: string }) {
   return request<TokenResponse>("/auth/login", { method: "POST", body: JSON.stringify(payload) }, false);
 }
 
-export async function refreshSession(refreshToken: string) {
+export async function refreshSession(refreshToken?: string) {
   return request<TokenResponse>(
     "/auth/refresh",
-    { method: "POST", body: JSON.stringify({ refresh_token: refreshToken }) },
+    {
+      method: "POST",
+      body: refreshToken === undefined ? undefined : JSON.stringify({ refresh_token: refreshToken }),
+    },
     false,
   );
 }
