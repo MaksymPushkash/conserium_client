@@ -67,7 +67,7 @@ export default function LandingPage() {
             </span>
           </h1>
           <p className="font-jetbrains mt-8 max-w-xl text-sm font-normal leading-8 text-neutral-500">
-            Cortex turns PDFs, links, notes, audio, screenshots, and videos into a source-grounded workspace you can
+            Cortex turns PDFs, links, notes, screenshots, and videos into a source-grounded workspace you can
             query like ChatGPT.
           </p>
           <div className="mt-10 flex flex-wrap gap-3">
@@ -156,7 +156,7 @@ function ProductPreview() {
             {[
               ["Clean Architecture notes", "PDF · page-aware citations", "READY"],
               ["PostgreSQL pgvector article", "URL · hybrid retrieval", "READY"],
-              ["Startup voice memo", "AUDIO · transcript generated", "PROCESSING"],
+              ["Architecture screenshot", "IMAGE · OCR extracted", "PROCESSING"],
             ].map(([title, meta, status]) => (
               <div
                 key={title}
