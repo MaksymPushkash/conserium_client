@@ -13,9 +13,9 @@ import { getDocumentStatus, ingestDocument, ingestFile } from "@/lib/api";
 import type { DocumentResponse, DocumentType } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
-type Mode = "TEXT" | "URL" | "YOUTUBE" | "PDF" | "AUDIO" | "IMAGE";
+type Mode = "TEXT" | "URL" | "YOUTUBE" | "PDF" | "IMAGE";
 
-const modes: Mode[] = ["TEXT", "URL", "YOUTUBE", "PDF", "AUDIO", "IMAGE"];
+const modes: Mode[] = ["TEXT", "URL", "YOUTUBE", "PDF", "IMAGE"];
 
 export default function IngestPage() {
   const queryClient = useQueryClient();
@@ -29,9 +29,9 @@ export default function IngestPage() {
 
   const mutation = useMutation({
     mutationFn: async () => {
-      if (mode === "PDF" || mode === "AUDIO" || mode === "IMAGE") {
+      if (mode === "PDF" || mode === "IMAGE") {
         if (!file) throw new Error("Select a file first");
-        return ingestFile(mode.toLowerCase() as "pdf" | "audio" | "image", {
+        return ingestFile(mode.toLowerCase() as "pdf" | "image", {
           file,
           title: title || file.name,
           language: language || undefined,
@@ -133,8 +133,8 @@ export default function IngestPage() {
                   className="font-jetbrains"
                 />
               ) : null}
-              {mode === "PDF" || mode === "AUDIO" || mode === "IMAGE" ? (
-                <Input type="file" onChange={(event) => setFile(event.target.files?.[0] ?? null)} />
+              {mode === "PDF" || mode === "IMAGE" ? (
+                <Input type="file" accept={mode === "PDF" ? "application/pdf" : "image/*"} onChange={(event) => setFile(event.target.files?.[0] ?? null)} />
               ) : null}
               {mutation.error ? (
                 <div className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">
@@ -162,6 +162,17 @@ export default function IngestPage() {
                 <StatusPill status={status?.status ?? trackedDocument.status} />
                 <Progress value={status?.progress ?? 0} />
                 <div className="text-sm text-neutral-600">{status?.message ?? "Waiting for worker status..."}</div>
+                {status?.failure_reason ? <div className="text-sm text-red-400">{status.failure_reason}</div> : null}
+                {status?.timeline?.length ? (
+                  <div className="space-y-2 pt-2">
+                    {status.timeline.map((step) => (
+                      <div key={step.key} className="flex items-center justify-between gap-3 text-xs">
+                        <span className="text-neutral-300">{step.label}</span>
+                        <span className={cn("font-jetbrains", step.state === "failed" ? "text-red-400" : step.state === "complete" ? "text-emerald-400" : step.state === "current" ? "text-orange-400" : "text-neutral-600")}>{step.state}</span>
+                      </div>
+                    ))}
+                  </div>
+                ) : null}
               </>
             ) : (
               <div className="font-jetbrains text-xs text-neutral-500">Submit content to start polling status.</div>

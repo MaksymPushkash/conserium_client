@@ -1,4 +1,4 @@
-export type DocumentType = "PDF" | "URL" | "YOUTUBE" | "AUDIO" | "IMAGE" | "TEXT" | "MARKDOWN";
+export type DocumentType = "PDF" | "URL" | "YOUTUBE" | "IMAGE" | "TEXT" | "MARKDOWN";
 export type DocumentStatus = "PENDING" | "QUEUED" | "PROCESSING" | "READY" | "FAILED";
 
 export type MetadataItem = Record<string, unknown>;
@@ -50,11 +50,21 @@ export interface DocumentListResponse {
   offset: number;
 }
 
+export interface DocumentProcessingStep {
+  key: string;
+  label: string;
+  state: "complete" | "current" | "pending" | "failed" | string;
+  progress: number;
+  message: string | null;
+}
+
 export interface DocumentStatusResponse {
   document_id: string;
   status: DocumentStatus | string;
   progress: number;
   message: string;
+  failure_reason: string | null;
+  timeline: DocumentProcessingStep[];
 }
 
 export interface ChatSession {

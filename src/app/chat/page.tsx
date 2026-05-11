@@ -303,6 +303,12 @@ export default function ChatPage() {
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
                 placeholder="Ask about this topic..."
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" && !event.shiftKey) {
+                    event.preventDefault();
+                    event.currentTarget.form?.requestSubmit();
+                  }
+                }}
                 className="font-jetbrains min-h-12 resize-none border-0 bg-transparent px-2 text-white placeholder:text-neutral-600 focus-visible:ring-0"
               />
               <Button size="icon" disabled={!query.trim()} className="mt-auto h-11 w-11 rounded-lg">

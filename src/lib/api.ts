@@ -215,11 +215,19 @@ export function deleteDocument(documentId: string) {
   return request<void>(`/documents/${documentId}`, { method: "DELETE" });
 }
 
+export function retryDocument(documentId: string) {
+  return request<DocumentResponse>(`/documents/${documentId}/retry`, { method: "POST" });
+}
+
+export function reprocessDocument(documentId: string) {
+  return request<DocumentResponse>(`/documents/${documentId}/reprocess`, { method: "POST" });
+}
+
 export function ingestDocument(payload: IngestDocumentPayload) {
   return request<DocumentResponse>("/ingest", { method: "POST", body: JSON.stringify(payload) });
 }
 
-export function ingestFile(kind: "pdf" | "audio" | "image", payload: { file: File; title?: string; language?: string }) {
+export function ingestFile(kind: "pdf" | "image", payload: { file: File; title?: string; language?: string }) {
   const form = new FormData();
   form.set("file", payload.file);
   if (payload.title) form.set("title", payload.title);
@@ -248,6 +256,7 @@ export async function streamQueryDocuments(
       ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
     },
     body: JSON.stringify(payload),
+    credentials: "include",
     signal,
   });
 

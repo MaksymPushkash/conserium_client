@@ -13,7 +13,7 @@ import { deleteDocument, listDocuments } from "@/lib/api";
 import type { DocumentStatus, DocumentType } from "@/lib/types";
 import { formatDateTime } from "@/lib/utils";
 
-const typeOptions: Array<DocumentType | "ALL"> = ["ALL", "TEXT", "URL", "YOUTUBE", "PDF", "AUDIO", "IMAGE", "MARKDOWN"];
+const typeOptions: Array<DocumentType | "ALL"> = ["ALL", "TEXT", "URL", "YOUTUBE", "PDF", "IMAGE", "MARKDOWN"];
 const statusOptions: Array<DocumentStatus | "ALL"> = ["ALL", "PENDING", "QUEUED", "PROCESSING", "READY", "FAILED"];
 
 export default function DocumentsPage() {

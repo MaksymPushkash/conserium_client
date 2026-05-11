@@ -1,26 +1,29 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { RotateCcw, Trash2 } from "lucide-react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 
 import { StatusPill } from "@/components/status-pill";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { getDocument, getDocumentStatus } from "@/lib/api";
-import { compactId, formatDateTime } from "@/lib/utils";
+import { Progress } from "@/components/ui/progress";
+import { deleteDocument, getDocument, getDocumentStatus, reprocessDocument, retryDocument } from "@/lib/api";
+import type { DocumentProcessingStep, DocumentStatusResponse } from "@/lib/types";
+import { cn, compactId, formatDateTime } from "@/lib/utils";
 
 export default function DocumentDetailPage() {
   const params = useParams<{ id: string }>();
+  const router = useRouter();
+  const queryClient = useQueryClient();
   const documentQuery = useQuery({
     queryKey: ["document", params.id],
     queryFn: () => getDocument(params.id),
     refetchInterval: (query) => {
       const document = query.state.data;
-      if (!document || document.status === "FAILED") {
-        return false;
-      }
+      if (!document || document.status === "FAILED") return false;
       return hasVisibleEnrichment(document) ? false : 5000;
     },
   });
@@ -32,7 +35,31 @@ export default function DocumentDetailPage() {
       return status === "READY" || status === "FAILED" ? false : 2000;
     },
   });
+  const retryMutation = useMutation({
+    mutationFn: retryDocument,
+    onSuccess: async (document) => {
+      await queryClient.invalidateQueries({ queryKey: ["document", document.id] });
+      await queryClient.invalidateQueries({ queryKey: ["document-status", document.id] });
+      await queryClient.invalidateQueries({ queryKey: ["documents"] });
+    },
+  });
+  const reprocessMutation = useMutation({
+    mutationFn: reprocessDocument,
+    onSuccess: async (document) => {
+      await queryClient.invalidateQueries({ queryKey: ["document", document.id] });
+      await queryClient.invalidateQueries({ queryKey: ["document-status", document.id] });
+      await queryClient.invalidateQueries({ queryKey: ["documents"] });
+    },
+  });
+  const deleteMutation = useMutation({
+    mutationFn: deleteDocument,
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["documents"] });
+      router.push("/documents");
+    },
+  });
   const document = documentQuery.data;
+  const status = statusQuery.data;
 
   if (documentQuery.isLoading) {
     return <div className="p-8 text-sm text-neutral-500">Loading document...</div>;
@@ -42,25 +69,53 @@ export default function DocumentDetailPage() {
     return <div className="p-8 text-sm text-neutral-500">Document not found.</div>;
   }
 
+  const visibleStatus = status?.status ?? document.status;
+
   return (
-    <div className="mx-auto grid max-w-6xl gap-10 p-4 md:grid-cols-[1fr_360px] md:p-10">
+    <div className="mx-auto grid max-w-6xl gap-10 p-4 md:grid-cols-[1fr_380px] md:p-10">
       <section className="space-y-10">
-        <div>
+        <div className="flex flex-wrap gap-2">
           <Link href="/documents">
             <Button className="h-9 px-4 text-sm">Back to library</Button>
           </Link>
+          {visibleStatus === "FAILED" ? (
+            <Button variant="secondary" onClick={() => retryMutation.mutate(document.id)} disabled={retryMutation.isPending}>
+              <RotateCcw className="h-4 w-4" />
+              Retry
+            </Button>
+          ) : null}
+          <Button variant="secondary" onClick={() => reprocessMutation.mutate(document.id)} disabled={reprocessMutation.isPending}>
+            <RotateCcw className="h-4 w-4" />
+            Reprocess
+          </Button>
+          <Button variant="danger" onClick={() => deleteMutation.mutate(document.id)} disabled={deleteMutation.isPending}>
+            <Trash2 className="h-4 w-4" />
+            Delete
+          </Button>
         </div>
+
         <header className="space-y-5">
           <div className="font-jetbrains flex flex-wrap gap-2">
-            <StatusPill status={statusQuery.data?.status ?? document.status} />
+            <StatusPill status={visibleStatus} />
             <Badge>{document.type}</Badge>
             {document.language ? <Badge>{document.language}</Badge> : null}
           </div>
           <div>
             <h1 className="text-3xl font-normal tracking-normal text-white">{document.title}</h1>
-            <p className="font-jetbrains mt-4 text-sm text-neutral-500">{compactId(document.id)} · {formatDateTime(document.created_at)}</p>
+            <p className="font-jetbrains mt-4 text-sm text-neutral-500">
+              {compactId(document.id)} · {formatDateTime(document.created_at)}
+            </p>
           </div>
         </header>
+
+        {status?.failure_reason ? (
+          <Card className="border-red-500/30 bg-red-500/[0.04]">
+            <CardHeader>
+              <CardTitle>Failure reason</CardTitle>
+            </CardHeader>
+            <CardContent className="text-sm leading-6 text-red-200">{status.failure_reason}</CardContent>
+          </Card>
+        ) : null}
 
         <Card>
           <CardHeader>
@@ -77,14 +132,28 @@ export default function DocumentDetailPage() {
       <aside className="space-y-6">
         <Card>
           <CardHeader>
+            <CardTitle>Processing</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4 text-sm">
+            <div className="space-y-2">
+              <div className="flex items-center justify-between gap-3">
+                <StatusPill status={visibleStatus} />
+                <span className="font-jetbrains text-xs text-neutral-500">{status?.progress ?? 0}%</span>
+              </div>
+              <Progress value={status?.progress ?? 0} />
+              <div className="text-neutral-400">{status?.message ?? "No worker status yet."}</div>
+            </div>
+            <ProcessingTimeline status={status} />
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
             <CardTitle>Metadata</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3 text-sm">
-            <Row label="status"  value={String(statusQuery.data?.status ?? document.status)} />
-            <Row label="progress" value={`${statusQuery.data?.progress ?? 0}%`} />
-            <Row label="message" value={statusQuery.data?.message ?? "—"} />
-            <Row label="word count" value={String(document.word_count ?? "—")} />
-            <Row label="source" value={document.source_url ?? document.file_path ?? "—"} />
+            <Row label="word count" value={String(document.word_count ?? "-")} />
+            <Row label="source" value={document.source_url ?? document.file_path ?? "-"} />
             <Row label="duplicate" value={document.is_duplicate ? `yes · ${document.duplicate_of_id}` : "no"} />
           </CardContent>
         </Card>
@@ -113,6 +182,42 @@ function hasVisibleEnrichment(document: NonNullable<Awaited<ReturnType<typeof ge
       document.visual_metadata ||
       document.is_duplicate,
   );
+}
+
+function ProcessingTimeline({ status }: { status: DocumentStatusResponse | undefined }) {
+  const timeline = status?.timeline ?? [];
+  if (!timeline.length) {
+    return <div className="font-jetbrains text-xs text-neutral-500">Timeline unavailable.</div>;
+  }
+  return (
+    <div className="space-y-3">
+      {timeline.map((step) => (
+        <TimelineStep key={step.key} step={step} />
+      ))}
+    </div>
+  );
+}
+
+function TimelineStep({ step }: { step: DocumentProcessingStep }) {
+  return (
+    <div className="grid grid-cols-[18px_1fr] gap-3">
+      <div className={cn("mt-1 h-3 w-3 rounded-full border", markerStyle(step.state))} />
+      <div>
+        <div className="flex items-center justify-between gap-2">
+          <div className="text-sm text-neutral-100">{step.label}</div>
+          <div className="font-jetbrains text-xs text-neutral-500">{step.state}</div>
+        </div>
+        {step.message ? <div className="mt-1 text-xs leading-5 text-neutral-500">{step.message}</div> : null}
+      </div>
+    </div>
+  );
+}
+
+function markerStyle(state: string) {
+  if (state === "complete") return "border-emerald-400 bg-emerald-400";
+  if (state === "current") return "border-orange-400 bg-orange-400";
+  if (state === "failed") return "border-red-400 bg-red-400";
+  return "border-white/20 bg-transparent";
 }
 
 function Row({ label, value }: { label: string; value: string }) {
