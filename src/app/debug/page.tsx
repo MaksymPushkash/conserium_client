@@ -5,11 +5,12 @@ import { RefreshCcw } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { getMetricsText, listDocuments } from "@/lib/api";
+import { getMetricsText, getObservabilitySummary, listDocuments } from "@/lib/api";
 import { useChatStore } from "@/stores/chat-store";
 
 export default function DebugPage() {
   const metricsQuery = useQuery({ queryKey: ["metrics"], queryFn: getMetricsText, refetchInterval: 10_000 });
+  const summaryQuery = useQuery({ queryKey: ["observability-summary"], queryFn: getObservabilitySummary, refetchInterval: 10_000 });
   const documentsQuery = useQuery({ queryKey: ["documents", "debug"], queryFn: () => listDocuments({ limit: 100 }), refetchInterval: 10_000 });
   const messages = useChatStore((state) => state.messages);
   const latestAssistant = [...messages].reverse().find((message) => message.role === "assistant");
@@ -53,11 +54,31 @@ export default function DebugPage() {
         </Card>
         <Card>
           <CardContent>
-            <div className="font-jetbrains text-sm text-neutral-500">Trace</div>
-            <div className="mt-2 truncate text-sm font-normal">{latestAssistant?.traceId ?? "none"}</div>
+            <div className="font-jetbrains text-sm text-neutral-500">Retrieval hit rate</div>
+            <div className="mt-2 text-2xl font-normal">
+              {summaryQuery.data ? `${Math.round(summaryQuery.data.retrieval.hit_rate * 100)}%` : "-"}
+            </div>
           </CardContent>
         </Card>
       </section>
+
+      <section className="grid gap-4 md:grid-cols-4">
+        <Metric label="Avg query latency" value={`${summaryQuery.data?.query_latency.average_seconds.toFixed(2) ?? "-"}s`} />
+        <Metric label="Failed processing" value={String(summaryQuery.data?.documents.failed_processing_count ?? "-")} />
+        <Metric label="OpenAI cost" value={`$${summaryQuery.data?.openai.estimated_cost_usd.toFixed(4) ?? "-"}`} />
+        <Metric label="Trace" value={latestAssistant?.traceId ?? "none"} />
+      </section>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Queue depth</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <pre className="font-jetbrains overflow-auto rounded-md border border-white/10 bg-black p-3 text-xs leading-5 text-neutral-300">
+            {JSON.stringify(summaryQuery.data?.queues ?? {}, null, 2)}
+          </pre>
+        </CardContent>
+      </Card>
 
       <div className="grid gap-6 lg:grid-cols-2">
         <Card>
@@ -102,5 +123,16 @@ export default function DebugPage() {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+function Metric({ label, value }: { label: string; value: string }) {
+  return (
+    <Card>
+      <CardContent>
+        <div className="font-jetbrains text-xs text-neutral-500">{label}</div>
+        <div className="mt-2 truncate text-lg font-normal">{value}</div>
+      </CardContent>
+    </Card>
   );
 }

@@ -67,6 +67,34 @@ export interface DocumentStatusResponse {
   timeline: DocumentProcessingStep[];
 }
 
+export interface Collection {
+  id: string;
+  user_id: string;
+  name: string;
+  description: string | null;
+  color: string | null;
+  created_at: string;
+  updated_at: string | null;
+}
+
+export interface CollectionListResponse {
+  items: Collection[];
+  total: number;
+  limit: number;
+  offset: number;
+}
+
+export interface DocumentChunkResponse {
+  id: string;
+  document_id: string;
+  content: string;
+  chunk_index: number;
+  start_char: number | null;
+  end_char: number | null;
+  page_number: number | null;
+  token_count: number | null;
+}
+
 export interface ChatSession {
   id: string;
   user_id: string;
@@ -102,6 +130,7 @@ export interface ChatDetailResponse {
 
 export interface Note {
   id: string;
+  collection_id: string | null;
   title: string;
   content: string;
   status: DocumentStatus;
@@ -146,6 +175,15 @@ export interface QuerySource {
   chunk_index: number;
   score: number | null;
   citation?: string;
+  used_in_answer?: boolean;
+}
+
+export interface ObservabilitySummary {
+  query_latency: { count: number; average_seconds: number };
+  retrieval: { hit_rate: number; requests: number; hits: number };
+  documents: { failed_processing_count: number };
+  openai: { estimated_cost_usd: number };
+  queues: Record<string, number>;
 }
 
 export interface RefragChunk {

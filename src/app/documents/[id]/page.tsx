@@ -1,23 +1,35 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { RotateCcw, Trash2 } from "lucide-react";
+import { Pencil, RotateCcw, Trash2 } from "lucide-react";
 import Link from "next/link";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 
 import { StatusPill } from "@/components/status-pill";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { deleteDocument, getDocument, getDocumentStatus, reprocessDocument, retryDocument } from "@/lib/api";
+import {
+  deleteDocument,
+  getDocument,
+  getDocumentChunk,
+  getDocumentStatus,
+  listCollections,
+  moveDocument,
+  renameDocument,
+  reprocessDocument,
+  retryDocument,
+} from "@/lib/api";
 import type { DocumentProcessingStep, DocumentStatusResponse } from "@/lib/types";
 import { cn, compactId, formatDateTime } from "@/lib/utils";
 
 export default function DocumentDetailPage() {
   const params = useParams<{ id: string }>();
+  const searchParams = useSearchParams();
   const router = useRouter();
   const queryClient = useQueryClient();
+  const focusedChunkId = searchParams.get("chunk");
   const documentQuery = useQuery({
     queryKey: ["document", params.id],
     queryFn: () => getDocument(params.id),
@@ -34,6 +46,20 @@ export default function DocumentDetailPage() {
       const status = query.state.data?.status;
       return status === "READY" || status === "FAILED" ? false : 2000;
     },
+  });
+  const collectionsQuery = useQuery({ queryKey: ["collections"], queryFn: () => listCollections({ limit: 100 }) });
+  const chunkQuery = useQuery({
+    queryKey: ["document", params.id, "chunk", focusedChunkId],
+    queryFn: () => getDocumentChunk(params.id, focusedChunkId as string),
+    enabled: Boolean(focusedChunkId),
+  });
+  const renameMutation = useMutation({
+    mutationFn: (title: string) => renameDocument(params.id, { title }),
+    onSuccess: (document) => queryClient.invalidateQueries({ queryKey: ["document", document.id] }),
+  });
+  const moveMutation = useMutation({
+    mutationFn: (collectionId: string | null) => moveDocument(params.id, { collection_id: collectionId }),
+    onSuccess: (document) => queryClient.invalidateQueries({ queryKey: ["document", document.id] }),
   });
   const retryMutation = useMutation({
     mutationFn: retryDocument,
@@ -92,6 +118,16 @@ export default function DocumentDetailPage() {
             <Trash2 className="h-4 w-4" />
             Delete
           </Button>
+          <Button
+            variant="secondary"
+            onClick={() => {
+              const title = window.prompt("Document title", document.title);
+              if (title?.trim()) renameMutation.mutate(title.trim());
+            }}
+          >
+            <Pencil className="h-4 w-4" />
+            Rename
+          </Button>
         </div>
 
         <header className="space-y-5">
@@ -122,9 +158,7 @@ export default function DocumentDetailPage() {
             <CardTitle>Content</CardTitle>
           </CardHeader>
           <CardContent>
-            <pre className="whitespace-pre-wrap text-sm leading-7 text-white">
-              {document.raw_content ?? "No raw content returned."}
-            </pre>
+            <HighlightedContent content={document.raw_content} start={chunkQuery.data?.start_char} end={chunkQuery.data?.end_char} />
           </CardContent>
         </Card>
       </section>
@@ -154,6 +188,23 @@ export default function DocumentDetailPage() {
           <CardContent className="space-y-3 text-sm">
             <Row label="word count" value={String(document.word_count ?? "-")} />
             <Row label="source" value={document.source_url ?? document.file_path ?? "-"} />
+            <div className="grid grid-cols-[100px_1fr] gap-5 border-b border-white/10 pb-3">
+              <div className="font-jetbrains text-neutral-500">collection</div>
+              <select
+                className="h-9 rounded-md border border-white/10 bg-white/[0.03] px-3 text-sm text-neutral-300 outline-none"
+                value={document.collection_id ?? ""}
+                onChange={(event) => moveMutation.mutate(event.target.value || null)}
+              >
+                <option value="" className="bg-black text-neutral-200">
+                  None
+                </option>
+                {collectionsQuery.data?.items.map((collection) => (
+                  <option key={collection.id} value={collection.id} className="bg-black text-neutral-200">
+                    {collection.name}
+                  </option>
+                ))}
+              </select>
+            </div>
             <Row label="duplicate" value={document.is_duplicate ? `yes · ${document.duplicate_of_id}` : "no"} />
           </CardContent>
         </Card>
@@ -171,6 +222,22 @@ export default function DocumentDetailPage() {
         </Card>
       </aside>
     </div>
+  );
+}
+
+function HighlightedContent({ content, start, end }: { content: string | null; start: number | null | undefined; end: number | null | undefined }) {
+  if (!content) {
+    return <pre className="whitespace-pre-wrap text-sm leading-7 text-white">No raw content returned.</pre>;
+  }
+  if (start === null || start === undefined || end === null || end === undefined || start < 0 || end <= start) {
+    return <pre className="whitespace-pre-wrap text-sm leading-7 text-white">{content}</pre>;
+  }
+  return (
+    <pre className="whitespace-pre-wrap text-sm leading-7 text-white">
+      {content.slice(0, start)}
+      <mark className="rounded bg-yellow-300 px-1 text-black">{content.slice(start, end)}</mark>
+      {content.slice(end)}
+    </pre>
   );
 }
 

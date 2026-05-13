@@ -1,4 +1,5 @@
 import { FileText } from "lucide-react";
+import Link from "next/link";
 
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -19,14 +20,19 @@ export function SourceCard({ source, index }: { source: QuerySource; index?: num
             <div className="font-jetbrains mt-1 text-xs font-light text-neutral-500">
               chunk {source.chunk_index}
               {source.page_number ? ` · page ${source.page_number}` : ""}
+              {" · "}
+              {source.used_in_answer ? "used in answer" : "retrieved only"}
             </div>
           </div>
           <Badge className="font-jetbrains font-light">{citation}</Badge>
         </div>
         <p className="line-clamp-5 text-sm font-light leading-6 text-neutral-300">{source.content}</p>
-        {source.score !== null ? (
-          <div className="font-jetbrains text-xs font-light text-neutral-500">score {source.score.toFixed(3)}</div>
-        ) : null}
+        <div className="font-jetbrains flex items-center justify-between gap-3 text-xs font-light text-neutral-500">
+          <span>{source.score !== null ? `score ${source.score.toFixed(3)}` : "score unavailable"}</span>
+          <Link className="text-neutral-300 underline-offset-4 hover:underline" href={`/documents/${source.document_id}?chunk=${source.chunk_id}`}>
+            Open chunk
+          </Link>
+        </div>
       </CardContent>
     </Card>
   );

@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { Textarea } from "@/components/ui/textarea";
-import { getDocumentStatus, ingestDocument, ingestFile } from "@/lib/api";
+import { getDocumentStatus, ingestDocument, ingestFile, listCollections } from "@/lib/api";
 import type { DocumentResponse, DocumentType } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -22,10 +22,12 @@ export default function IngestPage() {
   const [mode, setMode] = useState<Mode>("TEXT");
   const [title, setTitle] = useState("");
   const [language, setLanguage] = useState("");
+  const [collectionId, setCollectionId] = useState<string | null>(null);
   const [rawContent, setRawContent] = useState("");
   const [sourceUrl, setSourceUrl] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [trackedDocument, setTrackedDocument] = useState<DocumentResponse | null>(null);
+  const collectionsQuery = useQuery({ queryKey: ["collections"], queryFn: () => listCollections({ limit: 100 }) });
 
   const mutation = useMutation({
     mutationFn: async () => {
@@ -34,6 +36,7 @@ export default function IngestPage() {
         return ingestFile(mode.toLowerCase() as "pdf" | "image", {
           file,
           title: title || file.name,
+          collection_id: collectionId,
           language: language || undefined,
         });
       }
@@ -42,6 +45,7 @@ export default function IngestPage() {
         type: mode as DocumentType,
         raw_content: mode === "TEXT" ? rawContent : null,
         source_url: mode === "URL" || mode === "YOUTUBE" ? sourceUrl : null,
+        collection_id: collectionId,
         language: language || null,
       });
     },
@@ -117,6 +121,20 @@ export default function IngestPage() {
                   className="font-jetbrains"
                 />
               </div>
+              <select
+                className="h-10 rounded-md border border-white/10 bg-white/[0.03] px-3 text-sm text-neutral-300 outline-none transition-colors focus:border-white/40"
+                value={collectionId ?? ""}
+                onChange={(event) => setCollectionId(event.target.value || null)}
+              >
+                <option value="" className="bg-black text-neutral-200">
+                  No collection
+                </option>
+                {collectionsQuery.data?.items.map((collection) => (
+                  <option key={collection.id} value={collection.id} className="bg-black text-neutral-200">
+                    {collection.name}
+                  </option>
+                ))}
+              </select>
               {mode === "TEXT" ? (
                 <Textarea
                   value={rawContent}
