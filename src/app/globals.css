@@ -18,9 +18,6 @@
   box-sizing: border-box;
 }
 
-:where(body, body *) {
-  font-weight: 300 !important;
-}
 
 html,
 body {
@@ -64,7 +61,7 @@ a {
     Consolas,
     "Liberation Mono",
     monospace;
-  font-weight: 100 !important;
+  font-weight: 100;
 }
 
 .animate-soft-in {

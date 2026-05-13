@@ -34,6 +34,7 @@ export interface DocumentResponse {
   entities: MetadataItem[] | null;
   categories: MetadataItem[] | null;
   visual_metadata: MetadataItem | null;
+  suggested_questions: string[];
   tags: string[];
   is_duplicate: boolean;
   duplicate_of_id: string | null;
@@ -140,6 +141,15 @@ export interface Note {
   updated_at: string | null;
 }
 
+export interface NoteVersion {
+  id: string;
+  note_id: string;
+  version_number: number;
+  title: string;
+  content: string;
+  created_at: string;
+}
+
 export type NoteListItem = Omit<Note, "content">;
 
 export interface NoteListResponse {
@@ -162,6 +172,7 @@ export interface QueryRequest {
   query: string;
   conversation_id?: string | null;
   collection_id?: string | null;
+  tag_names?: string[] | null;
   document_types?: DocumentType[] | null;
   limit: number;
 }
@@ -209,15 +220,28 @@ export interface RefragContext {
   compression_strategy: string;
 }
 
+export interface QueryDebug {
+  original_query: string;
+  retrieval_query: string;
+  selected_collection_id: string | null;
+  selected_tags: string[];
+  promoted_document_ids: string[];
+  retrieved_sources: QuerySource[];
+  final_sources: QuerySource[];
+  used_sources: QuerySource[];
+  filtered_sources: QuerySource[];
+}
+
 export interface QueryResponse {
   conversation_id: string;
   query: string;
   answer: string;
   sources: QuerySource[];
   refrag_context: RefragContext;
+  debug: QueryDebug | null;
 }
 
-export type QueryStreamEventName = "metadata" | "token" | "sources" | "refrag_context" | "done" | "error";
+export type QueryStreamEventName = "metadata" | "token" | "sources" | "debug" | "refrag_context" | "done" | "error";
 
 export interface QueryStreamEvent {
   event: QueryStreamEventName;

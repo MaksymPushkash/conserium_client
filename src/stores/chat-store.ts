@@ -2,7 +2,7 @@
 
 import { create } from "zustand";
 
-import type { QuerySource, RefragContext } from "@/lib/types";
+import type { QueryDebug, QuerySource, RefragContext } from "@/lib/types";
 
 export interface ChatMessage {
   id: string;
@@ -10,6 +10,7 @@ export interface ChatMessage {
   content: string;
   sources?: QuerySource[];
   refragContext?: RefragContext;
+  debug?: QueryDebug;
   evalScores?: Record<string, unknown>;
   traceId?: string | null;
 }
