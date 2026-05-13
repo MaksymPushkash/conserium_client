@@ -134,8 +134,8 @@ export default function LandingPage() {
 function ProductPreview() {
   return (
     <div className="animate-soft-in mt-32 overflow-hidden rounded-xl border border-white/10 bg-black/60 shadow-2xl shadow-white/[0.03] [animation-delay:140ms]">
-      <div className="grid min-w-[920px] grid-cols-[240px_1fr_300px]">
-        <div className="border-r border-white/10 p-6">
+      <div className="grid min-w-0 grid-cols-1 lg:grid-cols-[220px_minmax(0,1fr)_280px]">
+        <div className="border-b border-white/10 p-6 lg:border-b-0 lg:border-r">
           <div className="mb-8 text-sm font-semibold text-white">Cortex</div>
           <div className="space-y-3">
             <PreviewNav icon={FileText} label="Library" active />
@@ -145,7 +145,7 @@ function ProductPreview() {
           </div>
         </div>
         <div className="p-6">
-          <div className="mb-5 flex items-center justify-between">
+          <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <div className="text-sm font-semibold text-white">Knowledge workspace</div>
               <div className="mt-1 text-xs text-neutral-600">5 sources processed · streaming answer ready</div>
@@ -183,7 +183,7 @@ function ProductPreview() {
             </div>
           </div>
         </div>
-        <div className="border-l border-white/10 bg-white/[0.02] p-6">
+        <div className="border-t border-white/10 bg-white/[0.02] p-6 lg:border-l lg:border-t-0">
           <div className="mb-5 text-sm font-semibold text-white">Sources</div>
           <div className="space-y-3">
             {["Architecture Notes, page 3", "pgvector Guide", "REFRAG baseline"].map((source, index) => (

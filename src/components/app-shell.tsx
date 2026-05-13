@@ -1,31 +1,35 @@
 "use client";
 
-import { Activity, FileText, Files, Folder, LogOut, MessageSquare, Plus, Search, User } from "lucide-react";
+import { Activity, FileText, Files, Folder, LogOut, Menu, MessageSquare, Plus, Search, User, X } from "lucide-react";
 import type { Route } from "next";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { ReactNode, useEffect } from "react";
+import { ReactNode, useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { logout } from "@/lib/api";
+import { DEBUG_UI_ENABLED } from "@/lib/config";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/stores/auth-store";
 
-const nav: Array<{ href: Route; label: string; icon: typeof Search }> = [
+const baseNav: Array<{ href: Route; label: string; icon: typeof Search; debugOnly?: boolean }> = [
   { href: "/dashboard", label: "Overview", icon: Search },
   { href: "/ingest", label: "Ingest", icon: Plus },
   { href: "/documents", label: "Library", icon: Files },
   { href: "/collections", label: "Collections", icon: Folder },
   { href: "/notes", label: "Notes", icon: FileText },
   { href: "/chat", label: "Chat", icon: MessageSquare },
-  { href: "/debug", label: "Debug", icon: Activity },
+  { href: "/debug", label: "Debug", icon: Activity, debugOnly: true },
   { href: "/account", label: "Account", icon: User },
 ];
+
+const nav = baseNav.filter((item) => !item.debugOnly || DEBUG_UI_ENABLED);
 
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const { accessToken, clearSession, refreshToken } = useAuthStore();
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const isPublicRoute = pathname === "/" || pathname.startsWith("/auth");
 
   useEffect(() => {
@@ -64,8 +68,10 @@ export function AppShell({ children }: { children: ReactNode }) {
               <Link
                 key={item.href}
                 href={item.href}
+                title={item.label}
+                aria-label={item.label}
                 className={cn(
-                  "flex h-9 items-center gap-2 rounded-md px-2 text-sm font-light text-neutral-500 transition-colors hover:bg-white/10 hover:text-white",
+                  "flex h-9 items-center gap-2 rounded-md px-2 text-sm font-light text-neutral-500 transition-colors hover:bg-white/[0.08] hover:text-white hover:shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08)]",
                   active && "bg-white/[0.08] text-white hover:bg-white/[0.12] hover:text-white",
                 )}
               >
@@ -88,23 +94,50 @@ export function AppShell({ children }: { children: ReactNode }) {
       </aside>
       <header className="sticky top-0 z-10 border-b border-neutral-900 bg-black/95 backdrop-blur md:hidden">
         <div className="flex h-14 items-center justify-between px-4">
-          <Link href="/dashboard" className="flex items-center gap-2">
+          <Link href="/dashboard" className="flex items-center gap-2" onClick={() => setMobileNavOpen(false)}>
             <span className="text-lg font-normal tracking-tight text-white">CORTEX</span>
             <span className="font-jetbrains rounded-md border border-white/10 bg-white/[0.03] px-2 py-1 text-[10px] font-light text-neutral-500">
               v0.1.0
             </span>
           </Link>
-          <Button variant="ghost" size="sm" onClick={handleLogout} className="font-light">
-            Logout
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" size="sm" onClick={handleLogout} className="font-light">
+              Logout
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setMobileNavOpen((open) => !open)}
+              aria-label="Toggle navigation"
+            >
+              {mobileNavOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
+            </Button>
+          </div>
         </div>
-        <nav className="flex gap-1 overflow-x-auto px-2 pb-2">
-          {nav.map((item) => (
-            <Link key={item.href} href={item.href} className="rounded-md px-2 py-1 text-xs text-neutral-500">
-              {item.label}
-            </Link>
-          ))}
-        </nav>
+        {mobileNavOpen ? (
+          <nav className="grid gap-1 border-t border-neutral-900 px-2 py-2">
+            {nav.map((item) => {
+              const Icon = item.icon;
+              const active = pathname === item.href;
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  title={item.label}
+                  aria-label={item.label}
+                  onClick={() => setMobileNavOpen(false)}
+                  className={cn(
+                    "flex h-10 items-center gap-2 rounded-md px-3 text-sm font-light text-neutral-500 transition-colors hover:bg-white/[0.08] hover:text-white",
+                    active && "bg-white/[0.08] text-white",
+                  )}
+                >
+                  <Icon className="h-4 w-4" />
+                  {item.label}
+                </Link>
+              );
+            })}
+          </nav>
+        ) : null}
       </header>
       <main className="md:pl-64">{children}</main>
     </div>

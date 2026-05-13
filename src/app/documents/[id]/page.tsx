@@ -215,6 +215,7 @@ export default function DocumentDetailPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <TagBlock title="Tags" values={document.tags} />
+            <SuggestedQuestions values={document.suggested_questions} />
             <JsonBlock title="Entities" value={document.entities} />
             <JsonBlock title="Categories" value={document.categories} />
             <JsonBlock title="Visual metadata" value={document.visual_metadata} />
@@ -292,6 +293,22 @@ function Row({ label, value }: { label: string; value: string }) {
     <div className="grid grid-cols-[100px_1fr] gap-5 border-b border-white/10 pb-3">
       <div className="font-jetbrains text-neutral-500">{label}</div>
       <div className="break-words text-neutral-100">{value}</div>
+    </div>
+  );
+}
+
+function SuggestedQuestions({ values }: { values: string[] }) {
+  if (!values.length) return null;
+  return (
+    <div>
+      <div className="font-jetbrains mb-2 text-xs text-neutral-500">Suggested questions</div>
+      <div className="flex flex-wrap gap-2">
+        {values.map((value) => (
+          <span key={value} className="font-jetbrains rounded-md border border-white/10 px-2 py-1 text-xs text-neutral-400">
+            {value}
+          </span>
+        ))}
+      </div>
     </div>
   );
 }

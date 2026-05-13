@@ -18,15 +18,17 @@ import {
 import type { LucideIcon } from "lucide-react";
 import type { ChangeEvent, KeyboardEvent } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
-
+import { MarkdownPreview } from "@/components/notes/markdown-preview";
 import { StatusPill } from "@/components/status-pill";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { createNote, deleteNote, getNote, ingestFile, listCollections, listNotes, updateNote } from "@/lib/api";
+import { createNote, deleteNote, getNote, ingestFile, listCollections, listNoteVersions, listNotes, restoreNoteVersion, updateNote } from "@/lib/api";
 import type { Note, NoteListItem, NoteListResponse } from "@/lib/types";
-import { cn } from "@/lib/utils";
+import { cn, formatDateTime } from "@/lib/utils";
 
 const AUTOSAVE_DELAY_MS = 1400;
+
+type EditorMode = "edit" | "preview";
 
 type SlashRange = {
   start: number;
@@ -120,6 +122,7 @@ export default function NotesPage() {
   const [collectionId, setCollectionId] = useState<string>("");
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
+  const [mode, setMode] = useState<EditorMode>("edit");
   const [loadedNoteId, setLoadedNoteId] = useState<string | null>(null);
   const [slashRange, setSlashRange] = useState<SlashRange | null>(null);
   const [slashIndex, setSlashIndex] = useState(0);
@@ -146,6 +149,11 @@ export default function NotesPage() {
     enabled: Boolean(selectedId),
   });
   const selectedNote = selectedNoteQuery.data ?? null;
+  const versionsQuery = useQuery({
+    queryKey: ["notes", selectedId, "versions"],
+    queryFn: () => listNoteVersions(selectedId as string),
+    enabled: Boolean(selectedId),
+  });
   const filteredSlashCommands = useMemo(() => {
     if (!slashRange) return [];
     if (!slashRange.query) return slashCommands;
@@ -182,7 +190,24 @@ export default function NotesPage() {
       queryClient.setQueryData<NoteListResponse>(["notes", { collectionId }], (old) => upsertNoteList(old, note));
       queryClient.setQueryData(["notes", note.id], note);
       void queryClient.invalidateQueries({ queryKey: ["documents"] });
+      void queryClient.invalidateQueries({ queryKey: ["notes", note.id, "versions"] });
       lastSavedRef.current = serializeNote(note.title, note.content);
+    },
+  });
+
+  const restoreVersionMutation = useMutation({
+    mutationFn: (versionId: string) => {
+      if (!selectedId) throw new Error("Select a note first");
+      return restoreNoteVersion(selectedId, versionId);
+    },
+    onSuccess: (note) => {
+      queryClient.setQueryData<NoteListResponse>(["notes", { collectionId }], (old) => upsertNoteList(old, note));
+      queryClient.setQueryData(["notes", note.id], note);
+      setTitle(note.title);
+      setContent(note.content);
+      lastSavedRef.current = serializeNote(note.title, note.content);
+      void queryClient.invalidateQueries({ queryKey: ["notes", note.id, "versions"] });
+      void queryClient.invalidateQueries({ queryKey: ["documents"] });
     },
   });
 
@@ -231,6 +256,7 @@ export default function NotesPage() {
     setTitle("");
     setContent("");
     lastSavedRef.current = "";
+    setMode("edit");
   }, [collectionId]);
 
   useEffect(() => {
@@ -318,6 +344,12 @@ export default function NotesPage() {
     }
   }
 
+  function confirmDeleteNote() {
+    if (!selectedId) return;
+    if (!window.confirm(`Delete "${title.trim() || "Untitled"}"? This cannot be undone.`)) return;
+    deleteMutation.mutate(selectedId);
+  }
+
   return (
     <div className="min-h-screen px-4 py-6 md:px-8">
       <div className="mx-auto grid max-w-[1640px] gap-6 xl:grid-cols-[300px_minmax(0,1fr)]">
@@ -374,6 +406,31 @@ export default function NotesPage() {
                 </div>
               </CardContent>
             </Card>
+            <Card className="mt-4 border-white/10 bg-white/[0.015]">
+              <CardHeader>
+                <CardTitle className="text-lg font-normal text-white">Versions</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                {versionsQuery.data?.length ? (
+                  versionsQuery.data.map((version) => (
+                    <button
+                      key={version.id}
+                      type="button"
+                      className="w-full rounded-lg border border-white/10 px-3 py-2 text-left transition-colors hover:border-white/20 hover:bg-white/[0.03]"
+                      onClick={() => restoreVersionMutation.mutate(version.id)}
+                      disabled={restoreVersionMutation.isPending}
+                    >
+                      <div className="text-sm font-light text-white">Version {version.version_number}</div>
+                      <div className="font-jetbrains mt-1 text-xs font-light text-neutral-500">{formatDateTime(version.created_at)}</div>
+                    </button>
+                  ))
+                ) : (
+                  <div className="font-jetbrains rounded-lg border border-white/10 px-3 py-4 text-xs font-light leading-5 text-neutral-500">
+                    Versions appear after edits are saved.
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </div>
         </aside>
 
@@ -410,6 +467,30 @@ export default function NotesPage() {
                 <Plus className="h-4 w-4" />
                 New
               </Button>
+              {selectedId ? (
+                <div className="flex h-9 rounded-md border border-white/10 bg-white/[0.03] p-1">
+                  <button
+                    type="button"
+                    onClick={() => setMode("edit")}
+                    className={cn(
+                      "rounded px-3 text-xs font-light transition-colors",
+                      mode === "edit" ? "bg-white text-black" : "text-neutral-500 hover:text-white",
+                    )}
+                  >
+                    Edit
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setMode("preview")}
+                    className={cn(
+                      "rounded px-3 text-xs font-light transition-colors",
+                      mode === "preview" ? "bg-white text-black" : "text-neutral-500 hover:text-white",
+                    )}
+                  >
+                    Preview
+                  </button>
+                </div>
+              ) : null}
               {selectedListItem ? (
                 <span className="inline-flex h-9 items-center">
                   <StatusPill status={selectedListItem.status} />
@@ -420,9 +501,7 @@ export default function NotesPage() {
                 variant="ghost"
                 size="icon"
                 className="text-neutral-600 hover:text-red-400"
-                onClick={() => {
-                  if (selectedId) deleteMutation.mutate(selectedId);
-                }}
+                onClick={confirmDeleteNote}
                 disabled={!selectedId || deleteMutation.isPending}
                 aria-label="Delete note"
               >
@@ -434,21 +513,27 @@ export default function NotesPage() {
           <div className="flex-1 overflow-auto px-5 py-8">
             {selectedId ? (
               <div className="relative mx-auto flex min-h-full max-w-4xl flex-col">
-                <input
-                  value={title}
-                  onChange={(event) => setTitle(event.target.value)}
-                  placeholder="Untitled"
-                  className="w-full bg-transparent text-3xl font-light tracking-normal text-white outline-none placeholder:text-neutral-800"
-                />
-                <textarea
-                  ref={textareaRef}
-                  value={content}
-                  onChange={onContentChange}
-                  onKeyDown={onContentKeyDown}
-                  placeholder="Write your thoughts..."
-                  spellCheck
-                  className="mt-10 min-h-[62vh] w-full resize-none bg-transparent text-base font-light leading-8 text-neutral-100 outline-none placeholder:text-neutral-700"
-                />
+                {mode === "edit" ? (
+                  <>
+                    <input
+                      value={title}
+                      onChange={(event) => setTitle(event.target.value)}
+                      placeholder="Untitled"
+                      className="w-full bg-transparent text-3xl font-light tracking-normal text-white outline-none placeholder:text-neutral-800"
+                    />
+                    <textarea
+                      ref={textareaRef}
+                      value={content}
+                      onChange={onContentChange}
+                      onKeyDown={onContentKeyDown}
+                      placeholder="Write your thoughts..."
+                      spellCheck
+                      className="mt-10 min-h-[62vh] w-full resize-none bg-transparent text-base font-light leading-8 text-neutral-100 outline-none placeholder:text-neutral-700"
+                    />
+                  </>
+                ) : (
+                  <MarkdownPreview title={title} content={content} />
+                )}
                 <input
                   ref={imageInputRef}
                   type="file"
@@ -460,7 +545,7 @@ export default function NotesPage() {
                     if (file) imageUploadMutation.mutate(file);
                   }}
                 />
-                {slashRange ? (
+                {mode === "edit" && slashRange ? (
                   <div className="absolute left-0 top-36 z-20 w-80 rounded-xl border border-white/10 bg-black/95 p-2 shadow-[0_24px_80px_rgba(0,0,0,0.55)]">
                     {filteredSlashCommands.length ? (
                       filteredSlashCommands.map((command, index) => {
