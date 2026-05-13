@@ -22,7 +22,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { StatusPill } from "@/components/status-pill";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { createNote, deleteNote, getNote, ingestFile, listNotes, updateNote } from "@/lib/api";
+import { createNote, deleteNote, getNote, ingestFile, listCollections, listNotes, updateNote } from "@/lib/api";
 import type { Note, NoteListItem, NoteListResponse } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -70,6 +70,7 @@ function noteToListItem(note: Note): NoteListItem {
   return {
     id: note.id,
     title: note.title,
+    collection_id: note.collection_id,
     status: note.status,
     word_count: note.word_count,
     language: note.language,
@@ -116,6 +117,7 @@ function findSlashRange(value: string, cursor: number): SlashRange | null {
 export default function NotesPage() {
   const queryClient = useQueryClient();
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [collectionId, setCollectionId] = useState<string>("");
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [loadedNoteId, setLoadedNoteId] = useState<string | null>(null);
@@ -126,9 +128,14 @@ export default function NotesPage() {
   const pendingImageRangeRef = useRef<SlashRange | null>(null);
   const lastSavedRef = useRef("");
 
+  const collectionsQuery = useQuery({
+    queryKey: ["collections"],
+    queryFn: () => listCollections({ limit: 100 }),
+  });
+
   const notesQuery = useQuery({
-    queryKey: ["notes"],
-    queryFn: () => listNotes({ limit: 200 }),
+    queryKey: ["notes", { collectionId }],
+    queryFn: () => listNotes({ limit: 200, collection_id: collectionId || null }),
   });
 
   const notes = useMemo(() => notesQuery.data?.items ?? [], [notesQuery.data?.items]);
@@ -149,9 +156,9 @@ export default function NotesPage() {
   }, [slashRange]);
 
   const createMutation = useMutation({
-    mutationFn: () => createNote({ title: "Untitled", content: "" }),
+    mutationFn: () => createNote({ title: "Untitled", content: "", collection_id: collectionId || null }),
     onSuccess: (note) => {
-      queryClient.setQueryData<NoteListResponse>(["notes"], (old) => upsertNoteList(old, note));
+      queryClient.setQueryData<NoteListResponse>(["notes", { collectionId }], (old) => upsertNoteList(old, note));
       queryClient.setQueryData(["notes", note.id], note);
       setSelectedId(note.id);
       setLoadedNoteId(note.id);
@@ -167,11 +174,12 @@ export default function NotesPage() {
       return updateNote(selectedId, {
         title: title.trim() || "Untitled",
         content,
+        collection_id: selectedNote?.collection_id ?? (collectionId || null),
         language: null,
       });
     },
     onSuccess: (note) => {
-      queryClient.setQueryData<NoteListResponse>(["notes"], (old) => upsertNoteList(old, note));
+      queryClient.setQueryData<NoteListResponse>(["notes", { collectionId }], (old) => upsertNoteList(old, note));
       queryClient.setQueryData(["notes", note.id], note);
       void queryClient.invalidateQueries({ queryKey: ["documents"] });
       lastSavedRef.current = serializeNote(note.title, note.content);
@@ -181,7 +189,7 @@ export default function NotesPage() {
   const deleteMutation = useMutation({
     mutationFn: deleteNote,
     onSuccess: (_, deletedId) => {
-      queryClient.setQueryData<NoteListResponse>(["notes"], (old) => {
+      queryClient.setQueryData<NoteListResponse>(["notes", { collectionId }], (old) => {
         if (!old) return old;
         return {
           ...old,
@@ -201,7 +209,7 @@ export default function NotesPage() {
   });
 
   const imageUploadMutation = useMutation({
-    mutationFn: (file: File) => ingestFile("image", { file, title: file.name }),
+    mutationFn: (file: File) => ingestFile("image", { file, title: file.name, collection_id: collectionId || null }),
     onSuccess: (document) => {
       const range = pendingImageRangeRef.current;
       pendingImageRangeRef.current = null;
@@ -216,6 +224,14 @@ export default function NotesPage() {
       setSelectedId(notes[0].id);
     }
   }, [notes, selectedId]);
+
+  useEffect(() => {
+    setSelectedId(null);
+    setLoadedNoteId(null);
+    setTitle("");
+    setContent("");
+    lastSavedRef.current = "";
+  }, [collectionId]);
 
   useEffect(() => {
     if (!selectedNote || loadedNoteId === selectedNote.id) return;
@@ -369,7 +385,21 @@ export default function NotesPage() {
                 {selectedNote ? `note ${selectedNote.id}` : "select or create a note"}
               </div>
             </div>
-            <div className="flex h-9 flex-nowrap items-center justify-end gap-3">
+            <div className="flex flex-wrap items-center justify-end gap-3">
+              <select
+                value={collectionId}
+                onChange={(event) => setCollectionId(event.target.value)}
+                className="h-9 rounded-md border border-white/10 bg-black px-3 text-sm font-light text-white outline-none"
+                disabled={collectionsQuery.isLoading}
+                aria-label="Collection"
+              >
+                <option value="">All collections</option>
+                {collectionsQuery.data?.items.map((collection) => (
+                  <option key={collection.id} value={collection.id}>
+                    {collection.name}
+                  </option>
+                ))}
+              </select>
               <Button
                 variant="secondary"
                 size="sm"

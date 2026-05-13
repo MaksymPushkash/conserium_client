@@ -1,12 +1,13 @@
 "use client";
 
-import { Activity, FileText, Files, LogOut, MessageSquare, Plus, Search } from "lucide-react";
+import { Activity, FileText, Files, Folder, LogOut, MessageSquare, Plus, Search, User } from "lucide-react";
 import type { Route } from "next";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { ReactNode, useEffect } from "react";
 
 import { Button } from "@/components/ui/button";
+import { logout } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/stores/auth-store";
 
@@ -14,15 +15,17 @@ const nav: Array<{ href: Route; label: string; icon: typeof Search }> = [
   { href: "/dashboard", label: "Overview", icon: Search },
   { href: "/ingest", label: "Ingest", icon: Plus },
   { href: "/documents", label: "Library", icon: Files },
+  { href: "/collections", label: "Collections", icon: Folder },
   { href: "/notes", label: "Notes", icon: FileText },
   { href: "/chat", label: "Chat", icon: MessageSquare },
   { href: "/debug", label: "Debug", icon: Activity },
+  { href: "/account", label: "Account", icon: User },
 ];
 
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { accessToken, clearSession } = useAuthStore();
+  const { accessToken, clearSession, refreshToken } = useAuthStore();
   const isPublicRoute = pathname === "/" || pathname.startsWith("/auth");
 
   useEffect(() => {
@@ -33,6 +36,15 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   if (isPublicRoute) {
     return <>{children}</>;
+  }
+
+  async function handleLogout() {
+    try {
+      await logout(refreshToken);
+    } finally {
+      clearSession();
+      router.replace("/auth");
+    }
   }
 
   return (
@@ -67,10 +79,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           <Button
             variant="ghost"
             className="w-full justify-start font-light"
-            onClick={() => {
-              clearSession();
-              router.replace("/auth");
-            }}
+            onClick={handleLogout}
           >
             <LogOut className="h-4 w-4" />
             Logout
@@ -85,7 +94,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               v0.1.0
             </span>
           </Link>
-          <Button variant="ghost" size="sm" onClick={clearSession} className="font-light">
+          <Button variant="ghost" size="sm" onClick={handleLogout} className="font-light">
             Logout
           </Button>
         </div>

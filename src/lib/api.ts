@@ -5,12 +5,16 @@ import type {
   ChatDetailResponse,
   ChatListResponse,
   ChatSession,
+  Collection,
+  CollectionListResponse,
+  DocumentChunkResponse,
   DocumentListResponse,
   DocumentResponse,
   DocumentStatusResponse,
   IngestDocumentPayload,
   Note,
   NoteListResponse,
+  ObservabilitySummary,
   QueryRequest,
   QueryResponse,
   QueryStreamEvent,
@@ -151,6 +155,48 @@ export function getCurrentUser() {
   return request<UserResponse>("/users/me");
 }
 
+export function deleteCurrentUser() {
+  return request<void>("/users/me", { method: "DELETE" });
+}
+
+export function logout(refreshToken?: string | null) {
+  return request<void>(
+    "/auth/logout",
+    {
+      method: "POST",
+      body: refreshToken ? JSON.stringify({ refresh_token: refreshToken }) : undefined,
+    },
+    false,
+  );
+}
+
+export function logoutEverywhere() {
+  return request<void>("/auth/logout/all", { method: "POST" });
+}
+
+export function createCollection(payload: { name: string; description?: string | null; color?: string | null }) {
+  return request<Collection>("/collections", { method: "POST", body: JSON.stringify(payload) });
+}
+
+export function listCollections(params: { limit?: number; offset?: number } = {}) {
+  const search = new URLSearchParams({
+    limit: String(params.limit ?? 100),
+    offset: String(params.offset ?? 0),
+  });
+  return request<CollectionListResponse>(`/collections?${search.toString()}`);
+}
+
+export function updateCollection(
+  collectionId: string,
+  payload: { name: string; description?: string | null; color?: string | null },
+) {
+  return request<Collection>(`/collections/${collectionId}`, { method: "PATCH", body: JSON.stringify(payload) });
+}
+
+export function deleteCollection(collectionId: string) {
+  return request<void>(`/collections/${collectionId}`, { method: "DELETE" });
+}
+
 export function createChat(payload: { title?: string | null } = {}) {
   return request<ChatSession>("/chats", { method: "POST", body: JSON.stringify(payload) });
 }
@@ -175,15 +221,18 @@ export function deleteChat(chatId: string) {
   return request<void>(`/chats/${chatId}`, { method: "DELETE" });
 }
 
-export function createNote(payload: { title?: string | null; content?: string | null; language?: string | null } = {}) {
+export function createNote(
+  payload: { title?: string | null; content?: string | null; collection_id?: string | null; language?: string | null } = {},
+) {
   return request<Note>("/notes", { method: "POST", body: JSON.stringify(payload) });
 }
 
-export function listNotes(params: { limit?: number; offset?: number } = {}) {
+export function listNotes(params: { limit?: number; offset?: number; collection_id?: string | null } = {}) {
   const search = new URLSearchParams({
     limit: String(params.limit ?? 100),
     offset: String(params.offset ?? 0),
   });
+  if (params.collection_id) search.set("collection_id", params.collection_id);
   return request<NoteListResponse>(`/notes?${search.toString()}`);
 }
 
@@ -191,7 +240,10 @@ export function getNote(noteId: string) {
   return request<Note>(`/notes/${noteId}`);
 }
 
-export function updateNote(noteId: string, payload: { title: string; content: string; language?: string | null }) {
+export function updateNote(
+  noteId: string,
+  payload: { title: string; content: string; collection_id?: string | null; language?: string | null },
+) {
   return request<Note>(`/notes/${noteId}`, { method: "PATCH", body: JSON.stringify(payload) });
 }
 
@@ -199,11 +251,13 @@ export function deleteNote(noteId: string) {
   return request<void>(`/notes/${noteId}`, { method: "DELETE" });
 }
 
-export function listDocuments(params: { limit?: number; offset?: number } = {}) {
+export function listDocuments(params: { limit?: number; offset?: number; collection_id?: string | null; status?: string | null } = {}) {
   const search = new URLSearchParams({
     limit: String(params.limit ?? 50),
     offset: String(params.offset ?? 0),
   });
+  if (params.collection_id) search.set("collection_id", params.collection_id);
+  if (params.status) search.set("status", params.status);
   return request<DocumentListResponse>(`/documents?${search.toString()}`);
 }
 
@@ -211,8 +265,28 @@ export function getDocument(documentId: string) {
   return request<DocumentResponse>(`/documents/${documentId}`);
 }
 
+export function getDocumentChunk(documentId: string, chunkId: string) {
+  return request<DocumentChunkResponse>(`/documents/${documentId}/chunks/${chunkId}`);
+}
+
 export function deleteDocument(documentId: string) {
   return request<void>(`/documents/${documentId}`, { method: "DELETE" });
+}
+
+export function renameDocument(documentId: string, payload: { title: string }) {
+  return request<DocumentResponse>(`/documents/${documentId}`, { method: "PATCH", body: JSON.stringify(payload) });
+}
+
+export function moveDocument(documentId: string, payload: { collection_id: string | null }) {
+  return request<DocumentResponse>(`/documents/${documentId}/collection`, { method: "PATCH", body: JSON.stringify(payload) });
+}
+
+export function bulkDeleteDocuments(documentIds: string[]) {
+  return request<void>("/documents/bulk/delete", { method: "POST", body: JSON.stringify({ document_ids: documentIds }) });
+}
+
+export function bulkReprocessDocuments(documentIds: string[]) {
+  return request<void>("/documents/bulk/reprocess", { method: "POST", body: JSON.stringify({ document_ids: documentIds }) });
 }
 
 export function retryDocument(documentId: string) {
@@ -227,10 +301,14 @@ export function ingestDocument(payload: IngestDocumentPayload) {
   return request<DocumentResponse>("/ingest", { method: "POST", body: JSON.stringify(payload) });
 }
 
-export function ingestFile(kind: "pdf" | "image", payload: { file: File; title?: string; language?: string }) {
+export function ingestFile(
+  kind: "pdf" | "image",
+  payload: { file: File; title?: string; collection_id?: string | null; language?: string },
+) {
   const form = new FormData();
   form.set("file", payload.file);
   if (payload.title) form.set("title", payload.title);
+  if (payload.collection_id) form.set("collection_id", payload.collection_id);
   if (payload.language) form.set("language", payload.language);
   return request<DocumentResponse>(`/ingest/${kind}`, { method: "POST", body: form });
 }
@@ -297,4 +375,8 @@ export async function getMetricsText() {
   const response = await fetch(`${API_BASE_URL}/metrics`);
   if (!response.ok) throw new Error("Failed to load metrics");
   return response.text();
+}
+
+export function getObservabilitySummary() {
+  return request<ObservabilitySummary>("/observability/summary");
 }

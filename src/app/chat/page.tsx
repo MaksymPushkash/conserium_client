@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { createChat, getChat, listChats, queryDocuments, streamQueryDocuments } from "@/lib/api";
+import { createChat, getChat, listChats, listCollections, queryDocuments, streamQueryDocuments } from "@/lib/api";
 import type { ChatMessageResponse, QuerySource, RefragContext } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import type { ChatMessage } from "@/stores/chat-store";
@@ -21,6 +21,7 @@ export default function ChatPage() {
   const [query, setQuery] = useState("");
   const [topicTitle, setTopicTitle] = useState("");
   const [streaming, setStreaming] = useState(true);
+  const [collectionId, setCollectionId] = useState<string | null>(null);
   const controllerRef = useRef<AbortController | null>(null);
   const queryClient = useQueryClient();
   const {
@@ -37,6 +38,10 @@ export default function ChatPage() {
   const chatsQuery = useQuery({
     queryKey: ["chats"],
     queryFn: () => listChats({ limit: 50 }),
+  });
+  const collectionsQuery = useQuery({
+    queryKey: ["collections"],
+    queryFn: () => listCollections({ limit: 100 }),
   });
   const createChatMutation = useMutation({
     mutationFn: createChat,
@@ -86,7 +91,12 @@ export default function ChatPage() {
 
     if (!streaming) {
       try {
-        const result = await syncMutation.mutateAsync({ query: text, conversation_id: conversationId, limit: 5 });
+        const result = await syncMutation.mutateAsync({
+          query: text,
+          conversation_id: conversationId,
+          collection_id: collectionId,
+          limit: 5,
+        });
         setConversationId(result.conversation_id);
         updateMessage(assistantMessageId, {
           content: result.answer,
@@ -110,7 +120,7 @@ export default function ChatPage() {
 
     try {
       await streamQueryDocuments(
-        { query: text, conversation_id: conversationId, limit: 5 },
+        { query: text, conversation_id: conversationId, collection_id: collectionId, limit: 5 },
         async (event) => {
           if (event.event === "metadata") {
             const nextConversationId = event.data.conversation_id;
@@ -218,10 +228,25 @@ export default function ChatPage() {
             <div>
               <h1 className="text-2xl font-normal tracking-normal text-white">{selectedChat?.title ?? "Query"}</h1>
               <div className="font-jetbrains mt-1 text-xs font-light text-neutral-500">
-                conversation {conversationId ?? "new"}
+                conversation {conversationId ?? "new"} · collection{" "}
+                {collectionsQuery.data?.items.find((collection) => collection.id === collectionId)?.name ?? "all"}
               </div>
             </div>
             <div className="flex flex-wrap gap-2">
+              <select
+                className="h-9 rounded-md border border-white/10 bg-white/[0.03] px-3 text-sm text-neutral-300 outline-none"
+                value={collectionId ?? ""}
+                onChange={(event) => setCollectionId(event.target.value || null)}
+              >
+                <option value="" className="bg-black text-neutral-200">
+                  All collections
+                </option>
+                {collectionsQuery.data?.items.map((collection) => (
+                  <option key={collection.id} value={collection.id} className="bg-black text-neutral-200">
+                    {collection.name}
+                  </option>
+                ))}
+              </select>
               <Button
                 variant={streaming ? "default" : "secondary"}
                 size="sm"
