@@ -3,6 +3,7 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Trash2 } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,6 +12,14 @@ import { formatDateTime } from "@/lib/utils";
 import { useAuthStore } from "@/stores/auth-store";
 
 export default function AccountPage() {
+  return (
+    <Suspense fallback={<AccountLoading />}>
+      <AccountContent />
+    </Suspense>
+  );
+}
+
+function AccountContent() {
   const router = useRouter();
   const params = useSearchParams();
   const { refreshToken, clearSession } = useAuthStore();
@@ -76,6 +85,22 @@ export default function AccountPage() {
             Delete account
           </Button>
         </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+function AccountLoading() {
+  return (
+    <div className="mx-auto max-w-4xl space-y-6 p-4 md:p-8">
+      <header>
+        <h1 className="text-3xl font-normal tracking-normal">Account</h1>
+      </header>
+      <Card>
+        <CardHeader>
+          <CardTitle>Profile</CardTitle>
+        </CardHeader>
+        <CardContent className="font-jetbrains text-sm text-neutral-500">Loading account...</CardContent>
       </Card>
     </div>
   );
