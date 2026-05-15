@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { deleteCurrentUser, getCurrentUser } from "@/lib/api/auth";
+import { deleteCurrentUser, getCurrentUser, oauthUrl } from "@/lib/api/auth";
 
 vi.mock("@/lib/api/transport", () => ({
   request: vi.fn(),
@@ -36,5 +36,10 @@ describe("auth api", () => {
     await deleteCurrentUser();
 
     expect(requestMock).toHaveBeenCalledWith("/users/me", { method: "DELETE" });
+  });
+
+  it("builds OAuth URLs against the API origin", () => {
+    expect(oauthUrl("google")).toBe("http://localhost:8000/api/v1/auth/google");
+    expect(oauthUrl("github")).toBe("http://localhost:8000/api/v1/auth/github");
   });
 });
