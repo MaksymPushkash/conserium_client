@@ -1,5 +1,6 @@
 "use client";
 
+import { useQueryClient } from "@tanstack/react-query";
 import { Activity, FileText, Files, Folder, LogOut, Menu, MessageSquare, Plus, Search, User, X } from "lucide-react";
 import type { Route } from "next";
 import Link from "next/link";
@@ -9,6 +10,7 @@ import { ReactNode, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { logout } from "@/lib/api";
 import { DEBUG_UI_ENABLED } from "@/lib/config";
+import { endSession } from "@/lib/session";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/stores/auth-store";
 
@@ -28,7 +30,8 @@ const nav = baseNav.filter((item) => !item.debugOnly || DEBUG_UI_ENABLED);
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { accessToken, clearSession, refreshToken } = useAuthStore();
+  const queryClient = useQueryClient();
+  const accessToken = useAuthStore((state) => state.accessToken);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const isPublicRoute = pathname === "/" || pathname.startsWith("/auth");
 
@@ -44,9 +47,9 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   async function handleLogout() {
     try {
-      await logout(refreshToken);
+      await logout();
     } finally {
-      clearSession();
+      endSession(queryClient);
       router.replace("/auth");
     }
   }

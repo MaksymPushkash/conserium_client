@@ -1,6 +1,6 @@
 "use client";
 
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Trash2 } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense } from "react";
@@ -8,8 +8,9 @@ import { Suspense } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { deleteCurrentUser, getCurrentUser, logout, logoutEverywhere } from "@/lib/api";
+import { errorMessage } from "@/lib/api/transport";
+import { endSession } from "@/lib/session";
 import { formatDateTime } from "@/lib/utils";
-import { useAuthStore } from "@/stores/auth-store";
 
 export default function AccountPage() {
   return (
@@ -22,26 +23,26 @@ export default function AccountPage() {
 function AccountContent() {
   const router = useRouter();
   const params = useSearchParams();
-  const { refreshToken, clearSession } = useAuthStore();
+  const queryClient = useQueryClient();
   const userQuery = useQuery({ queryKey: ["me"], queryFn: getCurrentUser });
   const logoutMutation = useMutation({
-    mutationFn: () => logout(refreshToken),
+    mutationFn: () => logout(),
     onSettled: () => {
-      clearSession();
+      endSession(queryClient);
       router.replace("/auth");
     },
   });
   const logoutEverywhereMutation = useMutation({
     mutationFn: logoutEverywhere,
     onSettled: () => {
-      clearSession();
+      endSession(queryClient);
       router.replace("/auth");
     },
   });
   const deleteMutation = useMutation({
     mutationFn: deleteCurrentUser,
     onSuccess: () => {
-      clearSession();
+      endSession(queryClient);
       router.replace("/auth");
     },
   });
@@ -59,9 +60,17 @@ function AccountContent() {
           <CardTitle>Profile</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3 text-sm text-neutral-300">
-          <Row label="email" value={userQuery.data?.email ?? "-"} />
-          <Row label="name" value={userQuery.data?.display_name ?? "-"} />
-          <Row label="created" value={userQuery.data ? formatDateTime(userQuery.data.created_at) : "-"} />
+          {userQuery.error ? (
+            <div className="rounded-md border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-200">
+              {errorMessage(userQuery.error)}
+            </div>
+          ) : (
+            <>
+              <Row label="email" value={userQuery.data?.email ?? "-"} />
+              <Row label="name" value={userQuery.data?.display_name ?? "-"} />
+              <Row label="created" value={userQuery.data ? formatDateTime(userQuery.data.created_at) : "-"} />
+            </>
+          )}
         </CardContent>
       </Card>
 

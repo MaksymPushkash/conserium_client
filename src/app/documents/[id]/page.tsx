@@ -1,15 +1,19 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Pencil, RotateCcw, Trash2 } from "lucide-react";
-import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
+import { useState } from "react";
 
+import { DocumentActions } from "@/components/documents/document-actions";
+import { DialogPanel } from "@/components/documents/document-dialog-panel";
+import { DocumentEnrichmentCard } from "@/components/documents/document-enrichment-card";
+import { DocumentMetadataCard } from "@/components/documents/document-metadata-card";
+import { DocumentProcessingCard } from "@/components/documents/document-processing-card";
+import { HighlightedContent } from "@/components/documents/highlighted-content";
 import { StatusPill } from "@/components/status-pill";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
 import {
   deleteDocument,
   getDocument,
@@ -21,14 +25,16 @@ import {
   reprocessDocument,
   retryDocument,
 } from "@/lib/api";
-import type { DocumentProcessingStep, DocumentStatusResponse } from "@/lib/types";
-import { cn, compactId, formatDateTime } from "@/lib/utils";
+import { compactId, formatDateTime } from "@/lib/utils";
 
 export default function DocumentDetailPage() {
   const params = useParams<{ id: string }>();
   const searchParams = useSearchParams();
   const router = useRouter();
   const queryClient = useQueryClient();
+  const [renameOpen, setRenameOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [renameTitle, setRenameTitle] = useState("");
   const focusedChunkId = searchParams.get("chunk");
   const documentQuery = useQuery({
     queryKey: ["document", params.id],
@@ -98,37 +104,22 @@ export default function DocumentDetailPage() {
   const visibleStatus = status?.status ?? document.status;
 
   return (
-    <div className="mx-auto grid max-w-6xl gap-10 p-4 md:grid-cols-[1fr_380px] md:p-10">
-      <section className="space-y-10">
-        <div className="flex flex-wrap gap-2">
-          <Link href="/documents">
-            <Button className="h-9 px-4 text-sm">Back to library</Button>
-          </Link>
-          {visibleStatus === "FAILED" ? (
-            <Button variant="secondary" onClick={() => retryMutation.mutate(document.id)} disabled={retryMutation.isPending}>
-              <RotateCcw className="h-4 w-4" />
-              Retry
-            </Button>
-          ) : null}
-          <Button variant="secondary" onClick={() => reprocessMutation.mutate(document.id)} disabled={reprocessMutation.isPending}>
-            <RotateCcw className="h-4 w-4" />
-            Reprocess
-          </Button>
-          <Button variant="danger" onClick={() => deleteMutation.mutate(document.id)} disabled={deleteMutation.isPending}>
-            <Trash2 className="h-4 w-4" />
-            Delete
-          </Button>
-          <Button
-            variant="secondary"
-            onClick={() => {
-              const title = window.prompt("Document title", document.title);
-              if (title?.trim()) renameMutation.mutate(title.trim());
-            }}
-          >
-            <Pencil className="h-4 w-4" />
-            Rename
-          </Button>
-        </div>
+    <div className="mx-auto grid max-w-6xl gap-10 p-4 md:grid-cols-[minmax(0,1fr)_minmax(320px,380px)] md:p-10">
+      <section className="min-w-0 space-y-10">
+        <DocumentActions
+          documentId={document.id}
+          failed={visibleStatus === "FAILED"}
+          retryPending={retryMutation.isPending}
+          reprocessPending={reprocessMutation.isPending}
+          deletePending={deleteMutation.isPending}
+          onRetry={(documentId) => retryMutation.mutate(documentId)}
+          onReprocess={(documentId) => reprocessMutation.mutate(documentId)}
+          onDelete={() => setDeleteOpen(true)}
+          onRename={() => {
+            setRenameTitle(document.title);
+            setRenameOpen(true);
+          }}
+        />
 
         <header className="space-y-5">
           <div className="font-jetbrains flex flex-wrap gap-2">
@@ -153,7 +144,7 @@ export default function DocumentDetailPage() {
           </Card>
         ) : null}
 
-        <Card>
+        <Card className="overflow-hidden">
           <CardHeader>
             <CardTitle>Content</CardTitle>
           </CardHeader>
@@ -163,82 +154,59 @@ export default function DocumentDetailPage() {
         </Card>
       </section>
 
-      <aside className="space-y-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Processing</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4 text-sm">
-            <div className="space-y-2">
-              <div className="flex items-center justify-between gap-3">
-                <StatusPill status={visibleStatus} />
-                <span className="font-jetbrains text-xs text-neutral-500">{status?.progress ?? 0}%</span>
-              </div>
-              <Progress value={status?.progress ?? 0} />
-              <div className="text-neutral-400">{status?.message ?? "No worker status yet."}</div>
-            </div>
-            <ProcessingTimeline status={status} />
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Metadata</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3 text-sm">
-            <Row label="word count" value={String(document.word_count ?? "-")} />
-            <Row label="source" value={document.source_url ?? document.file_path ?? "-"} />
-            <div className="grid grid-cols-[100px_1fr] gap-5 border-b border-white/10 pb-3">
-              <div className="font-jetbrains text-neutral-500">collection</div>
-              <select
-                className="h-9 rounded-md border border-white/10 bg-white/[0.03] px-3 text-sm text-neutral-300 outline-none"
-                value={document.collection_id ?? ""}
-                onChange={(event) => moveMutation.mutate(event.target.value || null)}
-              >
-                <option value="" className="bg-black text-neutral-200">
-                  None
-                </option>
-                {collectionsQuery.data?.items.map((collection) => (
-                  <option key={collection.id} value={collection.id} className="bg-black text-neutral-200">
-                    {collection.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <Row label="duplicate" value={document.is_duplicate ? `yes · ${document.duplicate_of_id}` : "no"} />
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Enrichment</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <TagBlock title="Tags" values={document.tags} />
-            <SuggestedQuestions values={document.suggested_questions} />
-            <JsonBlock title="Entities" value={document.entities} />
-            <JsonBlock title="Categories" value={document.categories} />
-            <JsonBlock title="Visual metadata" value={document.visual_metadata} />
-          </CardContent>
-        </Card>
+      <aside className="min-w-0 space-y-6">
+        <DocumentProcessingCard status={status} visibleStatus={visibleStatus} />
+        <DocumentMetadataCard
+          document={document}
+          collections={collectionsQuery.data?.items ?? []}
+          onMove={(collectionId) => moveMutation.mutate(collectionId)}
+        />
+        <DocumentEnrichmentCard document={document} />
       </aside>
+      {renameOpen ? (
+        <DialogPanel title="Rename document" onClose={() => setRenameOpen(false)}>
+          <form
+            className="space-y-4"
+            onSubmit={(event) => {
+              event.preventDefault();
+              const nextTitle = renameTitle.trim();
+              if (!nextTitle) return;
+              renameMutation.mutate(nextTitle, { onSuccess: () => setRenameOpen(false) });
+            }}
+          >
+            <input
+              value={renameTitle}
+              onChange={(event) => setRenameTitle(event.target.value)}
+              className="h-10 w-full rounded-md border border-white/10 bg-black px-3 text-sm text-white outline-none"
+              autoFocus
+            />
+            <div className="flex justify-end gap-2">
+              <Button type="button" variant="ghost" onClick={() => setRenameOpen(false)}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={renameMutation.isPending || !renameTitle.trim()}>
+                Save
+              </Button>
+            </div>
+          </form>
+        </DialogPanel>
+      ) : null}
+      {deleteOpen ? (
+        <DialogPanel title="Delete document" onClose={() => setDeleteOpen(false)}>
+          <div className="space-y-4">
+            <p className="text-sm leading-6 text-neutral-400">Delete "{document.title}" permanently?</p>
+            <div className="flex justify-end gap-2">
+              <Button type="button" variant="ghost" onClick={() => setDeleteOpen(false)}>
+                Cancel
+              </Button>
+              <Button variant="danger" onClick={() => deleteMutation.mutate(document.id)} disabled={deleteMutation.isPending}>
+                Delete
+              </Button>
+            </div>
+          </div>
+        </DialogPanel>
+      ) : null}
     </div>
-  );
-}
-
-function HighlightedContent({ content, start, end }: { content: string | null; start: number | null | undefined; end: number | null | undefined }) {
-  if (!content) {
-    return <pre className="whitespace-pre-wrap text-sm leading-7 text-white">No raw content returned.</pre>;
-  }
-  if (start === null || start === undefined || end === null || end === undefined || start < 0 || end <= start) {
-    return <pre className="whitespace-pre-wrap text-sm leading-7 text-white">{content}</pre>;
-  }
-  return (
-    <pre className="whitespace-pre-wrap text-sm leading-7 text-white">
-      {content.slice(0, start)}
-      <mark className="rounded bg-yellow-300 px-1 text-black">{content.slice(start, end)}</mark>
-      {content.slice(end)}
-    </pre>
   );
 }
 
@@ -248,89 +216,8 @@ function hasVisibleEnrichment(document: NonNullable<Awaited<ReturnType<typeof ge
       document.entities?.length ||
       document.categories?.length ||
       document.visual_metadata ||
+      document.suggested_questions.length ||
+      document.summary ||
       document.is_duplicate,
-  );
-}
-
-function ProcessingTimeline({ status }: { status: DocumentStatusResponse | undefined }) {
-  const timeline = status?.timeline ?? [];
-  if (!timeline.length) {
-    return <div className="font-jetbrains text-xs text-neutral-500">Timeline unavailable.</div>;
-  }
-  return (
-    <div className="space-y-3">
-      {timeline.map((step) => (
-        <TimelineStep key={step.key} step={step} />
-      ))}
-    </div>
-  );
-}
-
-function TimelineStep({ step }: { step: DocumentProcessingStep }) {
-  return (
-    <div className="grid grid-cols-[18px_1fr] gap-3">
-      <div className={cn("mt-1 h-3 w-3 rounded-full border", markerStyle(step.state))} />
-      <div>
-        <div className="flex items-center justify-between gap-2">
-          <div className="text-sm text-neutral-100">{step.label}</div>
-          <div className="font-jetbrains text-xs text-neutral-500">{step.state}</div>
-        </div>
-        {step.message ? <div className="mt-1 text-xs leading-5 text-neutral-500">{step.message}</div> : null}
-      </div>
-    </div>
-  );
-}
-
-function markerStyle(state: string) {
-  if (state === "complete") return "border-emerald-400 bg-emerald-400";
-  if (state === "current") return "border-orange-400 bg-orange-400";
-  if (state === "failed") return "border-red-400 bg-red-400";
-  return "border-white/20 bg-transparent";
-}
-
-function Row({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="grid grid-cols-[100px_1fr] gap-5 border-b border-white/10 pb-3">
-      <div className="font-jetbrains text-neutral-500">{label}</div>
-      <div className="break-words text-neutral-100">{value}</div>
-    </div>
-  );
-}
-
-function SuggestedQuestions({ values }: { values: string[] }) {
-  if (!values.length) return null;
-  return (
-    <div>
-      <div className="font-jetbrains mb-2 text-xs text-neutral-500">Suggested questions</div>
-      <div className="flex flex-wrap gap-2">
-        {values.map((value) => (
-          <span key={value} className="font-jetbrains rounded-md border border-white/10 px-2 py-1 text-xs text-neutral-400">
-            {value}
-          </span>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function TagBlock({ title, values }: { title: string; values: string[] }) {
-  return (
-    <div>
-      <div className="mb-3 text-sm font-normal text-neutral-100">{title}</div>
-      <div className="font-jetbrains flex flex-wrap gap-2">
-        {values.length ? values.map((value) => <Badge key={value}>{value}</Badge>) : <span className="text-sm text-neutral-500">None</span>}
-      </div>
-    </div>
-  );
-}
-
-function JsonBlock({ title, value }: { title: string; value: unknown }) {
-  return (
-    <div>
-      <div className="mb-3 text-sm font-normal text-neutral-100">{title}</div>
-      <pre className="font-jetbrains max-h-48 overflow-auto rounded-md border border-white/10 bg-black p-3 text-xs leading-5 text-neutral-300">
-        {value ? JSON.stringify(value, null, 2) : "None"}
-      </pre>
-    </div>
   );
 }

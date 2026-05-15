@@ -13,6 +13,7 @@ export default function CollectionsPage() {
   const queryClient = useQueryClient();
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
+  const [renamingCollection, setRenamingCollection] = useState<{ id: string; name: string } | null>(null);
   const collectionsQuery = useQuery({ queryKey: ["collections"], queryFn: () => listCollections({ limit: 100 }) });
   const createMutation = useMutation({
     mutationFn: createCollection,
@@ -72,8 +73,7 @@ export default function CollectionsPage() {
               <Button
                 variant="secondary"
                 onClick={() => {
-                  const nextName = window.prompt("Collection name", collection.name);
-                  if (nextName?.trim()) updateMutation.mutate({ id: collection.id, nextName: nextName.trim() });
+                  setRenamingCollection({ id: collection.id, name: collection.name });
                 }}
               >
                 Rename
@@ -85,6 +85,38 @@ export default function CollectionsPage() {
           ))}
         </CardContent>
       </Card>
+      {renamingCollection ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4" role="dialog" aria-modal="true" aria-label="Rename collection">
+          <form
+            className="w-full max-w-md rounded-lg border border-white/10 bg-black p-5 shadow-[0_24px_80px_rgba(0,0,0,0.55)]"
+            onSubmit={(event) => {
+              event.preventDefault();
+              const nextName = renamingCollection.name.trim();
+              if (!nextName) return;
+              updateMutation.mutate(
+                { id: renamingCollection.id, nextName },
+                { onSuccess: () => setRenamingCollection(null) },
+              );
+            }}
+          >
+            <h2 className="text-lg font-normal text-white">Rename collection</h2>
+            <Input
+              className="mt-4"
+              value={renamingCollection.name}
+              onChange={(event) => setRenamingCollection({ ...renamingCollection, name: event.target.value })}
+              autoFocus
+            />
+            <div className="mt-5 flex justify-end gap-2">
+              <Button type="button" variant="ghost" onClick={() => setRenamingCollection(null)}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={!renamingCollection.name.trim() || updateMutation.isPending}>
+                Save
+              </Button>
+            </div>
+          </form>
+        </div>
+      ) : null}
     </div>
   );
 }

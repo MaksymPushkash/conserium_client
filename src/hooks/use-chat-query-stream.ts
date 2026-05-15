@@ -72,6 +72,7 @@ export function useChatQueryStream({
     let refragContext: RefragContext | undefined;
     let debug: QueryDebug | undefined;
     let activeConversationId = conversationId;
+    let streamErrorMessage: string | null = null;
 
     try {
       await streamQueryDocuments(
@@ -121,13 +122,14 @@ export function useChatQueryStream({
             }
           }
           if (event.event === "error") {
-            updateMessage(assistantMessageId, { content: String(event.data.message ?? "Stream failed") });
+            streamErrorMessage = String(event.data.message ?? "Stream failed");
+            updateMessage(assistantMessageId, { content: streamErrorMessage });
           }
         },
         controller.signal,
       );
     } catch (error) {
-      updateMessage(assistantMessageId, { content: error instanceof Error ? error.message : "Stream failed" });
+      updateMessage(assistantMessageId, { content: streamErrorMessage ?? (error instanceof Error ? error.message : "Stream failed") });
     } finally {
       controllerRef.current = null;
     }

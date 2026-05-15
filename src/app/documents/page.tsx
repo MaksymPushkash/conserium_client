@@ -1,6 +1,6 @@
 "use client";
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { useState } from "react";
 
@@ -13,13 +13,26 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useDocumentFilters } from "@/hooks/use-document-filters";
 import { useUndoableDocumentDelete } from "@/hooks/use-undoable-document-delete";
 import { bulkDeleteDocuments, bulkReprocessDocuments, deleteDocument, listCollections, listDocuments } from "@/lib/api";
+import { errorMessage } from "@/lib/api/transport";
+
+const DOCUMENT_PAGE_SIZE = 100;
 
 export default function DocumentsPage() {
   const queryClient = useQueryClient();
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const collectionsQuery = useQuery({ queryKey: ["collections"], queryFn: () => listCollections({ limit: 100 }) });
-  const documentsQuery = useQuery({ queryKey: ["documents"], queryFn: () => listDocuments({ limit: 100 }) });
-  const filters = useDocumentFilters(documentsQuery.data?.items ?? []);
+  const documentsQuery = useInfiniteQuery({
+    queryKey: ["documents"],
+    initialPageParam: 0,
+    queryFn: ({ pageParam }) => listDocuments({ limit: DOCUMENT_PAGE_SIZE, offset: pageParam }),
+    getNextPageParam: (lastPage) => {
+      const nextOffset = lastPage.offset + lastPage.items.length;
+      return nextOffset < lastPage.total ? nextOffset : undefined;
+    },
+  });
+  const documents = documentsQuery.data?.pages.flatMap((page) => page.items) ?? [];
+  const totalDocuments = documentsQuery.data?.pages[0]?.total ?? 0;
+  const filters = useDocumentFilters(documents);
 
   const deleteMutation = useMutation({
     mutationFn: deleteDocument,
@@ -93,7 +106,10 @@ export default function DocumentsPage() {
 
       <Card>
         <CardHeader className="flex flex-row items-center justify-between gap-3">
-          <CardTitle>{filters.filteredDocuments.length} documents</CardTitle>
+          <CardTitle>
+            {filters.filteredDocuments.length} documents
+            {documentsQuery.data ? <span className="font-jetbrains ml-2 text-xs font-light text-neutral-500">of {totalDocuments} loaded</span> : null}
+          </CardTitle>
           <DocumentsBulkActions
             count={selectedIds.size}
             reprocessPending={bulkReprocessMutation.isPending}
@@ -103,12 +119,25 @@ export default function DocumentsPage() {
           />
         </CardHeader>
         <CardContent>
-          <DocumentList
-            documents={filters.filteredDocuments}
-            selectedIds={selectedIds}
-            onToggleSelected={toggleSelected}
-            onDelete={deleteDocumentWithUndo}
-          />
+          {documentsQuery.error ? (
+            <div className="rounded-md border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-200">
+              {errorMessage(documentsQuery.error)}
+            </div>
+          ) : (
+            <DocumentList
+              documents={filters.filteredDocuments}
+              selectedIds={selectedIds}
+              onToggleSelected={toggleSelected}
+              onDelete={deleteDocumentWithUndo}
+            />
+          )}
+          {!documentsQuery.error && documentsQuery.hasNextPage ? (
+            <div className="mt-4 flex justify-center">
+              <Button variant="secondary" onClick={() => void documentsQuery.fetchNextPage()} disabled={documentsQuery.isFetchingNextPage}>
+                {documentsQuery.isFetchingNextPage ? "Loading..." : "Load more"}
+              </Button>
+            </div>
+          ) : null}
         </CardContent>
       </Card>
       {pendingDelete ? <UndoDeleteToast label={pendingDelete.label} onUndo={undoDelete} /> : null}

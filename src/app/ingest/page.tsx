@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { Textarea } from "@/components/ui/textarea";
 import { getDocumentStatus, ingestDocument, ingestFile, listCollections } from "@/lib/api";
+import { errorMessage } from "@/lib/api/transport";
 import type { DocumentResponse, DocumentType } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -156,7 +157,7 @@ export default function IngestPage() {
               ) : null}
               {mutation.error ? (
                 <div className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">
-                  {mutation.error instanceof Error ? mutation.error.message : "Ingestion failed"}
+                  {errorMessage(mutation.error)}
                 </div>
               ) : null}
               <Button disabled={!canSubmit || mutation.isPending}>{mutation.isPending ? "Queueing..." : "Queue ingestion"}</Button>

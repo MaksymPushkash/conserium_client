@@ -1,6 +1,7 @@
 "use client";
 
 import { API_V1_URL } from "@/lib/config";
+import { invalidateSession } from "@/lib/session";
 import type { TokenResponse } from "@/lib/types";
 import { useAuthStore } from "@/stores/auth-store";
 
@@ -47,19 +48,18 @@ export function errorMessage(error: unknown): string {
   return "Something went wrong";
 }
 
-async function refreshSessionRequest(refreshToken?: string): Promise<TokenResponse> {
+async function refreshSessionRequest(): Promise<TokenResponse> {
   return request<TokenResponse>(
     "/auth/refresh",
     {
       method: "POST",
-      body: refreshToken === undefined ? undefined : JSON.stringify({ refresh_token: refreshToken }),
     },
     false,
   );
 }
 
-export async function request<T>(path: string, init: RequestInit = {}, retry = true): Promise<T> {
-  const { accessToken, refreshToken, setSession, clearSession } = useAuthStore.getState();
+export async function authenticatedFetch(path: string, init: RequestInit = {}, retry = true): Promise<Response> {
+  const { accessToken, setSession } = useAuthStore.getState();
   const headers = new Headers(init.headers);
   if (init.body && !headers.has("Content-Type") && !(init.body instanceof FormData)) {
     headers.set("Content-Type", "application/json");
@@ -68,21 +68,34 @@ export async function request<T>(path: string, init: RequestInit = {}, retry = t
     headers.set("Authorization", `Bearer ${accessToken}`);
   }
 
-  const response = await fetch(`${API_V1_URL}${path}`, {
-    ...init,
-    headers,
-    credentials: "include",
-  });
+  let response: Response;
+  try {
+    response = await fetch(`${API_V1_URL}${path}`, {
+      ...init,
+      headers,
+      credentials: "include",
+    });
+  } catch {
+    throw new ApiError(0, {
+      detail: `Unable to reach API at ${API_V1_URL}. Check that the backend is running and that NEXT_PUBLIC_API_BASE_URL matches it.`,
+    });
+  }
 
-  if (response.status === 401 && retry && refreshToken !== null) {
+  if (response.status === 401 && retry) {
     try {
-      const refreshed = await refreshSessionRequest(refreshToken ?? undefined);
-      setSession(refreshed.access_token, refreshed.refresh_token);
-      return request<T>(path, init, false);
+      const refreshed = await refreshSessionRequest();
+      setSession(refreshed.access_token);
+      return authenticatedFetch(path, init, false);
     } catch {
-      clearSession();
+      invalidateSession();
     }
   }
+
+  return response;
+}
+
+export async function request<T>(path: string, init: RequestInit = {}, retry = true): Promise<T> {
+  const response = await authenticatedFetch(path, init, retry);
 
   if (!response.ok) {
     throw new ApiError(response.status, await readPayload(response));
