@@ -1,6 +1,7 @@
 "use client";
 
 import type { TokenResponse, UserResponse } from "@/lib/types";
+import { API_V1_URL } from "@/lib/config";
 import { request } from "./transport";
 
 export function register(payload: { email: string; password: string; display_name?: string | null }): Promise<TokenResponse> {
@@ -46,5 +47,5 @@ export function deleteCurrentUser(): Promise<void> {
 export const deleteAccount = deleteCurrentUser;
 
 export function oauthUrl(provider: "google" | "github"): string {
-  return `/api/v1/auth/${provider}`;
+  return `${API_V1_URL}/auth/${provider}`;
 }
