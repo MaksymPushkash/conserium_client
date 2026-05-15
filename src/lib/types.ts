@@ -1,5 +1,6 @@
 export type DocumentType = "PDF" | "URL" | "YOUTUBE" | "IMAGE" | "TEXT" | "MARKDOWN";
 export type DocumentStatus = "PENDING" | "QUEUED" | "PROCESSING" | "READY" | "FAILED";
+export type DocumentActivityTemperature = "hot" | "cold" | "forgotten" | string;
 
 export type MetadataItem = Record<string, unknown>;
 
@@ -7,11 +8,32 @@ export interface TokenResponse {
   access_token: string;
 }
 
+export interface AppearancePreferences {
+  theme: "dark";
+}
+
+export interface PrivacyPreferences {
+  share_usage_data: boolean;
+  retain_query_history: boolean;
+}
+
+export interface AIPreferences {
+  answer_language: "match_question" | "english" | "ukrainian";
+  retrieval_depth: "focused" | "balanced" | "broad";
+}
+
+export interface UserPreferences {
+  appearance: AppearancePreferences;
+  privacy: PrivacyPreferences;
+  ai: AIPreferences;
+}
+
 export interface UserResponse {
   id: string;
   email: string;
   display_name: string | null;
   is_active: boolean;
+  preferences: UserPreferences;
   created_at: string;
   updated_at: string | null;
 }
@@ -35,6 +57,10 @@ export interface DocumentResponse {
   visual_metadata: MetadataItem | null;
   suggested_questions: string[];
   tags: string[];
+  last_used_at: string | null;
+  query_count: number;
+  citation_count: number;
+  activity_temperature: DocumentActivityTemperature;
   is_duplicate: boolean;
   duplicate_of_id: string | null;
   created_at: string;
@@ -48,6 +74,21 @@ export interface DocumentListResponse {
   total: number;
   limit: number;
   offset: number;
+}
+
+export interface DocumentSearchResult {
+  document: DocumentListItem;
+  snippet: string;
+  score: number | null;
+  chunk_id: string;
+  page_number: number | null;
+}
+
+export interface DocumentSearchResponse {
+  items: DocumentSearchResult[];
+  query: string;
+  total: number;
+  limit: number;
 }
 
 export interface DocumentProcessingStep {

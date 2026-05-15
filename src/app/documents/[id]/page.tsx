@@ -5,6 +5,7 @@ import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 
 import { DocumentActions } from "@/components/documents/document-actions";
+import { DocumentActivityIndicator } from "@/components/documents/document-activity-indicator";
 import { DialogPanel } from "@/components/documents/document-dialog-panel";
 import { DocumentEnrichmentCard } from "@/components/documents/document-enrichment-card";
 import { DocumentMetadataCard } from "@/components/documents/document-metadata-card";
@@ -124,6 +125,7 @@ export default function DocumentDetailPage() {
         <header className="space-y-5">
           <div className="font-jetbrains flex flex-wrap gap-2">
             <StatusPill status={visibleStatus} />
+            <DocumentActivityIndicator temperature={document.activity_temperature} />
             <Badge>{document.type}</Badge>
             {document.language ? <Badge>{document.language}</Badge> : null}
           </div>

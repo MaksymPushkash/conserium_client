@@ -1,6 +1,14 @@
 "use client";
 
-import type { DocumentChunkResponse, DocumentListResponse, DocumentResponse, DocumentStatus, DocumentStatusResponse, DocumentType } from "@/lib/types";
+import type {
+  DocumentChunkResponse,
+  DocumentListResponse,
+  DocumentResponse,
+  DocumentSearchResponse,
+  DocumentStatus,
+  DocumentStatusResponse,
+  DocumentType,
+} from "@/lib/types";
 import { request } from "./transport";
 
 export interface DocumentListParams {
@@ -21,6 +29,25 @@ export function listDocuments(params: DocumentListParams = {}): Promise<Document
   }
   const query = search.toString();
   return request<DocumentListResponse>(`/documents${query ? `?${query}` : ""}`);
+}
+
+export interface DocumentSearchParams {
+  query: string;
+  limit?: number;
+  type?: DocumentType | null;
+  status?: DocumentStatus | null;
+  collection_id?: string | null;
+  tag?: string | null;
+}
+
+export function searchDocuments(params: DocumentSearchParams): Promise<DocumentSearchResponse> {
+  const search = new URLSearchParams();
+  for (const [key, value] of Object.entries(params)) {
+    if (value !== undefined && value !== null && value !== "") {
+      search.set(key, String(value));
+    }
+  }
+  return request<DocumentSearchResponse>(`/documents/search?${search.toString()}`);
 }
 
 export function getDocument(id: string): Promise<DocumentResponse> {

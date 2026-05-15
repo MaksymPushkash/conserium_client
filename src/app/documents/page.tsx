@@ -2,7 +2,7 @@
 
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
 import { DocumentList } from "@/components/documents/document-list";
 import { DocumentsBulkActions } from "@/components/documents/documents-bulk-actions";
@@ -10,9 +10,10 @@ import { DocumentsFilterToolbar } from "@/components/documents/documents-filter-
 import { UndoDeleteToast } from "@/components/documents/undo-delete-toast";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import { useDocumentFilters } from "@/hooks/use-document-filters";
 import { useUndoableDocumentDelete } from "@/hooks/use-undoable-document-delete";
-import { bulkDeleteDocuments, bulkReprocessDocuments, deleteDocument, listCollections, listDocuments } from "@/lib/api";
+import { bulkDeleteDocuments, bulkReprocessDocuments, deleteDocument, listCollections, listDocuments, searchDocuments } from "@/lib/api";
 import { errorMessage } from "@/lib/api/transport";
 
 const DOCUMENT_PAGE_SIZE = 100;
@@ -33,6 +34,26 @@ export default function DocumentsPage() {
   const documents = documentsQuery.data?.pages.flatMap((page) => page.items) ?? [];
   const totalDocuments = documentsQuery.data?.pages[0]?.total ?? 0;
   const filters = useDocumentFilters(documents);
+  const debouncedSearch = useDebouncedValue(filters.search.trim(), 300);
+  const semanticSearchEnabled = debouncedSearch.length > 0;
+  const searchQuery = useQuery({
+    queryKey: ["documents", "search", debouncedSearch, filters.type, filters.status, filters.collectionId, filters.tag],
+    queryFn: () => searchDocuments({
+      query: debouncedSearch,
+      limit: 50,
+      type: filters.type === "ALL" ? null : filters.type,
+      status: filters.status === "ALL" ? null : filters.status,
+      collection_id: filters.collectionId === "ALL" ? null : filters.collectionId,
+      tag: filters.tag === "ALL" ? null : filters.tag,
+    }),
+    enabled: semanticSearchEnabled,
+  });
+  const semanticDocuments = searchQuery.data?.items.map((item) => item.document) ?? [];
+  const searchSnippets = useMemo(() => {
+    return Object.fromEntries((searchQuery.data?.items ?? []).map((item) => [item.document.id, item.snippet]));
+  }, [searchQuery.data?.items]);
+  const displayedDocuments = semanticSearchEnabled ? semanticDocuments : filters.filteredDocuments;
+  const activeError = semanticSearchEnabled ? searchQuery.error : documentsQuery.error;
 
   const deleteMutation = useMutation({
     mutationFn: deleteDocument,
@@ -107,8 +128,10 @@ export default function DocumentsPage() {
       <Card>
         <CardHeader className="flex flex-row items-center justify-between gap-3">
           <CardTitle>
-            {filters.filteredDocuments.length} documents
-            {documentsQuery.data ? <span className="font-jetbrains ml-2 text-xs font-light text-neutral-500">of {totalDocuments} loaded</span> : null}
+            {displayedDocuments.length} {semanticSearchEnabled ? "semantic results" : "documents"}
+            {!semanticSearchEnabled && documentsQuery.data ? (
+              <span className="font-jetbrains ml-2 text-xs font-light text-neutral-500">of {totalDocuments} loaded</span>
+            ) : null}
           </CardTitle>
           <DocumentsBulkActions
             count={selectedIds.size}
@@ -119,19 +142,20 @@ export default function DocumentsPage() {
           />
         </CardHeader>
         <CardContent>
-          {documentsQuery.error ? (
+          {activeError ? (
             <div className="rounded-md border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-200">
-              {errorMessage(documentsQuery.error)}
+              {errorMessage(activeError)}
             </div>
           ) : (
             <DocumentList
-              documents={filters.filteredDocuments}
+              documents={displayedDocuments}
               selectedIds={selectedIds}
+              searchSnippets={semanticSearchEnabled ? searchSnippets : undefined}
               onToggleSelected={toggleSelected}
               onDelete={deleteDocumentWithUndo}
             />
           )}
-          {!documentsQuery.error && documentsQuery.hasNextPage ? (
+          {!semanticSearchEnabled && !documentsQuery.error && documentsQuery.hasNextPage ? (
             <div className="mt-4 flex justify-center">
               <Button variant="secondary" onClick={() => void documentsQuery.fetchNextPage()} disabled={documentsQuery.isFetchingNextPage}>
                 {documentsQuery.isFetchingNextPage ? "Loading..." : "Load more"}

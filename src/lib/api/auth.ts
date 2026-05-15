@@ -1,6 +1,6 @@
 "use client";
 
-import type { TokenResponse, UserResponse } from "@/lib/types";
+import type { TokenResponse, UserPreferences, UserResponse } from "@/lib/types";
 import { API_V1_URL } from "@/lib/config";
 import { request } from "./transport";
 
@@ -27,6 +27,14 @@ export function getCurrentUser(): Promise<UserResponse> {
 }
 
 export const fetchMe = getCurrentUser;
+
+export function getUserPreferences(): Promise<UserPreferences> {
+  return request<UserPreferences>("/users/preferences");
+}
+
+export function updateUserPreferences(payload: UserPreferences): Promise<UserPreferences> {
+  return request<UserPreferences>("/users/preferences", { method: "PATCH", body: JSON.stringify(payload) });
+}
 
 export function logout(): Promise<void> {
   return request<void>("/auth/logout", {

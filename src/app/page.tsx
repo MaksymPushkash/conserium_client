@@ -123,8 +123,8 @@ export default function LandingPage() {
       <footer className="font-jetbrains relative z-10 mx-auto flex max-w-7xl items-center justify-between px-6 py-14 text-xs text-neutral-600">
         <span>© 2026 Cortex. All rights reserved.</span>
         <div className="flex gap-8">
-          <span>Privacy</span>
-          <span>Terms</span>
+          <Link href="/privacy" className="hover:text-white">Privacy</Link>
+          <Link href="/terms" className="hover:text-white">Terms</Link>
         </div>
       </footer>
     </main>
