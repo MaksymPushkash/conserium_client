@@ -35,7 +35,7 @@ export function DocumentsFilterToolbar({
 }: DocumentsFilterToolbarProps) {
   return (
     <div className="grid gap-3 md:grid-cols-[1fr_180px_180px_220px_180px]">
-      <Input value={search} onChange={(event) => onSearchChange(event.target.value)} placeholder="Search titles" className="font-jetbrains" />
+      <Input value={search} onChange={(event) => onSearchChange(event.target.value)} placeholder="Search by meaning" className="font-jetbrains" />
       <select className={selectClassName} value={type} onChange={(event) => onTypeChange(event.target.value as DocumentType | "ALL")}>
         {documentTypeOptions.map((option) => <option key={option} className="bg-black text-neutral-200">{option}</option>)}
       </select>

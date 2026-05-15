@@ -1,7 +1,7 @@
 "use client";
 
 import { useQueryClient } from "@tanstack/react-query";
-import { Activity, FileText, Files, Folder, LogOut, Menu, MessageSquare, Plus, Search, User, X } from "lucide-react";
+import { Activity, FileText, Files, Folder, LogOut, Menu, MessageSquare, Plus, Search, Settings, X } from "lucide-react";
 import type { Route } from "next";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -22,7 +22,7 @@ const baseNav: Array<{ href: Route; label: string; icon: typeof Search; debugOnl
   { href: "/notes", label: "Notes", icon: FileText },
   { href: "/chat", label: "Chat", icon: MessageSquare },
   { href: "/debug", label: "Debug", icon: Activity, debugOnly: true },
-  { href: "/account", label: "Account", icon: User },
+  { href: "/settings", label: "Settings", icon: Settings },
 ];
 
 const nav = baseNav.filter((item) => !item.debugOnly || DEBUG_UI_ENABLED);
@@ -33,7 +33,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
   const accessToken = useAuthStore((state) => state.accessToken);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
-  const isPublicRoute = pathname === "/" || pathname.startsWith("/auth");
+  const isPublicRoute = pathname === "/" || pathname === "/privacy" || pathname === "/terms" || pathname.startsWith("/auth");
 
   useEffect(() => {
     if (!accessToken && !isPublicRoute) {

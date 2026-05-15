@@ -20,6 +20,10 @@ function documentItem(overrides: Partial<DocumentListItem> = {}): DocumentListIt
     language: "en",
     suggested_questions: [],
     tags: ["python"],
+    last_used_at: "2026-05-15T00:00:00Z",
+    query_count: 0,
+    citation_count: 0,
+    activity_temperature: "hot",
     is_duplicate: false,
     duplicate_of_id: null,
     created_at: "2026-05-15T00:00:00Z",
@@ -41,5 +45,20 @@ describe("DocumentList", () => {
 
     expect(screen.getByText("Async Python")).toBeInTheDocument();
     expect(screen.getByText("Async Python overlaps I/O work with coroutines and an event loop.")).toBeInTheDocument();
+  });
+
+  it("prefers semantic search snippets over summaries", () => {
+    render(
+      <DocumentList
+        documents={[documentItem()]}
+        selectedIds={new Set()}
+        searchSnippets={{ "doc-1": "Matched chunk about asyncio and concurrent requests." }}
+        onToggleSelected={vi.fn()}
+        onDelete={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText("Matched chunk about asyncio and concurrent requests.")).toBeInTheDocument();
+    expect(screen.queryByText("Async Python overlaps I/O work with coroutines and an event loop.")).not.toBeInTheDocument();
   });
 });
