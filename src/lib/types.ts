@@ -5,7 +5,6 @@ export type MetadataItem = Record<string, unknown>;
 
 export interface TokenResponse {
   access_token: string;
-  refresh_token: string;
 }
 
 export interface UserResponse {
@@ -239,6 +238,13 @@ export interface QueryResponse {
   sources: QuerySource[];
   refrag_context: RefragContext;
   debug: QueryDebug | null;
+}
+
+export interface QueryStreamDone {
+  query_id: string;
+  conversation_id: string;
+  eval_scores: Record<string, unknown>;
+  trace_id: string | null;
 }
 
 export type QueryStreamEventName = "metadata" | "token" | "sources" | "debug" | "refrag_context" | "done" | "error";

@@ -1,11 +1,11 @@
 "use client";
 
+import { useQueryClient } from "@tanstack/react-query";
 import { Suspense, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { refreshSession } from "@/lib/api";
-import { useAuthStore } from "@/stores/auth-store";
+import { startSession } from "@/lib/session";
 
 export default function OAuthCallbackPage() {
   return (
@@ -17,14 +17,13 @@ export default function OAuthCallbackPage() {
 
 function OAuthCallbackContent() {
   const router = useRouter();
-  const setSession = useAuthStore((state) => state.setSession);
+  const queryClient = useQueryClient();
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fragment = new URLSearchParams(window.location.hash.replace(/^#/, ""));
     const query = new URLSearchParams(window.location.search);
     const accessToken = fragment.get("access_token") ?? query.get("access_token");
-    const refreshToken = fragment.get("refresh_token") ?? query.get("refresh_token");
 
     if (!accessToken) {
       setError("Missing access token in OAuth callback.");
@@ -33,12 +32,7 @@ function OAuthCallbackContent() {
 
     async function completeOAuthLogin(token: string) {
       try {
-        if (refreshToken) {
-          setSession(token, refreshToken);
-        } else {
-          const refreshed = await refreshSession();
-          setSession(refreshed.access_token, refreshed.refresh_token);
-        }
+        startSession(queryClient, token);
         router.replace("/");
       } catch {
         setError("OAuth session refresh failed.");
@@ -46,7 +40,7 @@ function OAuthCallbackContent() {
     }
 
     void completeOAuthLogin(accessToken);
-  }, [router, setSession]);
+  }, [queryClient, router]);
 
   return <CallbackShell error={error} />;
 }

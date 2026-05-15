@@ -1,5 +1,6 @@
 "use client";
 
+import { useQueryClient } from "@tanstack/react-query";
 import { Github } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -9,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { login, oauthUrl, register } from "@/lib/api";
-import { useAuthStore } from "@/stores/auth-store";
+import { startSession } from "@/lib/session";
 
 type Mode = "login" | "register";
 
@@ -24,7 +25,7 @@ export default function AuthPage() {
 function AuthContent() {
   const router = useRouter();
   const params = useSearchParams();
-  const setSession = useAuthStore((state) => state.setSession);
+  const queryClient = useQueryClient();
   const [mode, setMode] = useState<Mode>("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -47,7 +48,7 @@ function AuthContent() {
         mode === "login"
           ? await login({ email, password })
           : await register({ email, password, display_name: displayName || null });
-      setSession(tokens.access_token, tokens.refresh_token);
+      startSession(queryClient, tokens.access_token);
       router.replace("/dashboard");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Authentication failed");

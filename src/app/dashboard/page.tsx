@@ -8,6 +8,7 @@ import { StatusPill } from "@/components/status-pill";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getCurrentUser, listDocuments } from "@/lib/api";
+import { errorMessage } from "@/lib/api/transport";
 import { formatDateTime } from "@/lib/utils";
 
 export default function DashboardPage() {
@@ -20,7 +21,7 @@ export default function DashboardPage() {
       <header className="flex flex-col justify-between gap-4 border-b border-neutral-800 pb-6 md:flex-row md:items-end">
         <div>
           <div className="font-jetbrains text-sm text-neutral-500">
-            Signed in as {userQuery.data?.email ?? "loading..."}
+            Signed in as {userQuery.isLoading ? "loading..." : userQuery.data?.email ?? "unavailable"}
           </div>
           <h1 className="mt-2 text-3xl font-semibold tracking-normal text-white">Knowledge workspace</h1>
         </div>
@@ -55,7 +56,10 @@ export default function DashboardPage() {
         </CardHeader>
         <CardContent>
           <div className="divide-y divide-neutral-900">
-            {documents.map((document) => (
+            {documentsQuery.error ? (
+              <div className="py-8 text-sm text-red-300">{errorMessage(documentsQuery.error)}</div>
+            ) : null}
+            {!documentsQuery.error && documents.map((document) => (
               <Link
                 key={document.id}
                 href={`/documents/${document.id}`}
@@ -71,7 +75,7 @@ export default function DashboardPage() {
                 </div>
               </Link>
             ))}
-            {!documents.length ? <div className="py-8 text-sm text-neutral-500">No documents yet.</div> : null}
+            {!documentsQuery.error && !documents.length ? <div className="py-8 text-sm text-neutral-500">No documents yet.</div> : null}
           </div>
         </CardContent>
       </Card>

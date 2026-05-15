@@ -11,27 +11,25 @@ export function login(payload: { email: string; password: string }): Promise<Tok
   return request<TokenResponse>("/auth/login", { method: "POST", body: JSON.stringify(payload) }, false);
 }
 
-export function refreshSession(refreshToken?: string): Promise<TokenResponse> {
+export function refreshSession(): Promise<TokenResponse> {
   return request<TokenResponse>(
     "/auth/refresh",
     {
       method: "POST",
-      body: refreshToken === undefined ? undefined : JSON.stringify({ refresh_token: refreshToken }),
     },
     false,
   );
 }
 
 export function getCurrentUser(): Promise<UserResponse> {
-  return request<UserResponse>("/auth/me");
+  return request<UserResponse>("/users/me");
 }
 
 export const fetchMe = getCurrentUser;
 
-export function logout(refreshToken?: string | null): Promise<void> {
+export function logout(): Promise<void> {
   return request<void>("/auth/logout", {
     method: "POST",
-    body: refreshToken === undefined ? undefined : JSON.stringify({ refresh_token: refreshToken }),
   });
 }
 
@@ -42,7 +40,7 @@ export function logoutEverywhere(): Promise<void> {
 export const logoutAll = logoutEverywhere;
 
 export function deleteCurrentUser(): Promise<void> {
-  return request<void>("/auth/account", { method: "DELETE" });
+  return request<void>("/users/me", { method: "DELETE" });
 }
 
 export const deleteAccount = deleteCurrentUser;
