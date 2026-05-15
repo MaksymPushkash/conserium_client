@@ -31,6 +31,9 @@ export function DocumentList({ documents, selectedIds, onToggleSelected, onDelet
             <div className="font-jetbrains mt-1 text-sm text-neutral-500">
               {document.type} · {document.language ?? "unknown language"} · {formatDateTime(document.created_at)}
             </div>
+            {document.summary ? (
+              <p className="mt-2 line-clamp-2 max-w-3xl text-sm leading-6 text-neutral-400">{document.summary}</p>
+            ) : null}
             {document.tags.length ? (
               <div className="mt-2 flex flex-wrap gap-1.5">
                 {document.tags.map((documentTag) => (

@@ -144,6 +144,15 @@ export default function DocumentDetailPage() {
           </Card>
         ) : null}
 
+        {document.summary ? (
+          <Card>
+            <CardHeader>
+              <CardTitle>Summary</CardTitle>
+            </CardHeader>
+            <CardContent className="text-sm leading-7 text-neutral-300">{document.summary}</CardContent>
+          </Card>
+        ) : null}
+
         <Card className="overflow-hidden">
           <CardHeader>
             <CardTitle>Content</CardTitle>
