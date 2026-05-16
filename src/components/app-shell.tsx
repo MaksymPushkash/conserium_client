@@ -1,7 +1,21 @@
 "use client";
 
 import { useQueryClient } from "@tanstack/react-query";
-import { Activity, FileText, Files, Folder, LogOut, Menu, MessageSquare, Plus, Search, Settings, X } from "lucide-react";
+import {
+  Activity,
+  FileText,
+  Files,
+  Folder,
+  LogOut,
+  Menu,
+  MessageSquare,
+  PenLine,
+  Plus,
+  Search,
+  Settings,
+  Tags,
+  X,
+} from "lucide-react";
 import type { Route } from "next";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -18,6 +32,8 @@ const baseNav: Array<{ href: Route; label: string; icon: typeof Search; debugOnl
   { href: "/dashboard", label: "Overview", icon: Search },
   { href: "/ingest", label: "Ingest", icon: Plus },
   { href: "/documents", label: "Library", icon: Files },
+  { href: "/topics", label: "Topics", icon: Tags },
+  { href: "/drafts", label: "Drafts", icon: PenLine },
   { href: "/collections", label: "Collections", icon: Folder },
   { href: "/notes", label: "Notes", icon: FileText },
   { href: "/chat", label: "Chat", icon: MessageSquare },

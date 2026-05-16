@@ -4,11 +4,8 @@ import { ArrowRight, Brain, FileText, MessageSquare, Sparkles } from "lucide-rea
 import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
-import { useAuthStore } from "@/stores/auth-store";
 
 export default function LandingPage() {
-  const accessToken = useAuthStore((state) => state.accessToken);
-
   return (
     <main className="min-h-screen overflow-x-hidden bg-black text-white">
       <div className="pointer-events-none fixed inset-0 opacity-70">
@@ -30,27 +27,21 @@ export default function LandingPage() {
               PHILOSOPHY
             </a>
             <div className="hidden h-5 w-px bg-white/10 sm:block" />
-            {accessToken ? (
-              <Link href="/dashboard">
-                <Button className="h-11 px-6">Open app</Button>
+            <div className="flex items-center gap-2">
+              <Link href="/auth">
+                <Button
+                  variant="secondary"
+                  className="h-11 px-5"
+                >
+                  Sign in
+                </Button>
               </Link>
-            ) : (
-              <div className="flex items-center gap-2">
-                <Link href="/auth">
-                  <Button
-                    variant="secondary"
-                    className="h-11 px-5"
-                  >
-                    Sign in
-                  </Button>
-                </Link>
-                <Link href="/auth?mode=register">
-                  <Button className="h-11 px-5">
-                    Sign up
-                  </Button>
-                </Link>
-              </div>
-            )}
+              <Link href="/auth?mode=register">
+                <Button className="h-11 px-5">
+                  Sign up
+                </Button>
+              </Link>
+            </div>
           </nav>
         </div>
       </header>
@@ -71,31 +62,20 @@ export default function LandingPage() {
             query like ChatGPT.
           </p>
           <div className="mt-10 flex flex-wrap gap-3">
-            {accessToken ? (
-              <Link href="/dashboard">
-                <Button className="h-12 px-6">
-                  Open workspace
-                  <ArrowRight className="h-4 w-4" />
-                </Button>
-              </Link>
-            ) : (
-              <>
-                <Link href="/auth?mode=register">
-                  <Button className="h-12 px-6">
-                    Sign up
-                    <ArrowRight className="h-4 w-4" />
-                  </Button>
-                </Link>
-                <Link href="/auth">
-                  <Button
-                    variant="secondary"
-                    className="h-12 px-6"
-                  >
-                    Sign in
-                  </Button>
-                </Link>
-              </>
-            )}
+            <Link href="/auth?mode=register">
+              <Button className="h-12 px-6">
+                Sign up
+                <ArrowRight className="h-4 w-4" />
+              </Button>
+            </Link>
+            <Link href="/auth">
+              <Button
+                variant="secondary"
+                className="h-12 px-6"
+              >
+                Sign in
+              </Button>
+            </Link>
           </div>
         </div>
 

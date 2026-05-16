@@ -33,7 +33,7 @@ function OAuthCallbackContent() {
     async function completeOAuthLogin(token: string) {
       try {
         startSession(queryClient, token);
-        router.replace("/");
+        router.replace("/dashboard");
       } catch {
         setError("OAuth session refresh failed.");
       }
