@@ -2,6 +2,7 @@
 
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useMemo, useState } from "react";
 
 import { DocumentList } from "@/components/documents/document-list";
@@ -20,6 +21,7 @@ const DOCUMENT_PAGE_SIZE = 100;
 
 export default function DocumentsPage() {
   const queryClient = useQueryClient();
+  const searchParams = useSearchParams();
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const collectionsQuery = useQuery({ queryKey: ["collections"], queryFn: () => listCollections({ limit: 100 }) });
   const documentsQuery = useInfiniteQuery({
@@ -33,7 +35,7 @@ export default function DocumentsPage() {
   });
   const documents = documentsQuery.data?.pages.flatMap((page) => page.items) ?? [];
   const totalDocuments = documentsQuery.data?.pages[0]?.total ?? 0;
-  const filters = useDocumentFilters(documents);
+  const filters = useDocumentFilters(documents, searchParams.get("tag"));
   const debouncedSearch = useDebouncedValue(filters.search.trim(), 300);
   const semanticSearchEnabled = debouncedSearch.length > 0;
   const searchQuery = useQuery({

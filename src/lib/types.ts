@@ -91,6 +91,74 @@ export interface DocumentSearchResponse {
   limit: number;
 }
 
+export interface StatsOverviewResponse {
+  total_documents: number;
+  ready_documents: number;
+  processing_documents: number;
+  failed_documents: number;
+  hot_documents: number;
+  cold_documents: number;
+  forgotten_documents: number;
+  active_documents: number;
+  query_count: number;
+  citation_count: number;
+}
+
+export interface StatsTimelineBucket {
+  month: string;
+  saved_documents: number;
+  active_documents: number;
+  query_count: number;
+  citation_count: number;
+}
+
+export interface StatsTimelineResponse {
+  items: StatsTimelineBucket[];
+  months: number;
+}
+
+export interface Topic {
+  name: string;
+  document_count: number;
+  last_document_at: string | null;
+}
+
+export interface TopicListResponse {
+  items: Topic[];
+  total: number;
+  limit: number;
+  offset: number;
+}
+
+export interface TopicDocument {
+  id: string;
+  title: string;
+  type: string;
+  status: string;
+  summary: string | null;
+  created_at: string;
+}
+
+export interface TopicDetailResponse {
+  topic: Topic;
+  documents: TopicDocument[];
+}
+
+export interface DraftGenerateRequest {
+  prompt: string;
+  collection_id?: string | null;
+  tag_names?: string[] | null;
+  document_types?: DocumentType[] | null;
+  limit?: number;
+}
+
+export interface DraftResponse {
+  prompt: string;
+  markdown: string;
+  sources: QuerySource[];
+  gaps: string[];
+}
+
 export interface DocumentProcessingStep {
   key: string;
   label: string;

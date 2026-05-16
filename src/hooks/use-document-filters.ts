@@ -7,11 +7,11 @@ import type { DocumentListItem, DocumentStatus, DocumentType } from "@/lib/types
 export const documentTypeOptions: Array<DocumentType | "ALL"> = ["ALL", "TEXT", "URL", "YOUTUBE", "PDF", "IMAGE", "MARKDOWN"];
 export const documentStatusOptions: Array<DocumentStatus | "ALL"> = ["ALL", "PENDING", "QUEUED", "PROCESSING", "READY", "FAILED"];
 
-export function useDocumentFilters(documents: DocumentListItem[] = []) {
+export function useDocumentFilters(documents: DocumentListItem[] = [], initialTag: string | null = null) {
   const [type, setType] = useState<DocumentType | "ALL">("ALL");
   const [status, setStatus] = useState<DocumentStatus | "ALL">("ALL");
   const [collectionId, setCollectionId] = useState<string | "ALL">("ALL");
-  const [tag, setTag] = useState<string | "ALL">("ALL");
+  const [tag, setTag] = useState<string | "ALL">(initialTag || "ALL");
   const [search, setSearch] = useState("");
 
   const availableTags = useMemo(() => {
