@@ -1,4 +1,4 @@
-import { Pencil, RotateCcw, Trash2 } from "lucide-react";
+import { Download, Pencil, RotateCcw, Trash2 } from "lucide-react";
 import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
@@ -9,10 +9,12 @@ interface DocumentActionsProps {
   retryPending: boolean;
   reprocessPending: boolean;
   deletePending: boolean;
+  exportPending: boolean;
   onRetry: (documentId: string) => void;
   onReprocess: (documentId: string) => void;
   onDelete: () => void;
   onRename: () => void;
+  onExport: (format: "markdown" | "pdf") => void;
 }
 
 export function DocumentActions({
@@ -21,10 +23,12 @@ export function DocumentActions({
   retryPending,
   reprocessPending,
   deletePending,
+  exportPending,
   onRetry,
   onReprocess,
   onDelete,
   onRename,
+  onExport,
 }: DocumentActionsProps) {
   return (
     <div className="flex flex-wrap gap-2">
@@ -48,6 +52,14 @@ export function DocumentActions({
       <Button variant="secondary" onClick={onRename}>
         <Pencil className="h-4 w-4" />
         Rename
+      </Button>
+      <Button variant="secondary" onClick={() => onExport("markdown")} disabled={exportPending}>
+        <Download className="h-4 w-4" />
+        MD
+      </Button>
+      <Button variant="secondary" onClick={() => onExport("pdf")} disabled={exportPending}>
+        <Download className="h-4 w-4" />
+        PDF
       </Button>
     </div>
   );

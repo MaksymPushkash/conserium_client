@@ -1,19 +1,22 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Trash2 } from "lucide-react";
+import { ExternalLink, Share2, Trash2 } from "lucide-react";
+import Link from "next/link";
 import { FormEvent, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { createCollection, deleteCollection, listCollections, updateCollection } from "@/lib/api";
+import { createCollection, createCollectionShare, deleteCollection, listCollections, revokeCollectionShare, updateCollection } from "@/lib/api";
+import type { CollectionShare } from "@/lib/types";
 
 export default function CollectionsPage() {
   const queryClient = useQueryClient();
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [renamingCollection, setRenamingCollection] = useState<{ id: string; name: string } | null>(null);
+  const [shares, setShares] = useState<Record<string, CollectionShare>>({});
   const collectionsQuery = useQuery({ queryKey: ["collections"], queryFn: () => listCollections({ limit: 100 }) });
   const createMutation = useMutation({
     mutationFn: createCollection,
@@ -30,6 +33,20 @@ export default function CollectionsPage() {
   const deleteMutation = useMutation({
     mutationFn: deleteCollection,
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["collections"] }),
+  });
+  const shareMutation = useMutation({
+    mutationFn: createCollectionShare,
+    onSuccess: (share) => setShares((current) => ({ ...current, [share.collection_id]: share })),
+  });
+  const revokeShareMutation = useMutation({
+    mutationFn: revokeCollectionShare,
+    onSuccess: (_result, collectionId) => {
+      setShares((current) => {
+        const next = { ...current };
+        delete next[collectionId];
+        return next;
+      });
+    },
   });
 
   function onSubmit(event: FormEvent) {
@@ -65,11 +82,37 @@ export default function CollectionsPage() {
         </CardHeader>
         <CardContent className="divide-y divide-white/10">
           {collectionsQuery.data?.items.map((collection) => (
-            <div key={collection.id} className="grid gap-3 py-4 md:grid-cols-[1fr_auto_auto] md:items-center">
-              <div>
+            <div key={collection.id} className="grid gap-3 py-4 md:grid-cols-[1fr_auto_auto_auto] md:items-start">
+              <div className="min-w-0">
                 <div className="font-normal text-white">{collection.name}</div>
                 <div className="font-jetbrains mt-1 text-xs text-neutral-500">{collection.description ?? "No description"}</div>
+                {shares[collection.id] ? (
+                  <div className="mt-3 grid gap-2 rounded-md border border-white/10 bg-white/[0.03] p-3">
+                    <div className="font-jetbrains break-all text-xs text-neutral-300">{publicShareUrl(shares[collection.id].slug)}</div>
+                    <div className="flex flex-wrap gap-2">
+                      <Link
+                        href={`/public/${shares[collection.id].slug}`}
+                        className="inline-flex h-8 items-center justify-center gap-2 rounded-md border border-white/10 bg-white/[0.04] px-2 text-xs font-medium text-white transition-colors hover:bg-white/10"
+                      >
+                        <ExternalLink className="h-4 w-4" />
+                        View
+                      </Link>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => revokeShareMutation.mutate(collection.id)}
+                        disabled={revokeShareMutation.isPending}
+                      >
+                        Revoke
+                      </Button>
+                    </div>
+                  </div>
+                ) : null}
               </div>
+              <Button variant="secondary" onClick={() => shareMutation.mutate(collection.id)} disabled={shareMutation.isPending}>
+                <Share2 className="h-4 w-4" />
+                Share
+              </Button>
               <Button
                 variant="secondary"
                 onClick={() => {
@@ -119,4 +162,11 @@ export default function CollectionsPage() {
       ) : null}
     </div>
   );
+}
+
+function publicShareUrl(slug: string) {
+  if (typeof window === "undefined") {
+    return `/public/${slug}`;
+  }
+  return `${window.location.origin}/public/${slug}`;
 }

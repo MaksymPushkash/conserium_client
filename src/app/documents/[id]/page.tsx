@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   deleteDocument,
+  exportDocument,
   getDocument,
   getDocumentChunk,
   getDocumentStatus,
@@ -27,6 +28,7 @@ import {
   retryDocument,
 } from "@/lib/api";
 import { compactId, formatDateTime } from "@/lib/utils";
+import { downloadBlob } from "@/lib/download";
 
 export default function DocumentDetailPage() {
   const params = useParams<{ id: string }>();
@@ -91,6 +93,10 @@ export default function DocumentDetailPage() {
       router.push("/documents");
     },
   });
+  const exportMutation = useMutation({
+    mutationFn: (format: "markdown" | "pdf") => exportDocument(params.id, format),
+    onSuccess: ({ blob, filename }) => downloadBlob(blob, filename),
+  });
   const document = documentQuery.data;
   const status = statusQuery.data;
 
@@ -113,6 +119,7 @@ export default function DocumentDetailPage() {
           retryPending={retryMutation.isPending}
           reprocessPending={reprocessMutation.isPending}
           deletePending={deleteMutation.isPending}
+          exportPending={exportMutation.isPending}
           onRetry={(documentId) => retryMutation.mutate(documentId)}
           onReprocess={(documentId) => reprocessMutation.mutate(documentId)}
           onDelete={() => setDeleteOpen(true)}
@@ -120,6 +127,7 @@ export default function DocumentDetailPage() {
             setRenameTitle(document.title);
             setRenameOpen(true);
           }}
+          onExport={(format) => exportMutation.mutate(format)}
         />
 
         <header className="space-y-5">
@@ -220,6 +228,7 @@ export default function DocumentDetailPage() {
     </div>
   );
 }
+
 
 function hasVisibleEnrichment(document: NonNullable<Awaited<ReturnType<typeof getDocument>>>) {
   return Boolean(
