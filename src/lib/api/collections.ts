@@ -1,6 +1,6 @@
 "use client";
 
-import type { Collection, CollectionListResponse } from "@/lib/types";
+import type { Collection, CollectionListResponse, CollectionShare, PublicCollectionResponse } from "@/lib/types";
 import { request } from "./transport";
 
 export function listCollections(params: { limit?: number; offset?: number } = {}): Promise<CollectionListResponse> {
@@ -24,4 +24,20 @@ export function updateCollection(
 
 export function deleteCollection(id: string): Promise<void> {
   return request<void>(`/collections/${id}`, { method: "DELETE" });
+}
+
+export function getCollectionShare(id: string): Promise<CollectionShare | null> {
+  return request<CollectionShare | null>(`/collections/${id}/share`);
+}
+
+export function createCollectionShare(id: string): Promise<CollectionShare> {
+  return request<CollectionShare>(`/collections/${id}/share`, { method: "POST" });
+}
+
+export function revokeCollectionShare(id: string): Promise<void> {
+  return request<void>(`/collections/${id}/share`, { method: "DELETE" });
+}
+
+export function getPublicCollection(slug: string): Promise<PublicCollectionResponse> {
+  return request<PublicCollectionResponse>(`/public/collections/${slug}`);
 }

@@ -10,6 +10,8 @@ interface DocumentProcessingCardProps {
 }
 
 export function DocumentProcessingCard({ status, visibleStatus }: DocumentProcessingCardProps) {
+  const message = visibleStatus === "READY" ? null : (status?.message ?? "No worker status yet.");
+
   return (
     <Card>
       <CardHeader>
@@ -22,7 +24,7 @@ export function DocumentProcessingCard({ status, visibleStatus }: DocumentProces
             <span className="font-jetbrains text-xs text-neutral-500">{status?.progress ?? 0}%</span>
           </div>
           <Progress value={status?.progress ?? 0} />
-          <div className="text-neutral-400">{status?.message ?? "No worker status yet."}</div>
+          {message ? <div className="text-neutral-400">{message}</div> : null}
         </div>
         <ProcessingTimeline status={status} />
       </CardContent>

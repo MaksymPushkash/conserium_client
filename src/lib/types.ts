@@ -159,6 +159,134 @@ export interface DraftResponse {
   gaps: string[];
 }
 
+export interface CompareDocumentsRequest {
+  left_document_id: string;
+  right_document_id: string;
+  prompt?: string | null;
+  limit?: number;
+}
+
+export interface CompareDocumentsResponse {
+  left_document_id: string;
+  right_document_id: string;
+  left_title: string;
+  right_title: string;
+  markdown: string;
+  sources: QuerySource[];
+}
+
+export interface KnowledgeGraphNode {
+  id: string;
+  kind: "topic" | "document";
+  label: string;
+  detail: string | null;
+}
+
+export interface KnowledgeGraphEdge {
+  id: string;
+  source_id: string;
+  target_id: string;
+  relation_type: string;
+  label: string;
+  score: number;
+}
+
+export interface KnowledgeGraphResponse {
+  nodes: KnowledgeGraphNode[];
+  edges: KnowledgeGraphEdge[];
+}
+
+export interface KnowledgeGraphConcern {
+  id: string;
+  node_id: string | null;
+  node_kind: string | null;
+  node_label: string | null;
+  message: string;
+  status: string;
+  created_at: string;
+}
+
+export interface KnowledgeGapArea {
+  name: string;
+  covered: boolean;
+  evidence_count: number;
+  evidence_titles: string[];
+}
+
+export interface KnowledgeGapResponse {
+  topic: string;
+  covered_count: number;
+  missing_count: number;
+  coverage_ratio: number;
+  areas: KnowledgeGapArea[];
+}
+
+export interface ConflictDocument {
+  id: string;
+  title: string;
+}
+
+export interface ConflictFinding {
+  subject: string;
+  summary: string;
+  documents: ConflictDocument[];
+  evidence: string[];
+  score: number;
+}
+
+export interface ConflictDetectionResponse {
+  collection_id: string | null;
+  analyzed_document_count: number;
+  conflicts: ConflictFinding[];
+}
+
+export interface LearningGoal {
+  id: string;
+  user_id: string;
+  topic: string;
+  description: string | null;
+  target_date: string | null;
+  status: "active" | "paused" | "completed" | string;
+  progress_ratio: number;
+  covered_count: number;
+  missing_count: number;
+  gaps: KnowledgeGapArea[];
+  recommended_next_areas: string[];
+  suggested_resources: SuggestedLearningResource[];
+  deadline_status: "none" | "upcoming" | "due_soon" | "overdue" | "completed" | string;
+  days_remaining: number | null;
+  created_at: string;
+  updated_at: string | null;
+}
+
+export interface SuggestedLearningResource {
+  area: string;
+  title: string;
+  search_query: string;
+  reason: string;
+  url: string | null;
+}
+
+export interface RankedLearningResource extends SuggestedLearningResource {
+  excerpt: string | null;
+  score: number;
+  cached: boolean;
+  refreshed_at: string | null;
+}
+
+export interface LearningGoalRequest {
+  topic: string;
+  description?: string | null;
+  target_date?: string | null;
+}
+
+export interface LearningGoalUpdateRequest {
+  topic?: string | null;
+  description?: string | null;
+  target_date?: string | null;
+  status?: "active" | "paused" | "completed" | null;
+}
+
 export interface DocumentProcessingStep {
   key: string;
   label: string;
@@ -191,6 +319,91 @@ export interface CollectionListResponse {
   total: number;
   limit: number;
   offset: number;
+}
+
+export interface CollectionShare {
+  id: string;
+  collection_id: string;
+  slug: string;
+  include_summaries: boolean;
+  include_notes: boolean;
+  revoked_at: string | null;
+  created_at: string;
+  updated_at: string | null;
+}
+
+export interface PublicCollectionDocument {
+  id: string;
+  title: string;
+  type: DocumentType;
+  status: DocumentStatus;
+  source_url: string | null;
+  summary: string | null;
+  word_count: number | null;
+  language: string | null;
+  tags: string[];
+  created_at: string;
+  updated_at: string | null;
+}
+
+export interface PublicCollectionResponse {
+  id: string;
+  name: string;
+  description: string | null;
+  color: string | null;
+  documents: PublicCollectionDocument[];
+  created_at: string;
+  updated_at: string | null;
+}
+
+export interface RepoSync {
+  id: string;
+  collection_id: string;
+  provider: string;
+  owner: string;
+  repo: string;
+  branch: string;
+  status: string;
+  last_error: string | null;
+  last_synced_at: string | null;
+  created_at: string;
+  updated_at: string | null;
+}
+
+export interface RepoSyncListResponse {
+  items: RepoSync[];
+}
+
+export interface RepoSyncRunResponse {
+  repo_sync: RepoSync;
+  created: number;
+  updated: number;
+  skipped: number;
+  deleted: number;
+  warnings: string[];
+}
+
+export interface NotionExportResponse {
+  page_id: string;
+  url: string | null;
+}
+
+export interface NotionConnection {
+  connected: boolean;
+  workspace_id: string | null;
+  workspace_name: string | null;
+  bot_id: string | null;
+  default_parent_page_id: string | null;
+  default_parent_page_title: string | null;
+}
+
+export interface NotionPage {
+  id: string;
+  title: string;
+}
+
+export interface IntegrationConnectUrlResponse {
+  url: string;
 }
 
 export interface DocumentChunkResponse {

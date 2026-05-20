@@ -1,13 +1,13 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { ArrowRight, Database, Flame, MessageSquare, Snowflake, Upload } from "lucide-react";
+import { ArrowRight, Database, Flame, MessageSquare, Snowflake, Target, Upload } from "lucide-react";
 import Link from "next/link";
 
 import { StatusPill } from "@/components/status-pill";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { getCurrentUser, getStatsOverview, getStatsTimeline, listDocuments } from "@/lib/api";
+import { getCurrentUser, getStatsOverview, getStatsTimeline, listDocuments, listLearningGoalReminders } from "@/lib/api";
 import { errorMessage } from "@/lib/api/transport";
 import type { StatsTimelineBucket } from "@/lib/types";
 import { formatDateTime } from "@/lib/utils";
@@ -17,9 +17,11 @@ export default function DashboardPage() {
   const documentsQuery = useQuery({ queryKey: ["documents", { limit: 5 }], queryFn: () => listDocuments({ limit: 5 }) });
   const statsQuery = useQuery({ queryKey: ["stats", "overview"], queryFn: getStatsOverview });
   const timelineQuery = useQuery({ queryKey: ["stats", "timeline", { months: 6 }], queryFn: () => getStatsTimeline(6) });
+  const remindersQuery = useQuery({ queryKey: ["learning-goals", "reminders"], queryFn: listLearningGoalReminders });
   const documents = documentsQuery.data?.items ?? [];
   const stats = statsQuery.data;
   const timeline = timelineQuery.data?.items ?? [];
+  const reminders = remindersQuery.data ?? [];
 
   return (
     <div className="mx-auto flex max-w-6xl flex-col gap-6 p-4 md:p-8">
@@ -55,6 +57,31 @@ export default function DashboardPage() {
         <MetricCard icon={Upload} label="Processing" value={formatMetric(stats?.processing_documents)} detail={`${formatMetric(stats?.failed_documents)} failed`} />
       </section>
       {statsQuery.error ? <div className="text-sm text-red-300">{errorMessage(statsQuery.error)}</div> : null}
+
+      {reminders.length ? (
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle>Learning reminders</CardTitle>
+            <Link href="/learning-goals" className="flex items-center gap-1 text-sm text-neutral-500 hover:text-white">
+              View goals <ArrowRight className="h-4 w-4" />
+            </Link>
+          </CardHeader>
+          <CardContent className="grid gap-3 md:grid-cols-2">
+            {reminders.slice(0, 4).map((goal) => (
+              <Link key={goal.id} href="/learning-goals" className="rounded-md border border-white/10 p-4 hover:border-white/30">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="font-medium text-white">{goal.topic}</div>
+                  <Target className="h-4 w-4 text-neutral-500" />
+                </div>
+                <div className="font-jetbrains mt-2 text-xs text-neutral-500">
+                  {deadlineLabel(goal.deadline_status, goal.days_remaining)} / {goal.missing_count} gaps
+                </div>
+              </Link>
+            ))}
+          </CardContent>
+        </Card>
+      ) : null}
+      {remindersQuery.error ? <div className="text-sm text-red-300">{errorMessage(remindersQuery.error)}</div> : null}
 
       <Card>
         <CardHeader>
@@ -150,4 +177,17 @@ function TimelineChart({ items }: { items: StatsTimelineBucket[] }) {
 function formatMonth(value: string): string {
   const [year, month] = value.split("-");
   return `${month}.${year}`;
+}
+
+function deadlineLabel(status: string, daysRemaining: number | null): string {
+  if (daysRemaining === null) {
+    return status;
+  }
+  if (status === "overdue") {
+    return `${Math.abs(daysRemaining)}d overdue`;
+  }
+  if (daysRemaining === 0) {
+    return "due today";
+  }
+  return `${daysRemaining}d left`;
 }

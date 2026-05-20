@@ -9,7 +9,8 @@ import type {
   DocumentStatusResponse,
   DocumentType,
 } from "@/lib/types";
-import { request } from "./transport";
+import { filenameFromContentDisposition } from "./exports";
+import { authenticatedFetch, readPayload, request, ApiError } from "./transport";
 
 export interface DocumentListParams {
   limit?: number;
@@ -87,6 +88,17 @@ export function reprocessDocument(id: string): Promise<DocumentResponse> {
 
 export function deleteDocument(id: string): Promise<void> {
   return request<void>(`/documents/${id}`, { method: "DELETE" });
+}
+
+export async function exportDocument(id: string, format: "markdown" | "pdf"): Promise<{ blob: Blob; filename: string }> {
+  const response = await authenticatedFetch(`/documents/${id}/export?format=${format}`);
+  if (!response.ok) {
+    throw new ApiError(response.status, await readPayload(response));
+  }
+  return {
+    blob: await response.blob(),
+    filename: filenameFromContentDisposition(response.headers.get("Content-Disposition")) ?? `document.${format === "pdf" ? "pdf" : "md"}`,
+  };
 }
 
 export function bulkDeleteDocuments(documentIds: string[]): Promise<{ deleted: number }> {
