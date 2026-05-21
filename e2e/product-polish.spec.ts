@@ -41,12 +41,36 @@ test.describe("product polish mocked coverage", () => {
   test("ingest and settings render primary interactions from mocked API", async ({ page }) => {
     await page.goto("/ingest");
     await expect(page.getByPlaceholder("Title")).toBeVisible();
-    await page.getByText("URL").click();
+    await page.getByRole("button", { name: /URL Import an article/i }).click();
     await expect(page.getByPlaceholder("Article URL")).toBeVisible();
 
     await page.goto("/settings#integrations");
     await expect(page.getByRole("heading", { name: "Integrations" })).toBeVisible();
     await expect(page.getByText("Notion")).toBeVisible();
+  });
+
+  test("dashboard action cards and command palette fit in viewport", async ({ page }) => {
+    await page.goto("/dashboard");
+    await expect(page.getByText("Upload source")).toBeVisible();
+    await expect(page.getByText("Ask your knowledge")).toBeVisible();
+    await expect(page.getByText("Review gaps")).toBeVisible();
+
+    await page.keyboard.press(process.platform === "darwin" ? "Meta+K" : "Control+K");
+    await expect(page.getByPlaceholder("Search pages, actions, sources...")).toBeVisible();
+    const box = await page.getByPlaceholder("Search pages, actions, sources...").locator("..").boundingBox();
+    expect(box?.y ?? 0).toBeGreaterThanOrEqual(0);
+  });
+
+  test("repo sync warning states and collections templates render", async ({ page }) => {
+    await page.goto("/repo-syncs");
+    await expect(page.getByText("Needs attention")).toBeVisible();
+    await expect(page.getByText("GitHub rate limit or access policy blocked this sync.")).toBeVisible();
+    await expect(page.getByRole("button", { name: /Retry/i })).toBeVisible();
+
+    await page.goto("/collections");
+    await expect(page.getByRole("button", { name: "Programming" })).toBeVisible();
+    await page.getByRole("button", { name: "Research" }).click();
+    await expect(page.getByPlaceholder("Programming")).toHaveValue("Research");
   });
 });
 
@@ -70,6 +94,10 @@ async function mockApi(page: Page) {
     if (path === "/collections") return json(route, collections());
     if (path === "/topics") return json(route, topics());
     if (path === "/documents") return json(route, documents());
+    if (path === "/stats/overview") return json(route, statsOverview());
+    if (path === "/stats/timeline") return json(route, statsTimeline());
+    if (path === "/learning-goals/reminders") return json(route, []);
+    if (path === "/repo-syncs") return json(route, repoSyncs());
     if (path === "/knowledge-graph") return json(route, graph());
     if (path === "/knowledge-graph/concerns") return json(route, concern(), 201);
     if (path === "/integrations/notion") return json(route, { connected: false });
@@ -134,6 +162,45 @@ function documents() {
     updated_at: null,
   });
   return { items: [item("doc-1", "Cloud A"), item("doc-2", "Cloud B")], total: 2, limit: 100, offset: 0 };
+}
+
+function statsOverview() {
+  return {
+    total_documents: 2,
+    ready_documents: 2,
+    processing_documents: 0,
+    failed_documents: 0,
+    hot_documents: 1,
+    cold_documents: 1,
+    forgotten_documents: 0,
+    active_documents: 2,
+    query_count: 3,
+    citation_count: 4,
+  };
+}
+
+function statsTimeline() {
+  return { items: [{ month: "2026-05", saved_documents: 2, active_documents: 1, query_count: 3 }], months: 6 };
+}
+
+function repoSyncs() {
+  return {
+    items: [
+      {
+        id: "sync-1",
+        collection_id: "collection-1",
+        provider: "github",
+        owner: "example",
+        repo: "docs",
+        branch: "main",
+        status: "failed",
+        last_error: "GitHub rate limit or access policy blocked this sync.",
+        last_synced_at: null,
+        created_at: "2026-05-20T00:00:00Z",
+        updated_at: null,
+      },
+    ],
+  };
 }
 
 function graph() {

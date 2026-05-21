@@ -11,9 +11,10 @@ const buttonVariants = cva(
         default:
           "border-white bg-white text-black shadow-[0_0_28px_rgba(255,255,255,0.12)] hover:-translate-y-0.5 hover:bg-neutral-200 active:translate-y-0",
         secondary:
-          "border-white/10 bg-white/[0.04] text-white hover:-translate-y-0.5 hover:border-white/20 hover:bg-white/10 active:translate-y-0",
-        ghost: "border-transparent bg-transparent text-neutral-400 hover:bg-white/10 hover:text-white",
-        danger: "border-white/10 bg-black text-white hover:border-red-500 hover:bg-red-500/10 hover:text-red-300",
+          "border-white/10 bg-white/[0.045] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] hover:-translate-y-0.5 hover:border-white/25 hover:bg-white/[0.08] active:translate-y-0",
+        ghost: "border-transparent bg-transparent text-neutral-300 hover:bg-white/10 hover:text-white",
+        danger: "border-red-500/20 bg-red-500/8 text-red-200 hover:border-red-400/40 hover:bg-red-500/15 hover:text-red-100",
+        destructive: "border-red-500/20 bg-red-500/8 text-red-200 hover:border-red-400/40 hover:bg-red-500/15 hover:text-red-100",
       },
       size: {
         default: "h-9 px-3",

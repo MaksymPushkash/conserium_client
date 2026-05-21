@@ -1,91 +1,59 @@
 "use client";
 
-import { useMutation, useQuery } from "@tanstack/react-query";
 import { Download, ExternalLink, FileText, Loader2, Sparkles } from "lucide-react";
-import type { FormEvent } from "react";
-import { useState } from "react";
 
 import { MarkdownPreview } from "@/components/notes/markdown-preview";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { CitationCard } from "@/components/ui/citation-card";
 import { EmptyState } from "@/components/ui/empty-state";
+import { PageHeader, PageShell, SectionPanel } from "@/components/ui/page-shell";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { exportMarkdown, exportNotion, generateDraft, listCollections, listTopics } from "@/lib/api";
 import { errorMessage } from "@/lib/api/transport";
-import { downloadBlob } from "@/lib/download";
+import { promptSuggestions, useDraftWorkflow } from "./use-draft-workflow";
 
 export default function DraftsPage() {
-  const [prompt, setPrompt] = useState("");
-  const [collectionId, setCollectionId] = useState("");
-  const [topicName, setTopicName] = useState("");
-  const collectionsQuery = useQuery({ queryKey: ["collections", "drafts"], queryFn: () => listCollections({ limit: 100 }) });
-  const topicsQuery = useQuery({ queryKey: ["topics", "drafts"], queryFn: () => listTopics({ limit: 100 }) });
-  const draftMutation = useMutation({
-    mutationFn: generateDraft,
-  });
-  const exportMutation = useMutation({
-    mutationFn: (format: "markdown" | "pdf") =>
-      exportMarkdown({
-        title: "Cortex draft",
-        markdown: draftMutation.data?.markdown ?? "",
-        format,
-      }),
-    onSuccess: ({ blob, filename }) => downloadBlob(blob, filename),
-  });
-  const notionMutation = useMutation({
-    mutationFn: () =>
-      exportNotion({
-        title: "Cortex draft",
-        markdown: draftMutation.data?.markdown ?? "",
-      }),
-  });
-  const notionErrorText = notionMutation.error ? errorMessage(notionMutation.error) : null;
-  const draftSources = draftMutation.data?.sources ?? [];
-  const promptSuggestions = [
-    "Write a concise technical brief from my saved sources",
-    "Turn these sources into an implementation plan",
-    "Summarize the tradeoffs and cite the saved documents",
-  ];
-
-  function onSubmit(event: FormEvent) {
-    event.preventDefault();
-    const trimmedPrompt = prompt.trim();
-    if (!trimmedPrompt) return;
-    draftMutation.mutate({
-      prompt: trimmedPrompt,
-      collection_id: collectionId || null,
-      tag_names: topicName ? [topicName] : null,
-      limit: 8,
-    });
-  }
+  const workflow = useDraftWorkflow();
+  const {
+    prompt,
+    setPrompt,
+    collectionId,
+    setCollectionId,
+    topicName,
+    setTopicName,
+    collectionsQuery,
+    topicsQuery,
+    draftMutation,
+    exportMutation,
+    notionMutation,
+    notionErrorText,
+    draftSources,
+  } = workflow;
 
   return (
-    <div className="mx-auto grid max-w-7xl gap-6 p-4 md:p-8 xl:grid-cols-[420px_minmax(0,1fr)]">
-      <section className="space-y-6">
-        <header>
-          <h1 className="text-3xl font-normal tracking-normal">Drafts</h1>
-          <p className="font-jetbrains mt-2 text-xs text-neutral-500">Generate Markdown from saved Cortex sources only.</p>
-        </header>
+    <PageShell className="grid max-w-[1500px] gap-5 xl:grid-cols-[minmax(420px,0.82fr)_minmax(0,1.18fr)]">
+      <section className="space-y-5">
+        <PageHeader
+          eyebrow="Creation"
+          title="Drafts"
+          description="Generate cited Markdown from saved Cortex sources. Pick a scope, choose a template, then refine the output."
+        />
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Draft from knowledge</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <form className="space-y-4" onSubmit={onSubmit}>
-              <label className="block space-y-2">
-                <span className="font-jetbrains text-xs text-neutral-500">Request</span>
-                <Textarea
-                  value={prompt}
-                  onChange={(event) => setPrompt(event.target.value)}
-                  placeholder="Write an article about Python generators"
-                  className="min-h-44"
-                />
-              </label>
+        <SectionPanel title="Draft workspace" description="Request, scope, and template live together so the context is explicit before generation.">
+          <form className="space-y-4" onSubmit={workflow.submit}>
+            <label className="block space-y-2">
+              <span className="font-jetbrains text-xs text-neutral-400">Request</span>
+              <Textarea
+                value={prompt}
+                onChange={(event) => setPrompt(event.target.value)}
+                placeholder="Write an article about Python generators"
+                className="min-h-32"
+              />
+            </label>
 
+            <div className="grid gap-3 sm:grid-cols-2">
               <label className="block space-y-2">
-                <span className="font-jetbrains text-xs text-neutral-500">Collection</span>
+                <span className="font-jetbrains text-xs text-neutral-400">Collection</span>
                 <Select
                   value={collectionId}
                   onChange={(event) => setCollectionId(event.target.value)}
@@ -100,7 +68,7 @@ export default function DraftsPage() {
               </label>
 
               <label className="block space-y-2">
-                <span className="font-jetbrains text-xs text-neutral-500">Topic</span>
+                <span className="font-jetbrains text-xs text-neutral-400">Topic</span>
                 <Select
                   value={topicName}
                   onChange={(event) => setTopicName(event.target.value)}
@@ -113,27 +81,57 @@ export default function DraftsPage() {
                   ))}
                 </Select>
               </label>
+            </div>
 
-              <div className="grid gap-2">
-                {promptSuggestions.map((suggestion) => (
+            <div className="grid gap-3 sm:grid-cols-2">
+              {promptSuggestions.map((suggestion) => {
+                const Icon = suggestion.icon;
+                return (
                   <button
-                    key={suggestion}
+                    key={suggestion.title}
                     type="button"
-                    onClick={() => setPrompt(suggestion)}
-                    className="rounded-lg border border-white/10 bg-white/[0.025] px-3 py-2 text-left text-xs text-neutral-400 transition-all duration-200 hover:border-white/20 hover:bg-white/[0.06] hover:text-white"
+                    onClick={() => setPrompt(suggestion.prompt)}
+                    className="group min-h-20 rounded-xl border border-white/10 bg-white/[0.035] p-4 text-left transition-all duration-200 hover:-translate-y-0.5 hover:border-white/25 hover:bg-white/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20"
                   >
-                    {suggestion}
+                    <div className="flex items-start gap-3">
+                      <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg border border-white/10 bg-white/[0.04] text-neutral-300 transition-colors group-hover:text-white">
+                        <Icon className="h-4 w-4" />
+                      </span>
+                      <span className="min-w-0">
+                        <span className="block text-sm font-semibold text-white">{suggestion.title}</span>
+                        <span className="mt-1 block font-jetbrains text-sm leading-5 text-neutral-400">{suggestion.description}</span>
+                      </span>
+                    </div>
                   </button>
-                ))}
-              </div>
+                );
+              })}
+            </div>
 
-              <Button type="submit" disabled={draftMutation.isPending || !prompt.trim()}>
-                {draftMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileText className="h-4 w-4" />}
-                Generate draft
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
+            <Button type="submit" className="w-full" disabled={draftMutation.isPending || !prompt.trim()}>
+              {draftMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileText className="h-4 w-4" />}
+              Generate draft
+            </Button>
+          </form>
+        </SectionPanel>
+
+        <SectionPanel title="Context state" description="Drafts only use saved sources. Narrow the scope when you need a specific collection or topic.">
+          <div className="grid gap-3 text-sm text-neutral-300">
+            <div className="flex items-center justify-between rounded-lg border border-white/10 bg-white/[0.035] p-3">
+              <span>Collection</span>
+              <span className="font-jetbrains text-neutral-400">
+                {collectionId ? collectionsQuery.data?.items.find((collection) => collection.id === collectionId)?.name : "All collections"}
+              </span>
+            </div>
+            <div className="flex items-center justify-between rounded-lg border border-white/10 bg-white/[0.035] p-3">
+              <span>Topic</span>
+              <span className="font-jetbrains text-neutral-400">{topicName || "All topics"}</span>
+            </div>
+            <div className="flex items-center justify-between rounded-lg border border-white/10 bg-white/[0.035] p-3">
+              <span>Source limit</span>
+              <span className="font-jetbrains text-neutral-400">8 chunks</span>
+            </div>
+          </div>
+        </SectionPanel>
 
         {draftMutation.error ? (
           <div className="rounded-md border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-200">
@@ -153,39 +151,31 @@ export default function DraftsPage() {
       </section>
 
       <section className="min-w-0">
-        <Card>
-          <CardHeader>
-            <CardTitle>Output</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-6">
+        <SectionPanel
+          title="Markdown preview"
+          description="Export as Markdown, PDF, or Notion after the draft has cited enough saved context."
+          actions={
+            draftMutation.data ? (
+              <div className="flex flex-wrap gap-2">
+                <Button variant="secondary" onClick={() => exportMutation.mutate("markdown")} disabled={exportMutation.isPending}>
+                  <Download className="h-4 w-4" />
+                  MD
+                </Button>
+                <Button variant="secondary" onClick={() => exportMutation.mutate("pdf")} disabled={exportMutation.isPending}>
+                  <Download className="h-4 w-4" />
+                  PDF
+                </Button>
+                <Button variant="secondary" onClick={() => notionMutation.mutate()} disabled={notionMutation.isPending}>
+                  <ExternalLink className="h-4 w-4" />
+                  Notion
+                </Button>
+              </div>
+            ) : null
+          }
+        >
+          <div className="space-y-4">
             {draftMutation.data ? (
               <>
-                <div className="flex flex-wrap justify-end gap-2">
-                  <Button
-                    variant="secondary"
-                    onClick={() => exportMutation.mutate("markdown")}
-                    disabled={exportMutation.isPending}
-                  >
-                    <Download className="h-4 w-4" />
-                    MD
-                  </Button>
-                  <Button
-                    variant="secondary"
-                    onClick={() => exportMutation.mutate("pdf")}
-                    disabled={exportMutation.isPending}
-                  >
-                    <Download className="h-4 w-4" />
-                    PDF
-                  </Button>
-                  <Button
-                    variant="secondary"
-                    onClick={() => notionMutation.mutate()}
-                    disabled={notionMutation.isPending}
-                  >
-                    <ExternalLink className="h-4 w-4" />
-                    Notion
-                  </Button>
-                </div>
                 {notionMutation.data?.url ? (
                   <a
                     href={notionMutation.data.url}
@@ -202,23 +192,22 @@ export default function DraftsPage() {
                   </div>
                 ) : null}
                 <MarkdownPreview title="Draft" content={draftMutation.data.markdown} />
-                <div className="space-y-2 border-t border-neutral-900 pt-4">
+                <div className="space-y-2 border-t border-white/10 pt-4">
                   <h2 className="text-sm font-medium text-white">Sources</h2>
                   {draftSources.length ? (
-                    <div className="grid gap-2">
-                      {draftSources.map((source) => (
-                        <a
+                    <div className="grid gap-3 md:grid-cols-2">
+                      {draftSources.map((source, index) => (
+                        <CitationCard
                           key={source.chunk_id}
+                          index={index + 1}
+                          title={source.document_title ?? source.document_id}
+                          detail={source.citation}
                           href={`/documents/${source.document_id}`}
-                          className="block rounded-md border border-white/10 bg-white/[0.02] p-3 text-sm text-neutral-300 hover:border-white/20 hover:text-white"
-                        >
-                          <span className="font-jetbrains text-xs text-neutral-500">{source.citation}</span>{" "}
-                          {source.document_title ?? source.document_id}
-                        </a>
+                        />
                       ))}
                     </div>
                   ) : (
-                    <p className="text-sm text-neutral-500">No cited saved sources.</p>
+                    <p className="font-jetbrains text-sm text-neutral-400">No cited saved sources.</p>
                   )}
                 </div>
               </>
@@ -229,9 +218,9 @@ export default function DraftsPage() {
                 description="Choose a scope, write the request, and Cortex will build a Markdown draft from saved sources only."
               />
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </SectionPanel>
       </section>
-    </div>
+    </PageShell>
   );
 }

@@ -1,12 +1,12 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { ArrowRight, Database, Flame, MessageSquare, Snowflake, Target, Upload } from "lucide-react";
+import { ArrowRight, Database, Flame, Gauge, MessageSquare, Snowflake, Target, Upload } from "lucide-react";
 import Link from "next/link";
 
 import { StatusPill } from "@/components/status-pill";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ActionCard, MetricCard, PageHeader, PageShell, SectionPanel } from "@/components/ui/page-shell";
 import { getCurrentUser, getStatsOverview, getStatsTimeline, listDocuments, listLearningGoalReminders } from "@/lib/api";
 import { errorMessage } from "@/lib/api/transport";
 import type { StatsTimelineBucket } from "@/lib/types";
@@ -24,37 +24,47 @@ export default function DashboardPage() {
   const reminders = remindersQuery.data ?? [];
 
   return (
-    <div className="mx-auto flex max-w-6xl flex-col gap-6 p-4 md:p-8">
-      <header className="flex flex-col justify-between gap-4 border-b border-neutral-800 pb-6 md:flex-row md:items-end">
-        <div>
-          <div className="font-jetbrains text-sm text-neutral-500">
-            Signed in as {userQuery.isLoading ? "loading..." : userQuery.data?.email ?? "unavailable"}
-          </div>
-          <h1 className="mt-2 text-3xl font-semibold tracking-normal text-white">Knowledge workspace</h1>
-        </div>
-        <div className="flex gap-2">
-          <Link href="/ingest">
-            <Button>
-              <Upload className="h-4 w-4" />
-              Ingest
-            </Button>
-          </Link>
-          <Link href="/chat">
-            <Button variant="secondary">
-              <MessageSquare className="h-4 w-4" />
-              Ask
-            </Button>
-          </Link>
-        </div>
-      </header>
+    <PageShell className="flex max-w-7xl flex-col gap-6">
+      <PageHeader
+        eyebrow={userQuery.isLoading ? "Workspace" : userQuery.data?.email ?? "Workspace"}
+        title="Knowledge workspace"
+        description="Search, organize, and ask questions across saved sources."
+      />
+
+      <section className="grid items-stretch gap-3 md:grid-cols-3">
+        <Link href="/ingest" className="block h-full">
+          <ActionCard
+            className="h-full"
+            icon={<Upload className="h-4 w-4" />}
+            title="Upload source"
+            description="Add PDFs, notes, URLs, images, or markdown."
+          />
+        </Link>
+        <Link href="/chat" className="block h-full">
+          <ActionCard
+            className="h-full"
+            icon={<MessageSquare className="h-4 w-4" />}
+            title="Ask your knowledge"
+            description="Query saved material with citations."
+          />
+        </Link>
+        <Link href="/knowledge-gaps" className="block h-full">
+          <ActionCard
+            className="h-full"
+            icon={<Gauge className="h-4 w-4" />}
+            title="Review gaps"
+            description="See what your workspace does not cover yet."
+          />
+        </Link>
+      </section>
 
       <section className="grid gap-4 md:grid-cols-3">
-        <MetricCard icon={Database} label="Documents" value={formatMetric(stats?.total_documents)} detail={`${formatMetric(stats?.ready_documents)} ready`} />
-        <MetricCard icon={MessageSquare} label="Queries" value={formatMetric(stats?.query_count)} detail={`${formatMetric(stats?.citation_count)} cited sources`} />
-        <MetricCard icon={Flame} label="Hot documents" value={formatMetric(stats?.hot_documents)} detail={`${formatMetric(stats?.active_documents)} active`} />
-        <MetricCard icon={Snowflake} label="Cold" value={formatMetric(stats?.cold_documents)} detail="No activity for 14 days" />
-        <MetricCard icon={Database} label="Forgotten" value={formatMetric(stats?.forgotten_documents)} detail="No activity for 30 days" />
-        <MetricCard icon={Upload} label="Processing" value={formatMetric(stats?.processing_documents)} detail={`${formatMetric(stats?.failed_documents)} failed`} />
+        <MetricCard icon={<Database className="h-4 w-4" />} label="Documents" value={formatMetric(stats?.total_documents)} detail={`${formatMetric(stats?.ready_documents)} ready`} />
+        <MetricCard icon={<MessageSquare className="h-4 w-4" />} label="Queries" value={formatMetric(stats?.query_count)} detail={`${formatMetric(stats?.citation_count)} cited sources`} />
+        <MetricCard icon={<Flame className="h-4 w-4" />} label="Hot documents" value={formatMetric(stats?.hot_documents)} detail={`${formatMetric(stats?.active_documents)} active`} />
+        <MetricCard icon={<Snowflake className="h-4 w-4" />} label="Cold" value={formatMetric(stats?.cold_documents)} detail="No activity for 14 days" />
+        <MetricCard icon={<Database className="h-4 w-4" />} label="Forgotten" value={formatMetric(stats?.forgotten_documents)} detail="No activity for 30 days" />
+        <MetricCard icon={<Upload className="h-4 w-4" />} label="Processing" value={formatMetric(stats?.processing_documents)} detail={`${formatMetric(stats?.failed_documents)} failed`} />
       </section>
       {statsQuery.error ? <div className="text-sm text-red-300">{errorMessage(statsQuery.error)}</div> : null}
 
@@ -83,16 +93,11 @@ export default function DashboardPage() {
       ) : null}
       {remindersQuery.error ? <div className="text-sm text-red-300">{errorMessage(remindersQuery.error)}</div> : null}
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Learning timeline</CardTitle>
-        </CardHeader>
-        <CardContent>
+      <SectionPanel title="Workspace activity" description="Saved, active, and queried material over time.">
           {timelineQuery.error ? <div className="text-sm text-red-300">{errorMessage(timelineQuery.error)}</div> : null}
           {!timelineQuery.error && timeline.length ? <TimelineChart items={timeline} /> : null}
-          {!timelineQuery.error && !timeline.length ? <div className="py-8 text-sm text-neutral-500">No learning activity yet.</div> : null}
-        </CardContent>
-      </Card>
+          {!timelineQuery.error && !timeline.length ? <div className="py-8 text-sm text-neutral-400">No learning activity yet.</div> : null}
+      </SectionPanel>
 
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
@@ -102,7 +107,7 @@ export default function DashboardPage() {
           </Link>
         </CardHeader>
         <CardContent>
-          <div className="divide-y divide-neutral-900">
+          <div className="space-y-2">
             {documentsQuery.error ? (
               <div className="py-8 text-sm text-red-300">{errorMessage(documentsQuery.error)}</div>
             ) : null}
@@ -110,7 +115,7 @@ export default function DashboardPage() {
               <Link
                 key={document.id}
                 href={`/documents/${document.id}`}
-                className="grid gap-3 py-3 hover:bg-neutral-950 md:grid-cols-[1fr_auto]"
+                className="grid gap-3 rounded-lg border border-transparent px-3 py-3 transition-all duration-200 hover:border-white/10 hover:bg-white/[0.055] hover:shadow-sm md:grid-cols-[1fr_auto]"
               >
                 <div>
                   <div className="font-medium text-white">{document.title}</div>
@@ -126,22 +131,7 @@ export default function DashboardPage() {
           </div>
         </CardContent>
       </Card>
-    </div>
-  );
-}
-
-function MetricCard({ icon: Icon, label, value, detail }: { icon: typeof Database; label: string; value: string; detail: string }) {
-  return (
-    <Card>
-      <CardContent className="flex items-center justify-between">
-        <div>
-          <div className="font-jetbrains text-sm text-neutral-500">{label}</div>
-          <div className="mt-2 text-2xl font-semibold text-white">{value}</div>
-          <div className="mt-1 font-jetbrains text-xs text-neutral-600">{detail}</div>
-        </div>
-        <Icon className="h-5 w-5 text-neutral-500" />
-      </CardContent>
-    </Card>
+    </PageShell>
   );
 }
 
@@ -161,8 +151,8 @@ function TimelineChart({ items }: { items: StatsTimelineBucket[] }) {
         return (
           <div key={item.month} className="grid gap-2 md:grid-cols-[88px_1fr_220px] md:items-center">
             <div className="font-jetbrains text-xs text-neutral-500">{formatMonth(item.month)}</div>
-            <div className="h-2 overflow-hidden rounded-full bg-neutral-900">
-              <div className="h-full bg-white" style={{ width: `${Math.max(4, (total / maxValue) * 100)}%` }} />
+            <div className="h-2 overflow-hidden rounded-full bg-white/[0.06]">
+              <div className="h-full rounded-full bg-gradient-to-r from-neutral-500 via-neutral-300 to-white" style={{ width: `${Math.max(4, (total / maxValue) * 100)}%` }} />
             </div>
             <div className="font-jetbrains text-xs text-neutral-500">
               {item.saved_documents} saved / {item.active_documents} active / {item.query_count} queries
