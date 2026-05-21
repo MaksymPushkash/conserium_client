@@ -4,6 +4,7 @@ import { Sparkles, Upload } from "lucide-react";
 import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
+import { CitationCard } from "@/components/ui/citation-card";
 import { cn } from "@/lib/utils";
 import type { ChatMessage } from "@/stores/chat-store";
 
@@ -17,30 +18,33 @@ interface MessageListProps {
 export function MessageList({ messages, hasReadyDocuments, suggestionChips, onPickSuggestion }: MessageListProps) {
   return (
     <div className="flex-1 overflow-auto px-5 py-8">
-      <div className="mx-auto flex min-h-full max-w-4xl flex-col justify-end gap-5">
+      <div className="mx-auto flex min-h-full max-w-5xl flex-col justify-end gap-5">
         {messages.map((message) => (
           <div
             key={message.id}
             className={cn(
-              "max-w-[82%] rounded-xl border px-4 py-3 text-sm font-light leading-6",
+              "max-w-[86%] rounded-2xl border px-4 py-3 text-sm font-light leading-6 transition-all duration-200",
               message.role === "user"
                 ? "ml-auto border-white bg-white text-black shadow-[0_0_36px_rgba(255,255,255,0.08)]"
-                : "mr-auto border-white/10 bg-white/[0.035] text-neutral-100",
+                : "mr-auto border-white/10 bg-white/[0.045] text-neutral-100 shadow-xl shadow-black/20",
             )}
           >
-            <div className="whitespace-pre-wrap">{message.content || "..."}</div>
+            <div className={cn("whitespace-pre-wrap", message.role === "assistant" && "prose prose-invert prose-neutral max-w-none prose-p:my-2 prose-li:my-1")}>
+              {message.content || "..."}
+            </div>
             {message.sources?.length ? (
-              <div className="mt-3 flex flex-wrap gap-2">
+              <div className="mt-4 grid gap-2 sm:grid-cols-2">
                 {message.sources.map((source, index) => {
                   const citation = source.citation ?? `[${index + 1}]`;
+                  const citationNumber = Number(citation.replace(/\D/g, "")) || index + 1;
                   return (
-                    <a
+                    <CitationCard
                       key={source.chunk_id}
-                      href={`#source-${citation.replace(/\D/g, "")}`}
-                      className="font-jetbrains rounded-md border border-white/10 bg-black/30 px-2 py-1 text-xs font-light text-neutral-300 transition-colors hover:border-white/30 hover:text-white"
-                    >
-                      {citation} {source.document_title ?? "source"}
-                    </a>
+                      index={citationNumber}
+                      title={source.document_title ?? "Source"}
+                      detail={source.chunk_id}
+                      href={`#source-${citationNumber}`}
+                    />
                   );
                 })}
               </div>
@@ -48,13 +52,13 @@ export function MessageList({ messages, hasReadyDocuments, suggestionChips, onPi
           </div>
         ))}
         {!messages.length ? (
-          <div className="mx-auto flex max-w-2xl flex-1 flex-col items-center justify-center py-24 text-center">
+          <div className="mx-auto flex max-w-3xl flex-1 flex-col items-center justify-center py-16 text-center">
             <div className="mb-6 flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/[0.03]">
               <Sparkles className="h-4 w-4 text-neutral-300" />
             </div>
-            <h2 className="text-4xl font-light tracking-normal text-white">Ask about your documents.</h2>
-            <p className="font-jetbrains mt-4 max-w-xl text-sm font-light leading-6 text-neutral-500">
-              Use the selected collection to keep retrieval scoped. Start with a document summary, a tag, or a collection question.
+            <h2 className="text-4xl font-semibold tracking-tight text-white">Ask Cortex anything across your sources.</h2>
+            <p className="mt-4 max-w-xl text-sm leading-6 text-neutral-400">
+              Answers cite saved documents. Scope by collection when you need tighter retrieval.
             </p>
             {hasReadyDocuments ? (
               <div className="mt-8 flex flex-wrap justify-center gap-2">

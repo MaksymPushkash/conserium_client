@@ -44,7 +44,7 @@ function DebugSourceList({ title, sources }: { title: string; sources: QuerySour
       {sources.length ? (
         <div className="space-y-2">
           {sources.map((source, index) => (
-            <div key={`${title}-${source.chunk_id}-${index}`} className="rounded-md border border-white/10 bg-black/30 p-2">
+            <div key={`${title}-${source.chunk_id}-${index}`} className="rounded-md border border-white/10 bg-white/[0.035] p-2">
               <div className="truncate text-xs text-neutral-200">{index + 1}. {source.document_title ?? source.document_id}</div>
               <div className="font-jetbrains mt-1 text-[11px] font-light text-neutral-500">
                 chunk {source.chunk_index} · page {source.page_number ?? "n/a"} · score {formatScore(source.score)}

@@ -1,4 +1,4 @@
-import { ExternalLink, GitBranch } from "lucide-react";
+import { ExternalLink, GitBranch, MessageSquareText } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
 
@@ -35,6 +35,11 @@ export function GraphInspector({
   onSaveConcern: () => void;
   onSelectNode: (node: PositionedNode) => void;
 }) {
+  const connectedTopics = selectedConnections.filter((node) => node.kind === "topic");
+  const connectedDocuments = selectedConnections.filter((node) => node.kind === "document");
+  const topSource = selectedNode?.kind === "document" ? selectedNode : connectedDocuments[0] ?? null;
+  const askHref = selectedNode ? `/chat?q=${encodeURIComponent(`What should I know about ${selectedNode.label}?`)}` : "/chat";
+
   return (
     <aside className="rounded-xl border border-white/10 bg-white/[0.025]">
       {activeTool === "knowledge" ? (
@@ -42,20 +47,45 @@ export function GraphInspector({
           {selectedNode ? (
             <div className="space-y-4">
               <div>
-                <div className="font-jetbrains text-xs uppercase tracking-[0.16em] text-neutral-600">{selectedNode.kind}</div>
+                <div className="font-jetbrains text-xs uppercase tracking-[0.16em] text-neutral-300">{selectedNode.kind}</div>
                 {selectedNode.detail ? <p className="mt-2 text-sm text-neutral-400">{selectedNode.detail}</p> : null}
               </div>
+              <div className="grid grid-cols-2 gap-2">
+                <InspectorMetric label="Topics" value={String(connectedTopics.length)} />
+                <InspectorMetric label="Documents" value={String(connectedDocuments.length)} />
+              </div>
+              {topSource ? (
+                <div className="rounded-lg border border-white/10 bg-black/35 p-3">
+                  <div className="font-jetbrains text-xs uppercase tracking-[0.14em] text-neutral-500">Top source</div>
+                  <button
+                    type="button"
+                    onClick={() => onSelectNode(topSource)}
+                    className="mt-2 text-left text-sm font-medium text-white transition-colors hover:text-neutral-100"
+                  >
+                    {topSource.label}
+                  </button>
+                </div>
+              ) : null}
               <ConnectionList nodes={selectedConnections} onSelectNode={onSelectNode} />
-              <Link
-                href={selectedNode.kind === "document" ? documentHref(selectedNode) : `/topics/${encodeURIComponent(selectedNode.label)}`}
-                className="inline-flex h-9 w-full items-center justify-center gap-2 rounded-md border border-white/10 bg-white/[0.04] px-3 text-sm font-medium text-neutral-100 transition-colors hover:border-white/20 hover:bg-white/[0.08]"
-              >
-                {selectedNode.kind === "document" ? "Open document" : "Open topic"}
-                <ExternalLink className="h-4 w-4" />
-              </Link>
+              <div className="grid gap-2 sm:grid-cols-2">
+                <Link
+                  href={selectedNode.kind === "document" ? documentHref(selectedNode) : `/topics/${encodeURIComponent(selectedNode.label)}`}
+                  className="inline-flex h-9 items-center justify-center gap-2 rounded-md border border-white/15 bg-white/[0.07] px-3 text-sm font-medium text-white transition-colors hover:border-white/30 hover:bg-white/[0.11]"
+                >
+                  {selectedNode.kind === "document" ? "Open document" : "Open topic"}
+                  <ExternalLink className="h-4 w-4" />
+                </Link>
+                <Link
+                  href={askHref}
+                  className="inline-flex h-9 items-center justify-center gap-2 rounded-md border border-white/10 bg-white/[0.04] px-3 text-sm font-medium text-neutral-100 transition-colors hover:border-white/20 hover:bg-white/[0.08]"
+                >
+                  Ask about this
+                  <MessageSquareText className="h-4 w-4" />
+                </Link>
+              </div>
             </div>
           ) : (
-            <p className="text-sm leading-6 text-neutral-500">Hover isolates neighbors. Click a topic or document to inspect it here.</p>
+            <p className="text-sm leading-6 text-neutral-400">Hover isolates neighbors. Click a topic or document to inspect it here.</p>
           )}
         </PanelSection>
       ) : null}
@@ -132,10 +162,19 @@ function PanelSection({ eyebrow, title, children }: { eyebrow: string; title: st
   return (
     <div>
       <div className="border-b border-white/10 p-4">
-        <p className="font-jetbrains text-xs uppercase tracking-[0.16em] text-neutral-600">{eyebrow}</p>
+        <p className="font-jetbrains text-xs uppercase tracking-[0.16em] text-neutral-500">{eyebrow}</p>
         <h2 className="mt-2 text-lg font-medium text-white">{title}</h2>
       </div>
       <div className="p-4">{children}</div>
+    </div>
+  );
+}
+
+function InspectorMetric({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-lg border border-white/10 bg-black/35 p-3">
+      <div className="font-jetbrains text-xs uppercase tracking-[0.14em] text-neutral-500">{label}</div>
+      <div className="mt-2 text-xl font-semibold text-white">{value}</div>
     </div>
   );
 }

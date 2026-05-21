@@ -10,12 +10,19 @@
 
 :root {
   color-scheme: dark;
-  background: #000;
-  color: #fff;
+  background: #050509;
+  color: #f7f7fb;
+  --cortex-bg: #050509;
+  --cortex-surface: #0b0b11;
+  --cortex-surface-strong: #12121a;
+  --cortex-border: rgba(255, 255, 255, 0.1);
+  --cortex-accent: #d4d4d8;
+  --cortex-accent-2: #a1a1aa;
 }
 
 * {
   box-sizing: border-box;
+  scrollbar-color: rgba(212, 212, 216, 0.32) transparent;
 }
 
 
@@ -30,14 +37,19 @@ html {
 
 body {
   margin: 0;
-  background: #000;
-  color: #fff;
+  background:
+    radial-gradient(circle at 48% -18%, rgba(255, 255, 255, 0.09), transparent 34%),
+    radial-gradient(circle at 100% -8%, rgba(161, 161, 170, 0.1), transparent 28%),
+    #050509;
+  color: #f7f7fb;
   font-family:
     Arial,
     Helvetica Neue,
     Helvetica,
     sans-serif;
   font-weight: 300;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
 }
 
 ::placeholder {
@@ -50,8 +62,19 @@ a {
 }
 
 ::selection {
-  background: rgba(244, 244, 245, 0.22);
+  background: rgba(113, 113, 122, 0.92);
   color: #fff;
+}
+
+input::selection,
+textarea::selection {
+  background: rgba(113, 113, 122, 0.92);
+  color: #fff;
+}
+
+:focus-visible {
+  outline: 2px solid rgba(212, 212, 216, 0.72);
+  outline-offset: 2px;
 }
 
 .font-jetbrains {

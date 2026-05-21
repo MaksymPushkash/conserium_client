@@ -77,7 +77,7 @@ export function GraphCanvas({
       {nodes.length ? (
         <div className="relative min-h-[720px] overflow-hidden">
           <div className="absolute left-4 top-4 z-10 flex flex-wrap gap-2">
-            <LegendChip label="Topic" color="#f4f4f5" />
+            <LegendChip label="Topic" color="#e5e7eb" />
             <LegendChip label="Document" color="#a1a1aa" />
           </div>
           <svg
@@ -119,7 +119,7 @@ export function GraphCanvas({
                       y1={source.y}
                       x2={target.x}
                       y2={target.y}
-                      stroke={active ? "rgba(244,244,245,0.28)" : "rgba(255,255,255,0.06)"}
+                      stroke={active ? "rgba(255,255,255,0.28)" : "rgba(255,255,255,0.07)"}
                       strokeWidth={active ? Math.max(1.2, Math.min(3, edge.score * 2.6)) : 0.7}
                     />
                   );
@@ -129,6 +129,9 @@ export function GraphCanvas({
                 {nodes.map((node) => {
                   const active = !focusedNodeId || focusedIds.has(node.id);
                   const selected = selectedNodeId === node.id;
+                  const isTopic = node.kind === "topic";
+                  const docWidth = Math.max(76, Math.min(150, node.label.length * 5.6 + 28));
+                  const docHeight = 32;
                   return (
                     <g
                       key={node.id}
@@ -144,26 +147,45 @@ export function GraphCanvas({
                       opacity={active ? 1 : 0.28}
                     >
                       <title>{node.label}</title>
-                      <circle
-                        cx={node.x}
-                        cy={node.y}
-                        r={node.radius + (selected ? 16 : 10)}
-                        fill={node.kind === "topic" ? "rgba(244,244,245,0.08)" : "rgba(161,161,170,0.07)"}
-                        filter={selected ? "url(#node-glow)" : undefined}
-                      />
-                      <circle
-                        cx={node.x}
-                        cy={node.y}
-                        r={node.radius}
-                        fill={node.kind === "topic" ? "#f4f4f5" : "#a1a1aa"}
-                        stroke={selected ? "#fbbf24" : "#050506"}
-                        strokeWidth={selected ? 4 : 3}
-                      />
+                      {isTopic ? (
+                        <>
+                          <circle
+                            cx={node.x}
+                            cy={node.y}
+                            r={node.radius + (selected ? 18 : 10)}
+                            fill={selected ? "rgba(255,255,255,0.16)" : "rgba(255,255,255,0.07)"}
+                            filter={selected ? "url(#node-glow)" : undefined}
+                          />
+                          <circle
+                            cx={node.x}
+                            cy={node.y}
+                            r={node.radius}
+                            fill="#d4d4d8"
+                            stroke={selected ? "#ffffff" : "#070708"}
+                            strokeWidth={selected ? 4 : 3}
+                          />
+                        </>
+                      ) : (
+                        <>
+                          <rect
+                            x={node.x - docWidth / 2}
+                            y={node.y - docHeight / 2}
+                            width={docWidth}
+                            height={docHeight}
+                            rx={9}
+                            fill={selected ? "rgba(255,255,255,0.16)" : "rgba(255,255,255,0.075)"}
+                            stroke={selected ? "#f4f4f5" : "rgba(255,255,255,0.24)"}
+                            strokeWidth={selected ? 3 : 1.4}
+                            filter={selected ? "url(#node-glow)" : undefined}
+                          />
+                          <circle cx={node.x - docWidth / 2 + 13} cy={node.y} r="4" fill="#a1a1aa" />
+                        </>
+                      )}
                       <text
-                        x={node.x + node.radius + 10}
+                        x={isTopic ? node.x + node.radius + 10 : node.x - docWidth / 2 + 24}
                         y={node.y + 5}
-                        fill={node.kind === "topic" ? "#fafafa" : "#b6b6bf"}
-                        fontSize={node.kind === "topic" ? "14" : "11"}
+                        fill={isTopic ? "#ffffff" : "#e4e4e7"}
+                        fontSize={isTopic ? "14" : "10.5"}
                         fontFamily="JetBrainsMonoNLThin, monospace"
                       >
                         {shortLabel(node.label)}

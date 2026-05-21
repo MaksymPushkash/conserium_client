@@ -1,15 +1,24 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ExternalLink, Share2, Trash2 } from "lucide-react";
+import { ExternalLink, Folder, Pencil, Plus, Share2, Trash2 } from "lucide-react";
 import Link from "next/link";
-import { FormEvent, useState } from "react";
+import { FormEvent, useMemo, useState } from "react";
 
+import { EmptyState } from "@/components/ui/empty-state";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { PageHeader, PageShell, SectionPanel } from "@/components/ui/page-shell";
 import { createCollection, createCollectionShare, deleteCollection, listCollections, revokeCollectionShare, updateCollection } from "@/lib/api";
-import type { CollectionShare } from "@/lib/types";
+import type { Collection, CollectionShare } from "@/lib/types";
+import { formatDateTime } from "@/lib/utils";
+
+const COLLECTION_TEMPLATES = [
+  { name: "Programming", description: "Code notes, API docs, patterns, and engineering references." },
+  { name: "Research", description: "Papers, articles, citations, and synthesis material." },
+  { name: "Projects", description: "Project plans, decisions, implementation notes, and specs." },
+  { name: "LeetCode", description: "Problem notes, patterns, constraints, and solved examples." },
+];
 
 export default function CollectionsPage() {
   const queryClient = useQueryClient();
@@ -17,7 +26,11 @@ export default function CollectionsPage() {
   const [description, setDescription] = useState("");
   const [renamingCollection, setRenamingCollection] = useState<{ id: string; name: string } | null>(null);
   const [shares, setShares] = useState<Record<string, CollectionShare>>({});
+
   const collectionsQuery = useQuery({ queryKey: ["collections"], queryFn: () => listCollections({ limit: 100 }) });
+  const collections = collectionsQuery.data?.items ?? [];
+  const recentlyUpdated = useMemo(() => collections.filter((collection) => collection.updated_at).length, [collections]);
+
   const createMutation = useMutation({
     mutationFn: createCollection,
     onSuccess: async () => {
@@ -51,98 +64,119 @@ export default function CollectionsPage() {
 
   function onSubmit(event: FormEvent) {
     event.preventDefault();
+    createSelectedCollection();
+  }
+
+  function createSelectedCollection() {
     const trimmed = name.trim();
     if (!trimmed) return;
     createMutation.mutate({ name: trimmed, description: description.trim() || null });
   }
 
+  function applyTemplate(template: (typeof COLLECTION_TEMPLATES)[number]) {
+    setName(template.name);
+    setDescription(template.description);
+  }
+
   return (
-    <div className="mx-auto max-w-5xl space-y-6 p-4 md:p-8">
-      <header>
-        <h1 className="text-3xl font-normal tracking-normal">Collections</h1>
-        <p className="font-jetbrains mt-2 text-xs text-neutral-500">Scope documents, notes, and chat retrieval.</p>
-      </header>
+    <PageShell className="max-w-7xl space-y-5">
+      <PageHeader
+        eyebrow="Workspace"
+        title="Collections"
+        description="Separate school, work, coding, research, and project material without changing the rest of your workflow."
+        actions={
+          <Button onClick={createSelectedCollection} disabled={!name.trim() || createMutation.isPending}>
+            <Plus className="h-4 w-4" />
+            Create
+          </Button>
+        }
+      />
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Create collection</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={onSubmit} className="grid gap-3 md:grid-cols-[1fr_1fr_auto]">
-            <Input value={name} onChange={(event) => setName(event.target.value)} placeholder="Name" />
-            <Input value={description} onChange={(event) => setDescription(event.target.value)} placeholder="Description" />
-            <Button disabled={!name.trim() || createMutation.isPending}>Create</Button>
-          </form>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>{collectionsQuery.data?.items.length ?? 0} collections</CardTitle>
-        </CardHeader>
-        <CardContent className="divide-y divide-white/10">
-          {collectionsQuery.data?.items.map((collection) => (
-            <div key={collection.id} className="grid gap-3 py-4 md:grid-cols-[1fr_auto_auto_auto] md:items-start">
-              <div className="min-w-0">
-                <div className="font-normal text-white">{collection.name}</div>
-                <div className="font-jetbrains mt-1 text-xs text-neutral-500">{collection.description ?? "No description"}</div>
-                {shares[collection.id] ? (
-                  <div className="mt-3 grid gap-2 rounded-md border border-white/10 bg-white/[0.03] p-3">
-                    <div className="font-jetbrains break-all text-xs text-neutral-300">{publicShareUrl(shares[collection.id].slug)}</div>
-                    <div className="flex flex-wrap gap-2">
-                      <Link
-                        href={`/public/${shares[collection.id].slug}`}
-                        className="inline-flex h-8 items-center justify-center gap-2 rounded-md border border-white/10 bg-white/[0.04] px-2 text-xs font-medium text-white transition-colors hover:bg-white/10"
-                      >
-                        <ExternalLink className="h-4 w-4" />
-                        View
-                      </Link>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => revokeShareMutation.mutate(collection.id)}
-                        disabled={revokeShareMutation.isPending}
-                      >
-                        Revoke
-                      </Button>
-                    </div>
-                  </div>
-                ) : null}
-              </div>
-              <Button variant="secondary" onClick={() => shareMutation.mutate(collection.id)} disabled={shareMutation.isPending}>
-                <Share2 className="h-4 w-4" />
-                Share
-              </Button>
-              <Button
-                variant="secondary"
-                onClick={() => {
-                  setRenamingCollection({ id: collection.id, name: collection.name });
-                }}
-              >
-                Rename
-              </Button>
-              <Button variant="danger" size="icon" onClick={() => deleteMutation.mutate(collection.id)}>
-                <Trash2 className="h-4 w-4" />
-              </Button>
+      <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_360px]">
+        <SectionPanel title="Create collection" description="Start with a name, or use a template to prefill a useful scope.">
+          <form onSubmit={onSubmit} className="grid gap-5">
+            <div className="grid gap-5 md:grid-cols-2">
+              <label className="grid gap-2">
+                <span className="font-jetbrains text-xs uppercase tracking-[0.18em] text-neutral-400">Name</span>
+                <Input value={name} onChange={(event) => setName(event.target.value)} placeholder="Programming" />
+              </label>
+              <label className="grid gap-2">
+                <span className="font-jetbrains text-xs uppercase tracking-[0.18em] text-neutral-400">Description</span>
+                <Input value={description} onChange={(event) => setDescription(event.target.value)} placeholder="Code notes and API references" />
+              </label>
             </div>
-          ))}
-        </CardContent>
-      </Card>
+            <div className="flex flex-wrap gap-2">
+              {COLLECTION_TEMPLATES.map((template) => (
+                <button
+                  key={template.name}
+                  type="button"
+                  onClick={() => applyTemplate(template)}
+                  className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-sm text-neutral-200 transition hover:border-white/25 hover:bg-white/[0.07] hover:text-white"
+                >
+                  {template.name}
+                </button>
+              ))}
+            </div>
+            <div className="flex justify-end border-t border-white/10 pt-4">
+              <Button disabled={!name.trim() || createMutation.isPending}>Create collection</Button>
+            </div>
+          </form>
+        </SectionPanel>
+
+        <SectionPanel title="Workspace scopes" description="Collections become filters for chat, drafts, compare, and public shares.">
+          <div className="grid gap-3">
+            <CollectionMetric label="Collections" value={collections.length} />
+            <CollectionMetric label="Updated scopes" value={recentlyUpdated} />
+            <div className="font-jetbrains rounded-md border border-white/10 bg-white/[0.035] p-3 text-sm text-neutral-400">
+              Use fewer broad collections first. Split only when retrieval needs a hard boundary.
+            </div>
+          </div>
+        </SectionPanel>
+      </div>
+
+      <SectionPanel title="Saved collections" description="Share, rename, or delete collections from one place.">
+        {collections.length ? (
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+            {collections.map((collection) => (
+              <CollectionCard
+                key={collection.id}
+                collection={collection}
+                share={shares[collection.id]}
+                onShare={() => shareMutation.mutate(collection.id)}
+                onRevoke={() => revokeShareMutation.mutate(collection.id)}
+                onRename={() => setRenamingCollection({ id: collection.id, name: collection.name })}
+                onDelete={() => deleteMutation.mutate(collection.id)}
+                isSharing={shareMutation.isPending}
+                isRevoking={revokeShareMutation.isPending}
+              />
+            ))}
+          </div>
+        ) : (
+          <EmptyState
+            icon={<Folder className="h-5 w-5" />}
+            title="No collections yet"
+            description="Create collections for programming, research, projects, or LeetCode to keep retrieval scoped."
+          />
+        )}
+      </SectionPanel>
+
       {renamingCollection ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4" role="dialog" aria-modal="true" aria-label="Rename collection">
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4 backdrop-blur-sm"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Rename collection"
+        >
           <form
-            className="w-full max-w-md rounded-lg border border-white/10 bg-black p-5 shadow-[0_24px_80px_rgba(0,0,0,0.55)]"
+            className="w-full max-w-md rounded-xl border border-white/10 bg-[#08080c] p-5 shadow-[0_24px_80px_rgba(0,0,0,0.55)]"
             onSubmit={(event) => {
               event.preventDefault();
               const nextName = renamingCollection.name.trim();
               if (!nextName) return;
-              updateMutation.mutate(
-                { id: renamingCollection.id, nextName },
-                { onSuccess: () => setRenamingCollection(null) },
-              );
+              updateMutation.mutate({ id: renamingCollection.id, nextName }, { onSuccess: () => setRenamingCollection(null) });
             }}
           >
-            <h2 className="text-lg font-normal text-white">Rename collection</h2>
+            <h2 className="text-lg font-medium text-white">Rename collection</h2>
             <Input
               className="mt-4"
               value={renamingCollection.name}
@@ -160,6 +194,102 @@ export default function CollectionsPage() {
           </form>
         </div>
       ) : null}
+    </PageShell>
+  );
+}
+
+function CollectionCard({
+  collection,
+  share,
+  onShare,
+  onRevoke,
+  onRename,
+  onDelete,
+  isSharing,
+  isRevoking,
+}: {
+  collection: Collection;
+  share?: CollectionShare;
+  onShare: () => void;
+  onRevoke: () => void;
+  onRename: () => void;
+  onDelete: () => void;
+  isSharing: boolean;
+  isRevoking: boolean;
+}) {
+  return (
+    <div className="group grid min-h-[210px] gap-4 rounded-lg border border-white/10 bg-white/[0.035] p-4 transition hover:-translate-y-0.5 hover:border-white/25 hover:bg-white/[0.055]">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-white/15 bg-white/[0.06] text-neutral-200">
+              <Folder className="h-4 w-4" />
+            </div>
+            <div className="min-w-0">
+              <h2 className="truncate text-base font-medium text-neutral-50">{collection.name}</h2>
+              <p className="font-jetbrains text-xs text-neutral-500">updated {formatDateTime(collection.updated_at ?? collection.created_at)}</p>
+            </div>
+          </div>
+          <p className="font-jetbrains mt-3 line-clamp-2 text-sm text-neutral-400">{collection.description || "No description yet."}</p>
+        </div>
+        <button
+          type="button"
+          onClick={onDelete}
+          className="rounded-md p-2 text-neutral-500 opacity-0 transition hover:bg-red-500/10 hover:text-red-300 group-hover:opacity-100"
+          aria-label={`Delete ${collection.name}`}
+        >
+          <Trash2 className="h-4 w-4" />
+        </button>
+      </div>
+
+      <div className="grid gap-2 rounded-md border border-white/10 bg-white/[0.035] p-3 text-sm">
+        <div className="flex items-center justify-between gap-3">
+          <span className="text-neutral-400">Created</span>
+          <span className="font-jetbrains text-xs text-neutral-300">{formatDateTime(collection.created_at)}</span>
+        </div>
+        <div className="flex items-center justify-between gap-3">
+          <span className="text-neutral-400">Quick actions</span>
+          <span className="font-jetbrains text-xs text-neutral-300">scope retrieval</span>
+        </div>
+      </div>
+
+      {share ? (
+        <div className="grid gap-2 rounded-md border border-white/15 bg-white/[0.055] p-3">
+          <div className="font-jetbrains break-all text-xs text-neutral-100">{publicShareUrl(share.slug)}</div>
+          <div className="flex flex-wrap gap-2">
+            <Link
+              href={`/public/${share.slug}`}
+              className="inline-flex h-8 items-center justify-center gap-2 rounded-md border border-white/10 bg-white/[0.04] px-2 text-xs font-medium text-white transition-colors hover:bg-white/10"
+            >
+              <ExternalLink className="h-4 w-4" />
+              View
+            </Link>
+            <Button variant="ghost" size="sm" onClick={onRevoke} disabled={isRevoking}>
+              Revoke
+            </Button>
+          </div>
+        </div>
+      ) : null}
+
+      <div className="mt-auto flex flex-wrap gap-2">
+        <Button variant="secondary" size="sm" onClick={onShare} disabled={isSharing}>
+          <Share2 className="h-4 w-4" />
+          Share
+        </Button>
+        <Button variant="ghost" size="sm" onClick={onRename}>
+          <Pencil className="h-4 w-4" />
+          Rename
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+function CollectionMetric({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="rounded-md border border-white/10 bg-white/[0.035] p-3">
+      <div className="font-jetbrains text-[11px] uppercase tracking-[0.18em] text-neutral-500">{label}</div>
+      <div className="mt-2 text-2xl font-semibold text-white">{value}</div>
     </div>
   );
 }

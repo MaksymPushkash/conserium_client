@@ -2,77 +2,44 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Check, Pause, Search, Trash2 } from "lucide-react";
-import { FormEvent, useState } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { PageHeader, PageShell, SectionPanel } from "@/components/ui/page-shell";
+import { StatusBadge } from "@/components/ui/status-badge";
 import {
-  createLearningGoal,
-  deleteLearningGoal,
   errorMessage,
   listLearningGoalResources,
-  listLearningGoals,
-  updateLearningGoal,
 } from "@/lib/api";
 import type { LearningGoal, RankedLearningResource } from "@/lib/types";
+import { useLearningGoalsWorkflow } from "./use-learning-goals-workflow";
 
 export default function LearningGoalsPage() {
-  const queryClient = useQueryClient();
-  const [topic, setTopic] = useState("");
-  const [description, setDescription] = useState("");
-  const [targetDate, setTargetDate] = useState("");
-  const goalsQuery = useQuery({ queryKey: ["learning-goals"], queryFn: listLearningGoals });
-  const createMutation = useMutation({
-    mutationFn: createLearningGoal,
-    onSuccess: () => {
-      setTopic("");
-      setDescription("");
-      setTargetDate("");
-      queryClient.invalidateQueries({ queryKey: ["learning-goals"] });
-    },
-  });
-  const updateMutation = useMutation({
-    mutationFn: ({ id, status }: { id: string; status: "active" | "paused" | "completed" }) => updateLearningGoal(id, { status }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["learning-goals"] }),
-  });
-  const deleteMutation = useMutation({
-    mutationFn: deleteLearningGoal,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["learning-goals"] }),
-  });
-  const refreshAllResourcesMutation = useMutation({
-    mutationFn: async () => {
-      const goals = (goalsQuery.data ?? []).filter((goal) => goal.suggested_resources.length);
-      const results = await mapWithConcurrency(goals, 3, async (goal) => ({
-          goalId: goal.id,
-          resources: await listLearningGoalResources(goal.id, { refresh: true }),
-        }));
-      results.forEach(({ goalId, resources }) => {
-        queryClient.setQueryData(["learning-goals", goalId, "resources"], resources);
-      });
-    },
-  });
-
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    createMutation.mutate({
-      topic,
-      description: description || null,
-      target_date: targetDate || null,
-    });
-  }
+  const workflow = useLearningGoalsWorkflow();
+  const {
+    topic,
+    setTopic,
+    description,
+    setDescription,
+    targetDate,
+    setTargetDate,
+    goalsQuery,
+    createMutation,
+    updateMutation,
+    deleteMutation,
+    refreshAllResourcesMutation,
+  } = workflow;
 
   return (
-    <div className="mx-auto max-w-6xl space-y-6 p-4 md:p-8">
-      <header>
-        <h1 className="text-3xl font-normal tracking-normal">Learning goals</h1>
-        <p className="font-jetbrains mt-2 text-xs text-neutral-500">
-          Track target topics against saved knowledge coverage.
-        </p>
-      </header>
-
-      {(goalsQuery.data ?? []).some((goal) => goal.suggested_resources.length) ? (
-        <div className="flex justify-end">
+    <PageShell className="max-w-7xl space-y-5">
+      <PageHeader
+        eyebrow="Intelligence"
+        title="Learning goals"
+        description="Track target topics against saved knowledge coverage."
+        actions={
+          (goalsQuery.data ?? []).some((goal) => goal.suggested_resources.length) ? (
           <Button
             variant="secondary"
             onClick={() => refreshAllResourcesMutation.mutate()}
@@ -80,40 +47,36 @@ export default function LearningGoalsPage() {
           >
             {refreshAllResourcesMutation.isPending ? "Refreshing..." : "Refresh all resources"}
           </Button>
-        </div>
-      ) : null}
+          ) : null
+        }
+      />
 
-      <Card>
-        <CardHeader>
-          <CardTitle>New goal</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="grid gap-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_160px_auto]">
-            <input
+      <SectionPanel title="New goal" description="Define the topic, outcome, and optional deadline.">
+        <form onSubmit={workflow.submit} className="grid gap-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_160px_auto]">
+            <Input
               value={topic}
               onChange={(event) => setTopic(event.target.value)}
               placeholder="FastAPI"
               required
-              className="h-9 rounded-md border border-white/10 bg-black px-3 text-sm text-white"
+              className="font-jetbrains"
             />
-            <input
+            <Input
               value={description}
               onChange={(event) => setDescription(event.target.value)}
               placeholder="Build production API confidence"
-              className="h-9 rounded-md border border-white/10 bg-black px-3 text-sm text-white"
+              className="font-jetbrains"
             />
-            <input
+            <Input
               value={targetDate}
               onChange={(event) => setTargetDate(event.target.value)}
               type="date"
-              className="h-9 rounded-md border border-white/10 bg-black px-3 text-sm text-white"
+              className="font-jetbrains"
             />
             <Button type="submit" disabled={createMutation.isPending}>
               Create
             </Button>
           </form>
-        </CardContent>
-      </Card>
+      </SectionPanel>
 
       {goalsQuery.error || createMutation.error || updateMutation.error || deleteMutation.error || refreshAllResourcesMutation.error ? (
         <div className="rounded-md border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-200">
@@ -135,31 +98,34 @@ export default function LearningGoalsPage() {
               <CardHeader className="flex flex-row items-center justify-between gap-3">
                 <div className="min-w-0">
                   <CardTitle>{goal.topic}</CardTitle>
-                  {goal.description ? <p className="mt-2 text-sm text-neutral-500">{goal.description}</p> : null}
+                  {goal.description ? <p className="font-jetbrains mt-2 text-xs text-neutral-400">{goal.description}</p> : null}
                 </div>
-                <Badge>{goal.status}</Badge>
+                <StatusBadge status={goal.status} label={goal.status} />
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
                   <div className="flex items-center justify-between text-sm">
-                    <span className="font-jetbrains text-neutral-500">{progress}% covered</span>
-                    <span className="font-jetbrains text-neutral-500">
+                    <span className="font-jetbrains text-neutral-400">{progress}% covered</span>
+                    <span className="font-jetbrains text-neutral-400">
                       {goal.covered_count} covered / {goal.missing_count} missing
                     </span>
                   </div>
                   <div className="h-2 overflow-hidden rounded-full bg-white/10">
-                    <div className="h-full bg-white" style={{ width: `${progress}%` }} />
+                    <div
+                      className={`h-full transition-all duration-500 ${progress > 0 ? "bg-emerald-400" : "bg-neutral-500"}`}
+                      style={{ width: `${progress}%` }}
+                    />
                   </div>
                 </div>
                 {goal.target_date ? (
-                  <div className="font-jetbrains text-xs text-neutral-500">
+                  <div className="font-jetbrains text-xs text-neutral-400">
                     Target {goal.target_date}
                     {goal.days_remaining !== null ? ` · ${deadlineLabel(goal.deadline_status, goal.days_remaining)}` : null}
                   </div>
                 ) : null}
                 {goal.recommended_next_areas.length ? (
                   <div className="space-y-2">
-                    <div className="font-jetbrains text-xs text-neutral-500">Next focus</div>
+                    <div className="font-jetbrains text-xs text-neutral-400">Next focus</div>
                     <div className="flex flex-wrap gap-2">
                       {goal.recommended_next_areas.map((area) => (
                         <Badge key={area}>{area}</Badge>
@@ -169,7 +135,7 @@ export default function LearningGoalsPage() {
                 ) : null}
                 {goal.gaps.length ? (
                   <div className="space-y-2">
-                    <div className="font-jetbrains text-xs text-neutral-500">Missing areas</div>
+                    <div className="font-jetbrains text-xs text-neutral-400">Missing areas</div>
                     <div className="flex flex-wrap gap-2">
                       {goal.gaps.map((gap) => (
                         <Badge key={gap.name}>{gap.name}</Badge>
@@ -177,7 +143,7 @@ export default function LearningGoalsPage() {
                     </div>
                   </div>
                 ) : (
-                  <p className="text-sm text-neutral-500">No missing areas in the current rubric.</p>
+                  <p className="font-jetbrains text-xs text-neutral-400">No missing areas in the current rubric.</p>
                 )}
                 {goal.suggested_resources.length ? (
                   <LearningResources goal={goal} />
@@ -203,9 +169,9 @@ export default function LearningGoalsPage() {
       </section>
 
       {!goalsQuery.isLoading && !(goalsQuery.data ?? []).length ? (
-        <div className="py-8 text-sm text-neutral-500">No learning goals yet.</div>
+        <div className="font-jetbrains py-8 text-sm text-neutral-400">No learning goals yet.</div>
       ) : null}
-    </div>
+    </PageShell>
   );
 }
 
@@ -242,8 +208,8 @@ function LearningResources({ goal }: { goal: LearningGoal }) {
     <div className="space-y-2">
       <div className="flex items-center justify-between gap-3">
         <div className="space-y-1">
-          <div className="font-jetbrains text-xs text-neutral-500">Ranked resources</div>
-          <div className="font-jetbrains text-xs text-neutral-500">
+          <div className="font-jetbrains text-xs text-neutral-400">Ranked resources</div>
+          <div className="font-jetbrains text-xs text-neutral-400">
             {resourceState}
             {newestRefresh ? ` · ${new Date(newestRefresh).toLocaleString()}` : ""}
           </div>
@@ -275,7 +241,7 @@ function LearningResources({ goal }: { goal: LearningGoal }) {
               <Search className="h-4 w-4" />
               <span>{resource.title}</span>
             </div>
-            <p className="mt-2 text-xs text-neutral-500">
+            <p className="font-jetbrains mt-2 text-xs text-neutral-400">
               {"excerpt" in resource && typeof resource.excerpt === "string" && resource.excerpt ? resource.excerpt : resource.reason}
             </p>
           </a>
@@ -300,20 +266,4 @@ function deadlineLabel(status: string, daysRemaining: number) {
     return "due today";
   }
   return `${daysRemaining}d left`;
-}
-
-async function mapWithConcurrency<T, R>(items: T[], limit: number, mapper: (item: T) => Promise<R>): Promise<R[]> {
-  const results: R[] = [];
-  let nextIndex = 0;
-
-  async function worker() {
-    while (nextIndex < items.length) {
-      const index = nextIndex;
-      nextIndex += 1;
-      results[index] = await mapper(items[index]);
-    }
-  }
-
-  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, worker));
-  return results;
 }
