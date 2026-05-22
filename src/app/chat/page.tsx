@@ -3,6 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { FormEvent } from "react";
 import { useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 
 import { ChatComposer } from "@/components/chat/chat-composer";
 import { ChatHeader } from "@/components/chat/chat-header";
@@ -12,18 +13,20 @@ import { SourcePreviewDrawer } from "@/components/chat/source-preview-drawer";
 import { SourcesPanel } from "@/components/chat/sources-panel";
 import { useChatQueryStream } from "@/hooks/use-chat-query-stream";
 import { useChatSuggestions } from "@/hooks/use-chat-suggestions";
-import { createChat, getChat, listChats, listCollections, listDocuments } from "@/lib/api";
+import { createChat, getChat, getDocument, listChats, listCollections, listDocuments } from "@/lib/api";
 import type { ChatMessageResponse, QuerySource } from "@/lib/types";
 import type { ChatMessage } from "@/stores/chat-store";
 import { useChatStore } from "@/stores/chat-store";
 import { useUiStore } from "@/stores/ui-store";
 
 export default function ChatPage() {
-  const [query, setQuery] = useState("");
+  const searchParams = useSearchParams();
+  const [query, setQuery] = useState(searchParams.get("q") ?? "");
   const [topicTitle, setTopicTitle] = useState("");
   const [streaming, setStreaming] = useState(true);
-  const [collectionId, setCollectionId] = useState<string | null>(null);
-  const [tagName, setTagName] = useState<string | null>(null);
+  const [collectionId, setCollectionId] = useState<string | null>(searchParams.get("collection"));
+  const [documentId, setDocumentId] = useState<string | null>(searchParams.get("document"));
+  const [tagName, setTagName] = useState<string | null>(searchParams.get("tag"));
   const [previewSource, setPreviewSource] = useState<QuerySource | null>(null);
   const queryClient = useQueryClient();
   const { conversationId, setConversationId, messages, setMessages, addMessage, updateMessage, resetConversation } = useChatStore();
@@ -32,8 +35,14 @@ export default function ChatPage() {
   const chatsQuery = useQuery({ queryKey: ["chats"], queryFn: () => listChats({ limit: 50 }) });
   const collectionsQuery = useQuery({ queryKey: ["collections"], queryFn: () => listCollections({ limit: 100 }) });
   const documentsQuery = useQuery({
-    queryKey: ["documents", "chat-suggestions", collectionId],
-    queryFn: () => listDocuments({ limit: 20, collection_id: collectionId, status: "READY" }),
+    queryKey: ["documents", "chat-suggestions", collectionId, documentId],
+    queryFn: () => listDocuments({ limit: 20, collection_id: documentId ? null : collectionId, status: "READY" }),
+    enabled: !documentId,
+  });
+  const documentScopeQuery = useQuery({
+    queryKey: ["document", documentId, "chat-scope"],
+    queryFn: () => getDocument(documentId as string),
+    enabled: Boolean(documentId),
   });
   const createChatMutation = useMutation({
     mutationFn: createChat,
@@ -47,7 +56,7 @@ export default function ChatPage() {
 
   const { suggestionChips, availableTags, hasReadyDocuments } = useChatSuggestions(
     collectionsQuery.data?.items,
-    documentsQuery.data?.items,
+    documentScopeQuery.data ? [documentScopeQuery.data] : documentsQuery.data?.items,
   );
   const latestAssistant = useMemo(
     () => [...messages].reverse().find((message) => message.role === "assistant"),
@@ -57,6 +66,7 @@ export default function ChatPage() {
   const { submitQuery, abortQuery } = useChatQueryStream({
     conversationId,
     collectionId,
+    documentId,
     tagName,
     streaming,
     setConversationId,
@@ -110,6 +120,8 @@ export default function ChatPage() {
             title={selectedChat?.title ?? "Query"}
             conversationId={conversationId}
             collectionId={collectionId}
+            documentId={documentId}
+            documentTitle={documentScopeQuery.data?.title ?? null}
             tagName={tagName}
             collections={collectionsQuery.data?.items ?? []}
             availableTags={availableTags}
@@ -117,8 +129,10 @@ export default function ChatPage() {
             debugOpen={debugOpen}
             onCollectionChange={(nextCollectionId) => {
               setCollectionId(nextCollectionId);
+              setDocumentId(null);
               setTagName(null);
             }}
+            onDocumentChange={setDocumentId}
             onTagChange={setTagName}
             onStreamingChange={setStreaming}
             onDebugOpenChange={setDebugOpen}

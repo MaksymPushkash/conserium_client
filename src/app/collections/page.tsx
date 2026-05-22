@@ -1,82 +1,34 @@
 "use client";
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ExternalLink, Folder, Pencil, Plus, Share2, Trash2 } from "lucide-react";
 import Link from "next/link";
-import { FormEvent, useMemo, useState } from "react";
 
 import { EmptyState } from "@/components/ui/empty-state";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PageHeader, PageShell, SectionPanel } from "@/components/ui/page-shell";
-import { createCollection, createCollectionShare, deleteCollection, listCollections, revokeCollectionShare, updateCollection } from "@/lib/api";
 import type { Collection, CollectionShare } from "@/lib/types";
 import { formatDateTime } from "@/lib/utils";
-
-const COLLECTION_TEMPLATES = [
-  { name: "Programming", description: "Code notes, API docs, patterns, and engineering references." },
-  { name: "Research", description: "Papers, articles, citations, and synthesis material." },
-  { name: "Projects", description: "Project plans, decisions, implementation notes, and specs." },
-  { name: "LeetCode", description: "Problem notes, patterns, constraints, and solved examples." },
-];
+import { COLLECTION_TEMPLATES, useCollectionsWorkflow } from "./use-collections-workflow";
 
 export default function CollectionsPage() {
-  const queryClient = useQueryClient();
-  const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
-  const [renamingCollection, setRenamingCollection] = useState<{ id: string; name: string } | null>(null);
-  const [shares, setShares] = useState<Record<string, CollectionShare>>({});
-
-  const collectionsQuery = useQuery({ queryKey: ["collections"], queryFn: () => listCollections({ limit: 100 }) });
-  const collections = collectionsQuery.data?.items ?? [];
-  const recentlyUpdated = useMemo(() => collections.filter((collection) => collection.updated_at).length, [collections]);
-
-  const createMutation = useMutation({
-    mutationFn: createCollection,
-    onSuccess: async () => {
-      setName("");
-      setDescription("");
-      await queryClient.invalidateQueries({ queryKey: ["collections"] });
-    },
-  });
-  const updateMutation = useMutation({
-    mutationFn: ({ id, nextName }: { id: string; nextName: string }) => updateCollection(id, { name: nextName }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["collections"] }),
-  });
-  const deleteMutation = useMutation({
-    mutationFn: deleteCollection,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["collections"] }),
-  });
-  const shareMutation = useMutation({
-    mutationFn: createCollectionShare,
-    onSuccess: (share) => setShares((current) => ({ ...current, [share.collection_id]: share })),
-  });
-  const revokeShareMutation = useMutation({
-    mutationFn: revokeCollectionShare,
-    onSuccess: (_result, collectionId) => {
-      setShares((current) => {
-        const next = { ...current };
-        delete next[collectionId];
-        return next;
-      });
-    },
-  });
-
-  function onSubmit(event: FormEvent) {
-    event.preventDefault();
-    createSelectedCollection();
-  }
-
-  function createSelectedCollection() {
-    const trimmed = name.trim();
-    if (!trimmed) return;
-    createMutation.mutate({ name: trimmed, description: description.trim() || null });
-  }
-
-  function applyTemplate(template: (typeof COLLECTION_TEMPLATES)[number]) {
-    setName(template.name);
-    setDescription(template.description);
-  }
+  const workflow = useCollectionsWorkflow();
+  const {
+    name,
+    setName,
+    description,
+    setDescription,
+    renamingCollection,
+    setRenamingCollection,
+    shares,
+    collections,
+    recentlyUpdated,
+    createMutation,
+    updateMutation,
+    deleteMutation,
+    shareMutation,
+    revokeShareMutation,
+  } = workflow;
 
   return (
     <PageShell className="max-w-7xl space-y-5">
@@ -85,7 +37,7 @@ export default function CollectionsPage() {
         title="Collections"
         description="Separate school, work, coding, research, and project material without changing the rest of your workflow."
         actions={
-          <Button onClick={createSelectedCollection} disabled={!name.trim() || createMutation.isPending}>
+          <Button onClick={workflow.createSelectedCollection} disabled={!name.trim() || createMutation.isPending}>
             <Plus className="h-4 w-4" />
             Create
           </Button>
@@ -94,7 +46,7 @@ export default function CollectionsPage() {
 
       <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_360px]">
         <SectionPanel title="Create collection" description="Start with a name, or use a template to prefill a useful scope.">
-          <form onSubmit={onSubmit} className="grid gap-5">
+          <form onSubmit={workflow.submit} className="grid gap-5">
             <div className="grid gap-5 md:grid-cols-2">
               <label className="grid gap-2">
                 <span className="font-jetbrains text-xs uppercase tracking-[0.18em] text-neutral-400">Name</span>
@@ -110,7 +62,7 @@ export default function CollectionsPage() {
                 <button
                   key={template.name}
                   type="button"
-                  onClick={() => applyTemplate(template)}
+                  onClick={() => workflow.applyTemplate(template)}
                   className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-sm text-neutral-200 transition hover:border-white/25 hover:bg-white/[0.07] hover:text-white"
                 >
                   {template.name}
@@ -171,9 +123,7 @@ export default function CollectionsPage() {
             className="w-full max-w-md rounded-xl border border-white/10 bg-[#08080c] p-5 shadow-[0_24px_80px_rgba(0,0,0,0.55)]"
             onSubmit={(event) => {
               event.preventDefault();
-              const nextName = renamingCollection.name.trim();
-              if (!nextName) return;
-              updateMutation.mutate({ id: renamingCollection.id, nextName }, { onSuccess: () => setRenamingCollection(null) });
+              workflow.saveRename();
             }}
           >
             <h2 className="text-lg font-medium text-white">Rename collection</h2>
@@ -280,6 +230,12 @@ function CollectionCard({
           <Pencil className="h-4 w-4" />
           Rename
         </Button>
+        <Link
+          href={`/collections/${collection.id}`}
+          className="inline-flex h-8 items-center justify-center gap-2 rounded-md border border-white/10 bg-white/[0.045] px-2 text-xs font-medium text-white transition hover:-translate-y-0.5 hover:border-white/25 hover:bg-white/[0.08]"
+        >
+          Open workspace
+        </Link>
       </div>
     </div>
   );

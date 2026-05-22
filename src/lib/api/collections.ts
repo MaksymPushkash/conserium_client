@@ -1,6 +1,6 @@
 "use client";
 
-import type { Collection, CollectionListResponse, CollectionShare, PublicCollectionResponse } from "@/lib/types";
+import type { Collection, CollectionListResponse, CollectionShare, CollectionWorkspace, PublicCollectionResponse } from "@/lib/types";
 import { request } from "./transport";
 
 export function listCollections(params: { limit?: number; offset?: number } = {}): Promise<CollectionListResponse> {
@@ -9,6 +9,10 @@ export function listCollections(params: { limit?: number; offset?: number } = {}
   if (params.offset !== undefined) search.set("offset", String(params.offset));
   const query = search.toString();
   return request<CollectionListResponse>(`/collections${query ? `?${query}` : ""}`);
+}
+
+export function getCollectionWorkspace(id: string): Promise<CollectionWorkspace> {
+  return request<CollectionWorkspace>(`/collections/${id}/workspace`);
 }
 
 export function createCollection(payload: { name: string; description?: string | null; color?: string | null }): Promise<Collection> {

@@ -5,10 +5,11 @@ import { List, Network } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
-import { createKnowledgeGraphConcern, getKnowledgeGraph } from "@/lib/api";
+import { createKnowledgeGraphConcern, createNote, getKnowledgeGraph, listCollections } from "@/lib/api";
 import { errorMessage } from "@/lib/api/transport";
 
 import { GraphCanvas } from "./_components/graph-canvas";
+import { GraphFilters, type GraphFiltersValue } from "./_components/graph-filters";
 import { GraphInspector } from "./_components/graph-inspector";
 import { clusterGraph } from "./_components/graph-layout";
 import { GraphListView } from "./_components/graph-list-view";
@@ -24,23 +25,42 @@ export default function GraphPage() {
   const [view, setView] = useState<GraphView>(() => graphViewFromParam(searchParams.get("view")));
   const [activeTool, setActiveTool] = useState<GraphTool>("knowledge");
   const [query, setQuery] = useState(() => searchParams.get("q") ?? "");
+  const [filters, setFilters] = useState<GraphFiltersValue>(() => graphFiltersFromParams(searchParams));
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(() => searchParams.get("node"));
   const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);
   const [concernText, setConcernText] = useState("");
 
+  const collectionsQuery = useQuery({ queryKey: ["collections", "graph"], queryFn: () => listCollections({ limit: 100 }) });
   const graphQuery = useQuery({
-    queryKey: ["knowledge-graph"],
-    queryFn: () => getKnowledgeGraph({ document_limit: 120, topic_limit: 40 }),
+    queryKey: ["knowledge-graph", filters],
+    queryFn: () =>
+      getKnowledgeGraph({
+        document_limit: 120,
+        topic_limit: 40,
+        collection_id: filters.collectionId || null,
+        tag: filters.tag.trim() || null,
+        topic: filters.topic || null,
+        document_type: filters.documentType || null,
+        recency_days: filters.recencyDays ? Number(filters.recencyDays) : null,
+      }),
   });
   const graph = graphQuery.data;
   const concernMutation = useMutation({
     mutationFn: createKnowledgeGraphConcern,
     onSuccess: () => setConcernText(""),
   });
+  const noteMutation = useMutation({
+    mutationFn: createNote,
+    onSuccess: (note) => router.push(`/notes?note=${note.id}`),
+  });
 
   const nodes = graph?.nodes ?? [];
   const edges = graph?.edges ?? [];
   const clusters = useMemo(() => clusterGraph(nodes, edges), [nodes, edges]);
+  const availableTopics = useMemo(() => {
+    const topics = nodes.filter((node) => node.kind === "topic").map((node) => node.label).sort((left, right) => left.localeCompare(right));
+    return filters.topic && !topics.includes(filters.topic) ? [filters.topic, ...topics] : topics;
+  }, [filters.topic, nodes]);
   const { layout, filteredLayout, selectedNode, focusedNodeId, focusedIds, selectedConnections } = useKnowledgeGraphLayout({
     nodes,
     edges,
@@ -50,29 +70,37 @@ export default function GraphPage() {
   });
 
   const replaceGraphUrl = useCallback(
-    (next: { view?: GraphView; query?: string; nodeId?: string | null }) => {
+    (next: { view?: GraphView; query?: string; nodeId?: string | null; filters?: GraphFiltersValue }) => {
       const params = new URLSearchParams(searchParams.toString());
       const nextView = next.view ?? view;
       const nextQuery = next.query ?? query;
       const nextNodeId = next.nodeId === undefined ? selectedNodeId : next.nodeId;
+      const nextFilters = next.filters ?? filters;
       if (nextView === "graph") params.delete("view");
       else params.set("view", nextView);
       if (nextQuery.trim()) params.set("q", nextQuery.trim());
       else params.delete("q");
       if (nextNodeId) params.set("node", nextNodeId);
       else params.delete("node");
+      setOrDelete(params, "collection", nextFilters.collectionId);
+      setOrDelete(params, "tag", nextFilters.tag.trim());
+      setOrDelete(params, "topic", nextFilters.topic);
+      setOrDelete(params, "type", nextFilters.documentType);
+      setOrDelete(params, "recency", nextFilters.recencyDays);
       const suffix = params.toString();
       router.replace(suffix ? `${pathname}?${suffix}` : pathname, { scroll: false });
     },
-    [pathname, query, router, searchParams, selectedNodeId, view],
+    [filters, pathname, query, router, searchParams, selectedNodeId, view],
   );
 
   useEffect(() => {
     const nextView = graphViewFromParam(searchParams.get("view"));
     const nextQuery = searchParams.get("q") ?? "";
     const nextNodeId = searchParams.get("node");
+    const nextFilters = graphFiltersFromParams(searchParams);
     setView(nextView);
     setQuery(nextQuery);
+    setFilters(nextFilters);
     setSelectedNodeId(nextNodeId);
   }, [searchParams]);
 
@@ -84,9 +112,10 @@ export default function GraphPage() {
 
   function resetGraph() {
     setQuery("");
+    setFilters(emptyGraphFilters());
     setSelectedNodeId(null);
     setHoveredNodeId(null);
-    replaceGraphUrl({ query: "", nodeId: null });
+    replaceGraphUrl({ query: "", filters: emptyGraphFilters(), nodeId: null });
   }
 
   return (
@@ -131,6 +160,22 @@ export default function GraphPage() {
         <section className="grid gap-5 xl:grid-cols-[280px_minmax(0,1fr)_330px]">
           <aside className="space-y-3">
             <GraphSideTools activeTool={activeTool} onActiveToolChange={setActiveTool} />
+            <GraphFilters
+              value={filters}
+              collections={collectionsQuery.data?.items ?? []}
+              topics={availableTopics}
+              onChange={(nextFilters) => {
+                setFilters(nextFilters);
+                setSelectedNodeId(null);
+                replaceGraphUrl({ filters: nextFilters, nodeId: null });
+              }}
+              onReset={() => {
+                const nextFilters = emptyGraphFilters();
+                setFilters(nextFilters);
+                setSelectedNodeId(null);
+                replaceGraphUrl({ filters: nextFilters, nodeId: null });
+              }}
+            />
             <GraphStats nodes={nodes.length} edges={edges.length} topics={clusters.length} />
           </aside>
 
@@ -161,6 +206,8 @@ export default function GraphPage() {
             concernSaved={concernMutation.isSuccess}
             concernSaving={concernMutation.isPending}
             concernError={concernMutation.error ? errorMessage(concernMutation.error) : null}
+            noteSaving={noteMutation.isPending}
+            noteError={noteMutation.error ? errorMessage(noteMutation.error) : null}
             onConcernTextChange={(value) => {
               setConcernText(value);
               concernMutation.reset();
@@ -173,6 +220,14 @@ export default function GraphPage() {
                 node_label: selectedNode?.label ?? null,
               })
             }
+            onCreateNote={() => {
+              if (!selectedNode) return;
+              noteMutation.mutate({
+                title: `Graph: ${selectedNode.label}`,
+                content: noteContentFromNode(selectedNode, selectedConnections),
+                collection_id: selectedNode.collection_id ?? null,
+              });
+            }}
             onSelectNode={selectNode}
           />
         </section>
@@ -185,4 +240,36 @@ export default function GraphPage() {
 
 function graphViewFromParam(value: string | null): GraphView {
   return value === "list" ? "list" : "graph";
+}
+
+function graphFiltersFromParams(params: URLSearchParams): GraphFiltersValue {
+  return {
+    collectionId: params.get("collection") ?? "",
+    tag: params.get("tag") ?? "",
+    topic: params.get("topic") ?? "",
+    documentType: params.get("type") ?? "",
+    recencyDays: params.get("recency") ?? "",
+  };
+}
+
+function emptyGraphFilters(): GraphFiltersValue {
+  return { collectionId: "", tag: "", topic: "", documentType: "", recencyDays: "" };
+}
+
+function setOrDelete(params: URLSearchParams, key: string, value: string) {
+  if (value) params.set(key, value);
+  else params.delete(key);
+}
+
+function noteContentFromNode(node: PositionedNode, connections: PositionedNode[]) {
+  const connected = connections.slice(0, 8).map((connection) => `- ${connection.label} (${connection.kind})`).join("\n");
+  return [
+    `# ${node.label}`,
+    "",
+    `Type: ${node.kind}`,
+    node.detail ? `Detail: ${node.detail}` : null,
+    node.summary ? `Summary: ${node.summary}` : null,
+    connections.length ? "Connected nodes:" : null,
+    connected || null,
+  ].filter(Boolean).join("\n");
 }

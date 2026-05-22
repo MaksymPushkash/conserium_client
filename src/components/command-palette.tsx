@@ -15,6 +15,7 @@ import {
   Plus,
   RefreshCw,
   Search,
+  ServerCog,
   Settings,
   Tags,
   X,
@@ -39,6 +40,7 @@ type PaletteAction = {
 
 const actions: PaletteAction[] = [
   { href: "/ingest", label: "Ingest", description: "Add source", icon: Plus, keywords: "upload url pdf image text markdown", group: "create" },
+  { href: "/processing", label: "Processing", description: "Jobs", icon: ServerCog, keywords: "jobs queue retry failed processing ingest embeddings enrichment exports", group: "manage" },
   { href: "/notes", label: "Note", description: "Write memory", icon: FileText, keywords: "markdown writing notes", group: "create" },
   { href: "/drafts", label: "Draft", description: "Generate doc", icon: PenLine, keywords: "generate writing export", group: "create" },
   { href: "/chat", label: "Chat", description: "Ask knowledge", icon: MessageSquare, keywords: "ask cortex query chat", group: "ask" },

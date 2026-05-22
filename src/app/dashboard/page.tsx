@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { ArrowRight, Database, Flame, Gauge, MessageSquare, Snowflake, Target, Upload } from "lucide-react";
+import { ArrowRight, Database, Flame, Gauge, MessageSquare, ServerCog, Snowflake, Target, Upload } from "lucide-react";
 import Link from "next/link";
 
 import { StatusPill } from "@/components/status-pill";
@@ -64,7 +64,9 @@ export default function DashboardPage() {
         <MetricCard icon={<Flame className="h-4 w-4" />} label="Hot documents" value={formatMetric(stats?.hot_documents)} detail={`${formatMetric(stats?.active_documents)} active`} />
         <MetricCard icon={<Snowflake className="h-4 w-4" />} label="Cold" value={formatMetric(stats?.cold_documents)} detail="No activity for 14 days" />
         <MetricCard icon={<Database className="h-4 w-4" />} label="Forgotten" value={formatMetric(stats?.forgotten_documents)} detail="No activity for 30 days" />
-        <MetricCard icon={<Upload className="h-4 w-4" />} label="Processing" value={formatMetric(stats?.processing_documents)} detail={`${formatMetric(stats?.failed_documents)} failed`} />
+        <Link href="/processing" className="block">
+          <MetricCard icon={<ServerCog className="h-4 w-4" />} label="Processing" value={formatMetric(stats?.processing_documents)} detail={`${formatMetric(stats?.failed_documents)} failed`} />
+        </Link>
       </section>
       {statsQuery.error ? <div className="text-sm text-red-300">{errorMessage(statsQuery.error)}</div> : null}
 

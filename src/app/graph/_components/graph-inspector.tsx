@@ -1,4 +1,4 @@
-import { ExternalLink, GitBranch, MessageSquareText } from "lucide-react";
+import { ExternalLink, FilePlus, GitBranch, MessageSquareText } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
 
@@ -18,8 +18,11 @@ export function GraphInspector({
   concernSaved,
   concernSaving,
   concernError,
+  noteSaving,
+  noteError,
   onConcernTextChange,
   onSaveConcern,
+  onCreateNote,
   onSelectNode,
 }: {
   activeTool: GraphTool;
@@ -31,14 +34,17 @@ export function GraphInspector({
   concernSaved: boolean;
   concernSaving: boolean;
   concernError: string | null;
+  noteSaving: boolean;
+  noteError: string | null;
   onConcernTextChange: (value: string) => void;
   onSaveConcern: () => void;
+  onCreateNote: () => void;
   onSelectNode: (node: PositionedNode) => void;
 }) {
   const connectedTopics = selectedConnections.filter((node) => node.kind === "topic");
   const connectedDocuments = selectedConnections.filter((node) => node.kind === "document");
   const topSource = selectedNode?.kind === "document" ? selectedNode : connectedDocuments[0] ?? null;
-  const askHref = selectedNode ? `/chat?q=${encodeURIComponent(`What should I know about ${selectedNode.label}?`)}` : "/chat";
+  const askHref = selectedNode ? askHrefForNode(selectedNode) : "/chat";
 
   return (
     <aside className="rounded-xl border border-white/10 bg-white/[0.025]">
@@ -49,6 +55,7 @@ export function GraphInspector({
               <div>
                 <div className="font-jetbrains text-xs uppercase tracking-[0.16em] text-neutral-300">{selectedNode.kind}</div>
                 {selectedNode.detail ? <p className="mt-2 text-sm text-neutral-400">{selectedNode.detail}</p> : null}
+                {selectedNode.summary ? <p className="mt-3 text-sm leading-6 text-neutral-300">{selectedNode.summary}</p> : null}
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <InspectorMetric label="Topics" value={String(connectedTopics.length)} />
@@ -67,6 +74,22 @@ export function GraphInspector({
                 </div>
               ) : null}
               <ConnectionList nodes={selectedConnections} onSelectNode={onSelectNode} />
+              {selectedNode.kind === "document" && selectedNode.suggested_questions?.length ? (
+                <div className="rounded-lg border border-white/10 bg-black/35 p-3">
+                  <div className="font-jetbrains text-xs uppercase tracking-[0.14em] text-neutral-500">Suggested questions</div>
+                  <div className="mt-3 grid gap-2">
+                    {selectedNode.suggested_questions.slice(0, 3).map((question) => (
+                      <Link
+                        key={question}
+                        href={`/chat?document=${selectedNode.id.replace("document:", "")}&q=${encodeURIComponent(question)}`}
+                        className="text-sm leading-6 text-neutral-300 underline-offset-4 hover:text-white hover:underline"
+                      >
+                        {question}
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
               <div className="grid gap-2 sm:grid-cols-2">
                 <Link
                   href={selectedNode.kind === "document" ? documentHref(selectedNode) : `/topics/${encodeURIComponent(selectedNode.label)}`}
@@ -82,7 +105,17 @@ export function GraphInspector({
                   Ask about this
                   <MessageSquareText className="h-4 w-4" />
                 </Link>
+                <button
+                  type="button"
+                  onClick={onCreateNote}
+                  disabled={noteSaving}
+                  className="inline-flex h-9 items-center justify-center gap-2 rounded-md border border-white/10 bg-white/[0.04] px-3 text-sm font-medium text-neutral-100 transition-colors hover:border-white/20 hover:bg-white/[0.08] disabled:cursor-not-allowed disabled:opacity-60 sm:col-span-2"
+                >
+                  {noteSaving ? "Creating note..." : "Create note from node"}
+                  <FilePlus className="h-4 w-4" />
+                </button>
               </div>
+              {noteError ? <p className="text-sm text-red-300">{noteError}</p> : null}
             </div>
           ) : (
             <p className="text-sm leading-6 text-neutral-400">Hover isolates neighbors. Click a topic or document to inspect it here.</p>
@@ -156,6 +189,11 @@ export function GraphInspector({
       ) : null}
     </aside>
   );
+}
+
+function askHrefForNode(node: PositionedNode) {
+  if (node.kind === "document") return `/chat?document=${node.id.replace("document:", "")}`;
+  return `/chat?tag=${encodeURIComponent(node.label)}&q=${encodeURIComponent(`What should I know about ${node.label}?`)}`;
 }
 
 function PanelSection({ eyebrow, title, children }: { eyebrow: string; title: string; children: ReactNode }) {

@@ -11,6 +11,8 @@ export function createRepoSync(payload: {
   collection_id: string;
   repo_url: string;
   branch: string;
+  include_paths?: string[];
+  exclude_paths?: string[];
 }): Promise<RepoSync> {
   return request<RepoSync>("/repo-syncs", { method: "POST", body: JSON.stringify(payload) });
 }

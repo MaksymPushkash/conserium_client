@@ -10,6 +10,7 @@ import type { ChatMessage } from "@/stores/chat-store";
 interface UseChatQueryStreamOptions {
   conversationId: string | null;
   collectionId: string | null;
+  documentId?: string | null;
   tagName: string | null;
   streaming: boolean;
   setConversationId: (conversationId: string | null) => void;
@@ -20,6 +21,7 @@ interface UseChatQueryStreamOptions {
 export function useChatQueryStream({
   conversationId,
   collectionId,
+  documentId = null,
   tagName,
   streaming,
   setConversationId,
@@ -47,6 +49,7 @@ export function useChatQueryStream({
           query: text,
           conversation_id: conversationId,
           collection_id: collectionId,
+          document_id: documentId,
           tag_names: tagName ? [tagName] : null,
           limit: 5,
         });
@@ -80,6 +83,7 @@ export function useChatQueryStream({
           query: text,
           conversation_id: conversationId,
           collection_id: collectionId,
+          document_id: documentId,
           tag_names: tagName ? [tagName] : null,
           limit: 5,
         },

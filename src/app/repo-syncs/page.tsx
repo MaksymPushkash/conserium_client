@@ -1,77 +1,39 @@
 "use client";
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AlertTriangle, CheckCircle2, GitBranch, Github, RefreshCw, ShieldCheck } from "lucide-react";
 import type { ReactNode } from "react";
-import { FormEvent, useMemo, useState } from "react";
 
 import { EmptyState } from "@/components/ui/empty-state";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { MetricCard, PageHeader, PageShell, SectionPanel } from "@/components/ui/page-shell";
 import { StatusBadge } from "@/components/ui/status-badge";
-import { createRepoSync, listCollections, listRepoSyncs, runRepoSync } from "@/lib/api";
 import type { RepoSync } from "@/lib/types";
 import { formatDateTime } from "@/lib/utils";
+import { useRepoSyncsWorkflow } from "./use-repo-syncs-workflow";
 
 export default function RepoSyncsPage() {
-  const queryClient = useQueryClient();
-  const [repoUrl, setRepoUrl] = useState("");
-  const [branch, setBranch] = useState("main");
-  const [collectionId, setCollectionId] = useState("");
-  const [includePaths, setIncludePaths] = useState("README.md, docs/**/*.md, **/*.md");
-  const [excludePaths, setExcludePaths] = useState("node_modules/**, .git/**, dist/**");
-  const [lastRunSummary, setLastRunSummary] = useState<string | null>(null);
-  const [lastRunWarnings, setLastRunWarnings] = useState<string[]>([]);
-
-  const collectionsQuery = useQuery({ queryKey: ["collections"], queryFn: () => listCollections({ limit: 100 }) });
-  const repoSyncsQuery = useQuery({ queryKey: ["repo-syncs"], queryFn: listRepoSyncs });
-  const collections = collectionsQuery.data?.items ?? [];
-  const repoSyncs = repoSyncsQuery.data?.items ?? [];
-  const selectedCollectionId = collectionId || collections[0]?.id || "";
-
-  const repoMetrics = useMemo(() => {
-    const running = repoSyncs.filter((sync) => sync.status === "running").length;
-    const failed = repoSyncs.filter((sync) => sync.status === "failed").length;
-    const synced = repoSyncs.filter((sync) => Boolean(sync.last_synced_at)).length;
-    return { running, failed, synced };
-  }, [repoSyncs]);
-
-  const createMutation = useMutation({
-    mutationFn: createRepoSync,
-    onSuccess: async (repoSync) => {
-      setRepoUrl("");
-      setLastRunSummary(null);
-      setLastRunWarnings([]);
-      await queryClient.invalidateQueries({ queryKey: ["repo-syncs"] });
-      runMutation.mutate(repoSync.id);
-    },
-  });
-
-  const runMutation = useMutation({
-    mutationFn: (id: string) => runRepoSync(id, { max_files: 50 }),
-    onSuccess: async (result) => {
-      const totalChanges = result.created + result.updated + result.skipped + result.deleted;
-      setLastRunSummary(
-        totalChanges === 0
-          ? "No Markdown files changed on this branch."
-          : `Created ${result.created}, updated ${result.updated}, skipped ${result.skipped}, deleted ${result.deleted}.`,
-      );
-      setLastRunWarnings(result.warnings ?? []);
-      await queryClient.invalidateQueries({ queryKey: ["repo-syncs"] });
-      await queryClient.invalidateQueries({ queryKey: ["documents"] });
-    },
-  });
-
-  function onSubmit(event: FormEvent) {
-    event.preventDefault();
-    if (!repoUrl.trim() || !selectedCollectionId) return;
-    createMutation.mutate({
-      collection_id: selectedCollectionId,
-      repo_url: repoUrl.trim(),
-      branch: branch.trim() || "main",
-    });
-  }
+  const workflow = useRepoSyncsWorkflow();
+  const {
+    repoUrl,
+    setRepoUrl,
+    branch,
+    setBranch,
+    setCollectionId,
+    includePaths,
+    setIncludePaths,
+    excludePaths,
+    setExcludePaths,
+    lastRunSummary,
+    lastRunWarnings,
+    collections,
+    repoSyncs,
+    selectedCollectionId,
+    repoMetrics,
+    createMutation,
+    runMutation,
+    repoSyncsQuery,
+  } = workflow;
 
   return (
     <PageShell className="max-w-7xl space-y-5">
@@ -82,7 +44,7 @@ export default function RepoSyncsPage() {
         actions={
           <Button
             variant="secondary"
-            onClick={() => queryClient.invalidateQueries({ queryKey: ["repo-syncs"] })}
+            onClick={workflow.refreshRepoSyncs}
             disabled={repoSyncsQuery.isFetching}
           >
             <RefreshCw className="h-4 w-4" />
@@ -103,7 +65,7 @@ export default function RepoSyncsPage() {
           description="Paste a GitHub repository URL, choose a target collection, then queue markdown ingestion."
           actions={<StatusBadge status={selectedCollectionId ? "ready" : "missing"} label={selectedCollectionId ? "Target ready" : "Need collection"} />}
         >
-          <form onSubmit={onSubmit} className="grid gap-5">
+          <form onSubmit={workflow.submit} className="grid gap-5">
             <label className="grid gap-2">
               <span className="font-jetbrains text-xs uppercase tracking-[0.18em] text-neutral-400">Repository URL</span>
               <Input

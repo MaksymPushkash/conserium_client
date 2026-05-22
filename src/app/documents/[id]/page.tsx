@@ -1,6 +1,8 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { MessageSquare } from "lucide-react";
+import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 
@@ -20,6 +22,7 @@ import {
   exportDocument,
   getDocument,
   getDocumentChunk,
+  getDocumentQuestionHistory,
   getDocumentStatus,
   listCollections,
   moveDocument,
@@ -57,6 +60,10 @@ export default function DocumentDetailPage() {
     },
   });
   const collectionsQuery = useQuery({ queryKey: ["collections"], queryFn: () => listCollections({ limit: 100 }) });
+  const questionHistoryQuery = useQuery({
+    queryKey: ["document", params.id, "questions"],
+    queryFn: () => getDocumentQuestionHistory(params.id, 5),
+  });
   const chunkQuery = useQuery({
     queryKey: ["document", params.id, "chunk", focusedChunkId],
     queryFn: () => getDocumentChunk(params.id, focusedChunkId as string),
@@ -143,6 +150,19 @@ export default function DocumentDetailPage() {
               {compactId(document.id)} · {formatDateTime(document.created_at)}
             </p>
           </div>
+          {visibleStatus === "READY" ? (
+            <Link href={`/chat?document=${document.id}`} className="inline-flex">
+              <Button className="font-normal">
+                <MessageSquare className="h-4 w-4" />
+                Ask about this document
+              </Button>
+            </Link>
+          ) : (
+            <Button className="font-normal" disabled>
+              <MessageSquare className="h-4 w-4" />
+              Ask about this document
+            </Button>
+          )}
         </header>
 
         {status?.failure_reason ? (
@@ -180,6 +200,26 @@ export default function DocumentDetailPage() {
           collections={collectionsQuery.data?.items ?? []}
           onMove={(collectionId) => moveMutation.mutate(collectionId)}
         />
+        <Card>
+          <CardHeader>
+            <CardTitle>Recent Q&A</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {questionHistoryQuery.data?.items.length ? (
+              questionHistoryQuery.data.items.map((item) => (
+                <div key={`${item.created_at}-${item.query_text}`} className="rounded-md border border-white/10 bg-white/[0.025] p-3">
+                  <div className="text-sm font-medium text-white">{item.query_text}</div>
+                  <div className="mt-2 line-clamp-3 text-sm leading-6 text-neutral-400">{item.answer_text ?? "Answer not saved."}</div>
+                  <div className="font-jetbrains mt-2 text-xs text-neutral-500">
+                    {item.result_count} sources · {formatDateTime(item.created_at)}
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="font-jetbrains text-xs leading-6 text-neutral-500">No document-scoped answers yet.</div>
+            )}
+          </CardContent>
+        </Card>
         <DocumentEnrichmentCard document={document} />
       </aside>
       {renameOpen ? (

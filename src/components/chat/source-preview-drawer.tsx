@@ -27,6 +27,14 @@ export function SourcePreviewDrawer({ source, onClose }: { source: QuerySource; 
         <div className="mt-8 rounded-lg border border-white/10 bg-white/[0.02] p-4 text-sm font-light leading-7 text-neutral-200">
           {source.content}
         </div>
+        <div className="mt-4 rounded-lg border border-white/10 bg-white/[0.02] p-4">
+          <div className="text-sm font-medium text-white">Why this source?</div>
+          <div className="mt-2 text-sm leading-6 text-neutral-400">
+            Retrieved from {source.document_title ?? "this document"} at chunk {source.chunk_index}
+            {source.page_number ? `, page ${source.page_number}` : ""} with score {formatScore(source.score)}.
+            {source.used_in_answer ? " The answer cited this source directly." : " It was retrieved as supporting context."}
+          </div>
+        </div>
         <Link href={`/documents/${source.document_id}?chunk=${source.chunk_id}`} className="mt-6 inline-flex">
           <Button variant="secondary" className="font-normal">Open document</Button>
         </Link>
