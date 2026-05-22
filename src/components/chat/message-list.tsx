@@ -42,7 +42,8 @@ export function MessageList({ messages, hasReadyDocuments, suggestionChips, onPi
                       key={source.chunk_id}
                       index={citationNumber}
                       title={source.document_title ?? "Source"}
-                      detail={source.chunk_id}
+                      detail={sourceDetail(source)}
+                      excerpt={source.content}
                       href={`#source-${citationNumber}`}
                     />
                   );
@@ -86,4 +87,10 @@ export function MessageList({ messages, hasReadyDocuments, suggestionChips, onPi
       </div>
     </div>
   );
+}
+
+function sourceDetail(source: NonNullable<ChatMessage["sources"]>[number]) {
+  const page = source.page_number ? `page ${source.page_number}` : `chunk ${source.chunk_index}`;
+  const confidence = source.score !== null ? `score ${source.score.toFixed(3)}` : "score n/a";
+  return `${page} · ${confidence}`;
 }

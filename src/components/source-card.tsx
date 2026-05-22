@@ -3,12 +3,12 @@ import Link from "next/link";
 
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { DEBUG_UI_ENABLED } from "@/lib/config";
 import type { QuerySource } from "@/lib/types";
 
 export function SourceCard({ source, index, onPreview }: { source: QuerySource; index?: number; onPreview?: (source: QuerySource) => void }) {
   const citation = citationLabel(source, index);
-  const pageLabel = source.page_number ? `Page ${source.page_number}` : "Document";
+  const pageLabel = source.page_number ? `Page ${source.page_number}` : `Chunk ${source.chunk_index}`;
+  const confidence = source.score !== null ? confidenceLabel(source.score) : "confidence unavailable";
 
   return (
     <Card id={`source-${citation.replace(/\D/g, "")}`} className="scroll-mt-4 border-white/10 bg-black/40">
@@ -19,10 +19,22 @@ export function SourceCard({ source, index, onPreview }: { source: QuerySource; 
               <FileText className="h-4 w-4 shrink-0 text-neutral-500" />
               <span className="truncate">{source.document_title ?? "Untitled source"}</span>
             </div>
-            <div className="font-jetbrains mt-1 text-xs font-light text-neutral-500">{pageLabel}</div>
+            <div className="font-jetbrains mt-1 text-xs font-light text-neutral-500">
+              {pageLabel} · {confidence}
+            </div>
           </div>
           <Badge className="font-jetbrains font-light">{citation}</Badge>
         </div>
+
+        <p className="line-clamp-4 text-sm font-light leading-6 text-neutral-300">{source.content}</p>
+
+        <details className="rounded-md border border-white/10 bg-white/[0.025] p-3">
+          <summary className="cursor-pointer text-sm font-medium text-neutral-200">Why this source?</summary>
+          <div className="mt-2 text-sm leading-6 text-neutral-400">
+            Retrieved from {source.document_title ?? "this document"} at {pageLabel.toLowerCase()} with {confidence}.
+            {source.used_in_answer ? " The answer cited this source directly." : " It was retrieved as supporting context."}
+          </div>
+        </details>
 
         <div className="font-jetbrains flex items-center justify-end gap-3 text-xs font-light text-neutral-500">
           {onPreview ? (
@@ -35,18 +47,6 @@ export function SourceCard({ source, index, onPreview }: { source: QuerySource; 
           </Link>
         </div>
 
-        {DEBUG_UI_ENABLED ? (
-          <div className="space-y-3 border-t border-white/10 pt-3">
-            <p className="line-clamp-5 text-sm font-light leading-6 text-neutral-300">{source.content}</p>
-            <div className="font-jetbrains flex flex-wrap items-center justify-between gap-3 text-xs font-light text-neutral-500">
-              <span>
-                chunk {source.chunk_index}
-                {source.score !== null ? ` · score ${source.score.toFixed(3)}` : " · score unavailable"}
-              </span>
-              <span>{source.used_in_answer ? "used in answer" : "retrieved only"}</span>
-            </div>
-          </div>
-        ) : null}
       </CardContent>
     </Card>
   );
@@ -54,4 +54,8 @@ export function SourceCard({ source, index, onPreview }: { source: QuerySource; 
 
 function citationLabel(source: QuerySource, index?: number) {
   return source.citation ?? `[${index ?? source.chunk_index + 1}]`;
+}
+
+function confidenceLabel(score: number) {
+  return `score ${score.toFixed(3)}`;
 }

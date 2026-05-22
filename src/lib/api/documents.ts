@@ -3,6 +3,7 @@
 import type {
   DocumentChunkResponse,
   DocumentListResponse,
+  DocumentQuestionHistoryResponse,
   DocumentResponse,
   DocumentSearchResponse,
   DocumentStatus,
@@ -61,6 +62,10 @@ export function getDocumentChunk(documentId: string, chunkId: string): Promise<D
 
 export function getDocumentStatus(documentId: string): Promise<DocumentStatusResponse> {
   return request<DocumentStatusResponse>(`/documents/${documentId}/status`);
+}
+
+export function getDocumentQuestionHistory(documentId: string, limit = 5): Promise<DocumentQuestionHistoryResponse> {
+  return request<DocumentQuestionHistoryResponse>(`/documents/${documentId}/questions?limit=${limit}`);
 }
 
 export function renameDocument(id: string, payload: { title: string }): Promise<DocumentResponse> {

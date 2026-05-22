@@ -3,10 +3,21 @@
 import type { KnowledgeGraphConcern, KnowledgeGraphResponse } from "@/lib/types";
 import { request } from "./transport";
 
-export function getKnowledgeGraph(params: { document_limit?: number; topic_limit?: number } = {}): Promise<KnowledgeGraphResponse> {
+export interface KnowledgeGraphParams {
+  document_limit?: number;
+  topic_limit?: number;
+  collection_id?: string | null;
+  tag?: string | null;
+  topic?: string | null;
+  document_type?: string | null;
+  recency_days?: number | null;
+}
+
+export function getKnowledgeGraph(params: KnowledgeGraphParams = {}): Promise<KnowledgeGraphResponse> {
   const search = new URLSearchParams();
-  if (params.document_limit !== undefined) search.set("document_limit", String(params.document_limit));
-  if (params.topic_limit !== undefined) search.set("topic_limit", String(params.topic_limit));
+  for (const [key, value] of Object.entries(params)) {
+    if (value !== undefined && value !== null && value !== "") search.set(key, String(value));
+  }
   const query = search.toString();
   return request<KnowledgeGraphResponse>(`/knowledge-graph${query ? `?${query}` : ""}`);
 }

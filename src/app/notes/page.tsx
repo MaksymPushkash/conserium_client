@@ -3,6 +3,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { FileText, Plus, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { NoteDeleteDialog } from "@/components/notes/note-delete-dialog";
 import { NoteEditor } from "@/components/notes/note-editor";
 import type { NoteEditorMode } from "@/components/notes/note-editor";
@@ -21,6 +22,7 @@ import { cn } from "@/lib/utils";
 const AUTOSAVE_DELAY_MS = 1400;
 
 export default function NotesPage() {
+  const searchParams = useSearchParams();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [collectionId, setCollectionId] = useState<string>("");
   const [title, setTitle] = useState("");
@@ -92,10 +94,15 @@ export default function NotesPage() {
   });
 
   useEffect(() => {
+    const requestedNoteId = searchParams.get("note");
+    if (requestedNoteId && requestedNoteId !== selectedId) {
+      setSelectedId(requestedNoteId);
+      return;
+    }
     if (!selectedId && notes.length) {
       setSelectedId(notes[0].id);
     }
-  }, [notes, selectedId]);
+  }, [notes, searchParams, selectedId]);
 
   useEffect(() => {
     setSelectedId(null);

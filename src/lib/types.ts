@@ -180,6 +180,11 @@ export interface KnowledgeGraphNode {
   kind: "topic" | "document";
   label: string;
   detail: string | null;
+  collection_id?: string | null;
+  summary?: string | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+  suggested_questions?: string[] | null;
 }
 
 export interface KnowledgeGraphEdge {
@@ -270,6 +275,7 @@ export interface SuggestedLearningResource {
 export interface RankedLearningResource extends SuggestedLearningResource {
   excerpt: string | null;
   score: number;
+  warning?: string | null;
   cached: boolean;
   refreshed_at: string | null;
 }
@@ -321,6 +327,55 @@ export interface CollectionListResponse {
   offset: number;
 }
 
+export interface CollectionWorkspaceStats {
+  total_documents: number;
+  ready_documents: number;
+  processing_documents: number;
+  failed_documents: number;
+  topic_count: number;
+  recent_question_count: number;
+}
+
+export interface CollectionWorkspaceDocument {
+  id: string;
+  title: string;
+  type: DocumentType | string;
+  status: DocumentStatus | string;
+  summary: string | null;
+  tags: string[];
+  activity_temperature: string;
+  created_at: string;
+  updated_at: string | null;
+}
+
+export interface CollectionWorkspaceTopic {
+  name: string;
+  document_count: number;
+  last_document_at: string | null;
+}
+
+export interface CollectionWorkspaceGap {
+  title: string;
+  reason: string;
+  severity: "high" | "medium" | "low" | string;
+}
+
+export interface CollectionWorkspaceQuestion {
+  query_text: string;
+  answer_preview: string | null;
+  result_count: number;
+  created_at: string;
+}
+
+export interface CollectionWorkspace {
+  collection: Collection;
+  stats: CollectionWorkspaceStats;
+  documents: CollectionWorkspaceDocument[];
+  topics: CollectionWorkspaceTopic[];
+  gaps: CollectionWorkspaceGap[];
+  recent_questions: CollectionWorkspaceQuestion[];
+}
+
 export interface CollectionShare {
   id: string;
   collection_id: string;
@@ -363,6 +418,8 @@ export interface RepoSync {
   owner: string;
   repo: string;
   branch: string;
+  include_paths: string[];
+  exclude_paths: string[];
   status: string;
   last_error: string | null;
   last_synced_at: string | null;
@@ -493,6 +550,7 @@ export interface QueryRequest {
   query: string;
   conversation_id?: string | null;
   collection_id?: string | null;
+  document_id?: string | null;
   tag_names?: string[] | null;
   document_types?: DocumentType[] | null;
   limit: number;
@@ -574,4 +632,17 @@ export type QueryStreamEventName = "metadata" | "token" | "sources" | "debug" | 
 export interface QueryStreamEvent {
   event: QueryStreamEventName;
   data: Record<string, unknown>;
+}
+
+export interface DocumentQuestionHistoryItem {
+  query_text: string;
+  answer_text: string | null;
+  result_count: number;
+  created_at: string;
+}
+
+export interface DocumentQuestionHistoryResponse {
+  items: DocumentQuestionHistoryItem[];
+  document_id: string;
+  limit: number;
 }

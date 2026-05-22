@@ -14,6 +14,7 @@ import {
   RefreshCw,
   Search,
   Settings,
+  ServerCog,
   Tags,
 } from "lucide-react";
 import type { Route } from "next";
@@ -23,6 +24,7 @@ import { DEBUG_UI_ENABLED } from "@/lib/config";
 export const baseNav: Array<{ href: Route; label: string; icon: typeof Search; debugOnly?: boolean }> = [
   { href: "/dashboard", label: "Overview", icon: Search },
   { href: "/ingest", label: "Ingest", icon: Plus },
+  { href: "/processing", label: "Processing", icon: ServerCog },
   { href: "/documents", label: "Library", icon: Files },
   { href: "/topics", label: "Topics", icon: Tags },
   { href: "/graph", label: "Graph", icon: Network },
@@ -44,7 +46,7 @@ export const nav = baseNav.filter((item) => !item.debugOnly || DEBUG_UI_ENABLED)
 export const navGroups = [
   {
     label: "Workspace",
-    items: nav.filter((item) => ["/dashboard", "/ingest", "/documents", "/notes", "/chat"].includes(item.href)),
+    items: nav.filter((item) => ["/dashboard", "/ingest", "/processing", "/documents", "/notes", "/chat"].includes(item.href)),
   },
   {
     label: "Intelligence",

@@ -2,6 +2,7 @@
 
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { BookOpen, ClipboardList, FileText, GitCompareArrows } from "lucide-react";
+import { useSearchParams } from "next/navigation";
 import type { FormEvent } from "react";
 import { useState } from "react";
 
@@ -37,8 +38,9 @@ export const promptSuggestions = [
 ];
 
 export function useDraftWorkflow() {
+  const searchParams = useSearchParams();
   const [prompt, setPrompt] = useState("");
-  const [collectionId, setCollectionId] = useState("");
+  const [collectionId, setCollectionId] = useState(searchParams.get("collection") ?? "");
   const [topicName, setTopicName] = useState("");
   const collectionsQuery = useQuery({ queryKey: ["collections", "drafts"], queryFn: () => listCollections({ limit: 100 }) });
   const topicsQuery = useQuery({ queryKey: ["topics", "drafts"], queryFn: () => listTopics({ limit: 100 }) });
