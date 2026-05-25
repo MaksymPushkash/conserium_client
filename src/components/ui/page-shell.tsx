@@ -112,11 +112,11 @@ export function MetricCard({
 }) {
   return (
     <Card className={cn("overflow-hidden", className)}>
-      <CardContent className="flex items-center justify-between gap-4">
-        <div>
+      <CardContent className="flex min-w-0 items-center justify-between gap-4">
+        <div className="min-w-0">
           <p className="font-jetbrains text-[11px] uppercase tracking-[0.2em] text-neutral-400">{label}</p>
           <div className="mt-3 text-3xl font-semibold text-white">{value}</div>
-          {detail ? <div className="font-jetbrains mt-2 text-sm text-neutral-400">{detail}</div> : null}
+          {detail ? <div className="font-jetbrains mt-2 truncate text-sm text-neutral-400">{detail}</div> : null}
         </div>
         {icon ? <div className="grid h-12 w-12 shrink-0 place-items-center rounded-xl border border-white/10 bg-white/[0.045] text-neutral-300">{icon}</div> : null}
       </CardContent>

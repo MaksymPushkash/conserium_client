@@ -8,6 +8,7 @@ const graphTools: Array<{ id: GraphTool; title: string; description: string; ico
   { id: "links", title: "Go links", description: "Jump directly to topics and source documents.", icon: LinkIcon },
   { id: "concern", title: "Flag a concern", description: "Mark stale or weak context for review.", icon: AlertTriangle },
   { id: "adjacent", title: "Explore adjacent", description: "Walk neighboring topics and documents.", icon: Sparkles },
+  { id: "insights", title: "Insights", description: "Find thin clusters, stale areas, and dense documents.", icon: Sparkles },
 ];
 
 export function GraphSideTools({ activeTool, onActiveToolChange }: { activeTool: GraphTool; onActiveToolChange: (tool: GraphTool) => void }) {

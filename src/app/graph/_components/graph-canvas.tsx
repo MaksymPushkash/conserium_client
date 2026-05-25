@@ -164,6 +164,16 @@ export function GraphCanvas({
                             stroke={selected ? "#ffffff" : "#070708"}
                             strokeWidth={selected ? 4 : 3}
                           />
+                          {node.is_pinned ? (
+                            <circle
+                              cx={node.x + node.radius * 0.7}
+                              cy={node.y - node.radius * 0.7}
+                              r="5"
+                              fill="#f5f5f5"
+                              stroke="#070708"
+                              strokeWidth="2"
+                            />
+                          ) : null}
                         </>
                       ) : (
                         <>

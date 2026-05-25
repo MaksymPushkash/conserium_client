@@ -1,6 +1,7 @@
 "use client";
 
 export * from "./api/auth";
+export * from "./api/api-keys";
 export * from "./api/chats";
 export * from "./api/collections";
 export * from "./api/compare";

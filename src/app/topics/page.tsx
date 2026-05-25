@@ -4,7 +4,8 @@ import { useQuery } from "@tanstack/react-query";
 import { ArrowRight, Tags } from "lucide-react";
 import Link from "next/link";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { listTopics } from "@/lib/api";
 import { errorMessage } from "@/lib/api/transport";
 import { formatDateTime } from "@/lib/utils";
@@ -28,9 +29,19 @@ export default function TopicsPage() {
 
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         {topics.map((topic) => (
-          <Card key={topic.name}>
+          <Link
+            key={topic.name}
+            href={`/topics/${encodeURIComponent(topic.name)}`}
+            className="group rounded-xl border border-white/10 bg-white/[0.045] text-white shadow-[0_18px_70px_rgba(0,0,0,0.24)] transition-all duration-200 hover:-translate-y-0.5 hover:border-white/25 hover:bg-white/[0.07] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20"
+          >
             <CardHeader className="flex flex-row items-center justify-between gap-3">
-              <CardTitle className="min-w-0 truncate">{topic.name}</CardTitle>
+              <div className="min-w-0">
+                <CardTitle className="truncate">{topic.name}</CardTitle>
+                <div className="mt-2 flex flex-wrap gap-1">
+                  {topic.pinned ? <Badge>Pinned</Badge> : null}
+                  {topic.source_names.length > 1 ? <Badge>{topic.source_names.length} sources</Badge> : null}
+                </div>
+              </div>
               <Tags className="h-4 w-4 shrink-0 text-neutral-500" />
             </CardHeader>
             <CardContent className="space-y-4">
@@ -38,14 +49,11 @@ export default function TopicsPage() {
                 <Metric label="Documents" value={String(topic.document_count)} />
                 <Metric label="Latest" value={topic.last_document_at ? formatDateTime(topic.last_document_at) : "None"} />
               </div>
-              <Link
-                href={`/topics/${encodeURIComponent(topic.name)}`}
-                className="flex items-center gap-1 text-sm text-neutral-500 hover:text-white"
-              >
+              <div className="flex items-center gap-1 text-sm text-neutral-500 transition-colors group-hover:text-white">
                 Open topic <ArrowRight className="h-4 w-4" />
-              </Link>
+              </div>
             </CardContent>
-          </Card>
+          </Link>
         ))}
       </section>
       {!topicsQuery.error && !topics.length ? <div className="py-8 text-sm text-neutral-500">No topics yet.</div> : null}

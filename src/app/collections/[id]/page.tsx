@@ -1,25 +1,27 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { AlertTriangle, ArrowLeft, BookOpen, FileText, Folder, MessageSquareText, Network, Share2, Sparkles } from "lucide-react";
+import { AlertTriangle, ArrowLeft, FileText, Folder, GitCompareArrows, MessageSquareText, Network, Share2, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import type { ReactNode } from "react";
 
 import { EmptyState } from "@/components/ui/empty-state";
 import { Button } from "@/components/ui/button";
 import { MetricCard, PageHeader, PageShell, SectionPanel } from "@/components/ui/page-shell";
-import { StatusBadge } from "@/components/ui/status-badge";
-import { createCollectionShare, getCollectionShare, getCollectionWorkspace, revokeCollectionShare } from "@/lib/api";
+import { createCollectionShare, createKnowledgeGapNote, getCollectionShare, getCollectionWorkspace, revokeCollectionShare } from "@/lib/api";
 import { errorMessage } from "@/lib/api/transport";
-import type {
-  CollectionShare,
-  CollectionWorkspaceDocument,
-  CollectionWorkspaceGap,
-  CollectionWorkspaceQuestion,
-  CollectionWorkspaceTopic,
-} from "@/lib/types";
-import { cn, formatDateTime } from "@/lib/utils";
+import type { CollectionWorkspaceGap } from "@/lib/types";
+import {
+  ComparisonCard,
+  DraftCard,
+  EmptyPanelText,
+  GapRow,
+  LinkButton,
+  QuestionCard,
+  SharePanel,
+  WorkspaceDocumentCard,
+  WorkspaceTopicRow,
+} from "./_components/collection-workspace-components";
 
 export default function CollectionWorkspacePage() {
   const params = useParams<{ id: string }>();
@@ -40,6 +42,18 @@ export default function CollectionWorkspacePage() {
   const revokeShareMutation = useMutation({
     mutationFn: revokeCollectionShare,
     onSuccess: () => queryClient.setQueryData(["collections", collectionId, "share"], null),
+  });
+  const createGapNoteMutation = useMutation({
+    mutationFn: (gap: CollectionWorkspaceGap) =>
+      createKnowledgeGapNote(gap.id ?? `${gap.topic ?? gap.title}-summary`, {
+        topic: gap.topic ?? gap.title,
+        area_name: gap.title,
+        collection_id: collectionId,
+      }),
+    onSuccess: (note) => {
+      void queryClient.invalidateQueries({ queryKey: ["notes"] });
+      window.location.href = `/notes?note=${note.id}`;
+    },
   });
 
   const workspace = workspaceQuery.data;
@@ -135,7 +149,7 @@ export default function CollectionWorkspacePage() {
                 {workspace.gaps.length ? (
                   <div className="grid gap-2">
                     {workspace.gaps.map((gap) => (
-                      <GapRow key={gap.title} gap={gap} />
+                      <GapRow key={`${gap.id ?? gap.title}-${gap.topic ?? ""}`} gap={gap} collectionId={workspace.collection.id} onCreateNote={() => createGapNoteMutation.mutate(gap)} notePending={createGapNoteMutation.isPending} />
                     ))}
                   </div>
                 ) : (
@@ -161,106 +175,38 @@ export default function CollectionWorkspacePage() {
               />
             )}
           </SectionPanel>
+
+          <SectionPanel title="Recent drafts" description="Generated versions from this collection.">
+            {workspace.recent_drafts.length ? (
+              <div className="grid gap-3 md:grid-cols-2">
+                {workspace.recent_drafts.map((draft) => <DraftCard key={draft.id} draft={draft} collectionId={workspace.collection.id} />)}
+              </div>
+            ) : (
+              <EmptyState
+                icon={<FileText className="h-5 w-5" />}
+                title="No collection drafts yet"
+                description="Generate a draft from this collection or one of its gaps to build version history."
+                action={<LinkButton href={`/drafts?collection=${workspace.collection.id}`}>Draft from collection</LinkButton>}
+              />
+            )}
+          </SectionPanel>
+
+          <SectionPanel title="Recent comparisons" description="Saved compare results where both documents belong to this collection.">
+            {workspace.recent_comparisons.length ? (
+              <div className="grid gap-3 md:grid-cols-2">
+                {workspace.recent_comparisons.map((comparison) => <ComparisonCard key={comparison.id} comparison={comparison} />)}
+              </div>
+            ) : (
+              <EmptyState
+                icon={<GitCompareArrows className="h-5 w-5" />}
+                title="No collection comparisons yet"
+                description="Compare two documents from this collection to save a reusable evidence table."
+                action={<LinkButton href="/compare">Compare documents</LinkButton>}
+              />
+            )}
+          </SectionPanel>
         </>
       ) : null}
     </PageShell>
   );
-}
-
-function WorkspaceDocumentCard({ document }: { document: CollectionWorkspaceDocument }) {
-  return (
-    <Link
-      href={`/documents/${document.id}`}
-      className="grid gap-3 rounded-lg border border-white/10 bg-white/[0.035] p-4 transition hover:-translate-y-0.5 hover:border-white/25 hover:bg-white/[0.055]"
-    >
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="min-w-0">
-          <h2 className="truncate text-base font-medium text-white">{document.title}</h2>
-          <p className="font-jetbrains mt-1 text-xs text-neutral-500">{document.type} / updated {formatDateTime(document.updated_at ?? document.created_at)}</p>
-        </div>
-        <StatusBadge status={document.status} />
-      </div>
-      <p className="line-clamp-2 text-sm leading-6 text-neutral-400">{document.summary ?? "No summary yet."}</p>
-      <div className="flex flex-wrap gap-2">
-        <StatusBadge status={document.activity_temperature} label={document.activity_temperature} />
-        {document.tags.slice(0, 4).map((tag) => (
-          <span key={tag} className="font-jetbrains rounded-md border border-white/10 bg-white/[0.04] px-2 py-1 text-xs text-neutral-300">
-            {tag}
-          </span>
-        ))}
-      </div>
-    </Link>
-  );
-}
-
-function WorkspaceTopicRow({ topic }: { topic: CollectionWorkspaceTopic }) {
-  return (
-    <Link href={`/topics/${encodeURIComponent(topic.name)}`} className="flex items-center justify-between gap-3 rounded-md border border-white/10 bg-white/[0.035] p-3 transition hover:border-white/25 hover:bg-white/[0.055]">
-      <div className="min-w-0">
-        <div className="truncate text-sm font-medium text-white">{topic.name}</div>
-        <div className="font-jetbrains mt-1 text-xs text-neutral-500">{formatDateTime(topic.last_document_at)}</div>
-      </div>
-      <span className="font-jetbrains text-xs text-neutral-300">{topic.document_count}</span>
-    </Link>
-  );
-}
-
-function GapRow({ gap }: { gap: CollectionWorkspaceGap }) {
-  return (
-    <div className="rounded-md border border-white/10 bg-white/[0.035] p-3">
-      <div className="flex items-center justify-between gap-3">
-        <h3 className="text-sm font-medium text-white">{gap.title}</h3>
-        <StatusBadge status={gap.severity === "high" ? "failed" : gap.severity === "medium" ? "warning" : "draft"} label={gap.severity} />
-      </div>
-      <p className="mt-2 text-sm leading-6 text-neutral-400">{gap.reason}</p>
-    </div>
-  );
-}
-
-function QuestionCard({ question }: { question: CollectionWorkspaceQuestion }) {
-  return (
-    <div className="rounded-lg border border-white/10 bg-white/[0.035] p-4">
-      <div className="flex items-start gap-3">
-        <BookOpen className="mt-1 h-4 w-4 shrink-0 text-neutral-400" />
-        <div className="min-w-0">
-          <h3 className="line-clamp-2 text-sm font-medium text-white">{question.query_text}</h3>
-          <p className="font-jetbrains mt-1 text-xs text-neutral-500">{question.result_count} sources / {formatDateTime(question.created_at)}</p>
-        </div>
-      </div>
-      <p className="mt-3 line-clamp-3 text-sm leading-6 text-neutral-400">{question.answer_preview ?? "No saved answer text."}</p>
-    </div>
-  );
-}
-
-function SharePanel({ share }: { share: CollectionShare }) {
-  return (
-    <SectionPanel title="Public share" description="This collection has an active public page.">
-      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-        <div className="font-jetbrains break-all text-sm text-neutral-300">{`/public/${share.slug}`}</div>
-        <LinkButton href={`/public/${share.slug}`} variant="secondary">
-          Open public page
-        </LinkButton>
-      </div>
-    </SectionPanel>
-  );
-}
-
-function LinkButton({ href, variant = "default", children }: { href: string; variant?: "default" | "secondary"; children: ReactNode }) {
-  return (
-    <Link
-      href={href}
-      className={cn(
-        "inline-flex h-9 shrink-0 items-center justify-center gap-2 rounded-md border px-3 text-sm font-medium outline-none transition-all duration-200 ease-out focus-visible:ring-2 focus-visible:ring-white/20",
-        variant === "default"
-          ? "border-white bg-white text-black shadow-[0_0_28px_rgba(255,255,255,0.12)] hover:-translate-y-0.5 hover:bg-neutral-200"
-          : "border-white/10 bg-white/[0.045] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] hover:-translate-y-0.5 hover:border-white/25 hover:bg-white/[0.08]",
-      )}
-    >
-      {children}
-    </Link>
-  );
-}
-
-function EmptyPanelText({ children }: { children: ReactNode }) {
-  return <div className="rounded-md border border-white/10 bg-white/[0.025] p-4 text-sm text-neutral-500">{children}</div>;
 }
