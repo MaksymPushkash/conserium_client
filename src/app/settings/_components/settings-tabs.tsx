@@ -12,8 +12,10 @@ export function SettingsTabs({ activeTab, onChange }: { activeTab: SettingsTab; 
             key={tab.id}
             type="button"
             onClick={() => onChange(tab.id)}
-            className={`rounded-md px-3 py-2 text-left text-sm transition-colors ${
-              activeTab === tab.id ? "bg-white text-black" : "text-neutral-400 hover:bg-white/[0.06] hover:text-white"
+            className={`h-11 rounded-md border px-3 text-left text-sm transition-colors ${
+              activeTab === tab.id
+                ? "border-white/25 bg-white/[0.08] text-white"
+                : "border-transparent text-neutral-400 hover:border-white/10 hover:bg-white/[0.05] hover:text-white"
             }`}
           >
             {tab.label}

@@ -26,7 +26,7 @@ export default function ChatPage() {
   const [streaming, setStreaming] = useState(true);
   const [collectionId, setCollectionId] = useState<string | null>(searchParams.get("collection"));
   const [documentId, setDocumentId] = useState<string | null>(searchParams.get("document"));
-  const [tagName, setTagName] = useState<string | null>(searchParams.get("tag"));
+  const [tagName, setTagName] = useState<string | null>(searchParams.get("topic") ?? searchParams.get("tag"));
   const [previewSource, setPreviewSource] = useState<QuerySource | null>(null);
   const queryClient = useQueryClient();
   const { conversationId, setConversationId, messages, setMessages, addMessage, updateMessage, resetConversation } = useChatStore();

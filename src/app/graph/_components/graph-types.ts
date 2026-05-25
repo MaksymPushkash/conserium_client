@@ -1,7 +1,7 @@
 import type { KnowledgeGraphNode } from "@/lib/types";
 
 export type GraphView = "graph" | "list";
-export type GraphTool = "knowledge" | "glossary" | "links" | "concern" | "adjacent";
+export type GraphTool = "knowledge" | "glossary" | "links" | "concern" | "adjacent" | "insights";
 
 export interface PositionedNode extends KnowledgeGraphNode {
   degree: number;

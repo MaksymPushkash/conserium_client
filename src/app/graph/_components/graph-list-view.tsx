@@ -31,6 +31,11 @@ export function GraphListView({
                     <Link href={`/topics/${encodeURIComponent(cluster.topic.label)}`} className="truncate text-sm font-medium text-white hover:underline">
                       {cluster.topic.label}
                     </Link>
+                    {cluster.topic.is_pinned ? (
+                      <span className="rounded border border-white/10 bg-white/[0.05] px-1.5 py-0.5 font-jetbrains text-[10px] uppercase tracking-[0.12em] text-neutral-300">
+                        pinned
+                      </span>
+                    ) : null}
                   </div>
                   <div className="mt-4 grid gap-2">
                     {cluster.documents.map((document) => (

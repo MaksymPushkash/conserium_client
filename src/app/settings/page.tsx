@@ -7,13 +7,17 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   createNotionConnectUrl,
+  createApiKey,
   deleteCurrentUser,
   disconnectNotion,
   getCurrentUser,
   getNotionConnection,
   getUserPreferences,
+  importNotionPage,
+  listApiKeys,
   logout,
   logoutEverywhere,
+  revokeApiKey,
   searchNotionPages,
   updateNotionConnectionSettings,
   updateUserPreferences,
@@ -38,10 +42,13 @@ export default function SettingsPage() {
   const [notionParentPageId, setNotionParentPageId] = useState("");
   const [notionParentPageTitle, setNotionParentPageTitle] = useState("");
   const [notionPageQuery, setNotionPageQuery] = useState("");
+  const [apiKeyName, setApiKeyName] = useState("");
+  const [createdApiKeyToken, setCreatedApiKeyToken] = useState<string | null>(null);
 
   const userQuery = useQuery({ queryKey: ["me"], queryFn: getCurrentUser });
   const preferencesQuery = useQuery({ queryKey: ["user-preferences"], queryFn: getUserPreferences });
   const notionQuery = useQuery({ queryKey: ["integrations", "notion"], queryFn: getNotionConnection });
+  const apiKeysQuery = useQuery({ queryKey: ["api-keys"], queryFn: listApiKeys });
 
   const updateMutation = useMutation({
     mutationFn: updateUserPreferences,
@@ -91,6 +98,21 @@ export default function SettingsPage() {
   const searchNotionPagesMutation = useMutation({
     mutationFn: () => searchNotionPages({ query: notionPageQuery, limit: 10 }),
   });
+  const importNotionPageMutation = useMutation({
+    mutationFn: (page: NotionPage) => importNotionPage({ page_id: page.id, tags: ["notion"] }),
+  });
+  const createApiKeyMutation = useMutation({
+    mutationFn: () => createApiKey({ name: apiKeyName, scopes: ["ingest:write"] }),
+    onSuccess: async (result) => {
+      setCreatedApiKeyToken(result.token);
+      setApiKeyName("");
+      await queryClient.invalidateQueries({ queryKey: ["api-keys"] });
+    },
+  });
+  const revokeApiKeyMutation = useMutation({
+    mutationFn: revokeApiKey,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["api-keys"] }),
+  });
 
   useEffect(() => {
     if (preferencesQuery.data) setPreferences(preferencesQuery.data);
@@ -109,12 +131,15 @@ export default function SettingsPage() {
     setPreferences((current) => ({ ...current, ai: nextAI }));
   }
 
-  const loadError = preferencesQuery.error ?? userQuery.error ?? notionQuery.error;
+  const loadError = preferencesQuery.error ?? userQuery.error ?? notionQuery.error ?? apiKeysQuery.error;
   const actionError =
     connectNotionMutation.error ??
     disconnectNotionMutation.error ??
     updateNotionSettingsMutation.error ??
-    searchNotionPagesMutation.error;
+    searchNotionPagesMutation.error ??
+    importNotionPageMutation.error ??
+    createApiKeyMutation.error ??
+    revokeApiKeyMutation.error;
 
   return (
     <div className="mx-auto max-w-5xl space-y-6 p-4 md:p-8">
@@ -164,18 +189,30 @@ export default function SettingsPage() {
             disconnectPending={disconnectNotionMutation.isPending}
             savePending={updateNotionSettingsMutation.isPending}
             searchPending={searchNotionPagesMutation.isPending}
+            importPending={importNotionPageMutation.isPending}
+            importedPageTitle={importNotionPageMutation.data?.document?.title ?? null}
+            apiKeys={apiKeysQuery.data?.items ?? []}
+            apiKeyName={apiKeyName}
+            createdApiKeyToken={createdApiKeyToken}
+            createApiKeyPending={createApiKeyMutation.isPending}
+            revokeApiKeyPending={revokeApiKeyMutation.isPending}
             onParentPageIdChange={(value) => {
               setNotionParentPageId(value);
               setNotionParentPageTitle("");
             }}
+            onApiKeyNameChange={setApiKeyName}
+            onClearCreatedApiKey={() => setCreatedApiKeyToken(null)}
             onPageQueryChange={setNotionPageQuery}
             onSearchPages={() => searchNotionPagesMutation.mutate()}
+            onImportPage={(page) => importNotionPageMutation.mutate(page)}
             onSelectPage={(page: NotionPage) => {
               setNotionParentPageId(page.id);
               setNotionParentPageTitle(page.title);
             }}
             onConnectNotion={() => connectNotionMutation.mutate()}
             onDisconnectNotion={() => disconnectNotionMutation.mutate()}
+            onCreateApiKey={() => createApiKeyMutation.mutate()}
+            onRevokeApiKey={(id) => revokeApiKeyMutation.mutate(id)}
             onSaveNotionSettings={() =>
               updateNotionSettingsMutation.mutate({
                 default_parent_page_id: notionParentPageId.trim() || null,

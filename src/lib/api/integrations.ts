@@ -1,6 +1,6 @@
 "use client";
 
-import type { IntegrationConnectUrlResponse, NotionConnection, NotionPage } from "@/lib/types";
+import type { IntegrationConnectUrlResponse, NotionConnection, NotionImportResponse, NotionPage } from "@/lib/types";
 import { request } from "./transport";
 
 export function getNotionConnection(): Promise<NotionConnection> {
@@ -24,6 +24,13 @@ export function searchNotionPages(params: { query?: string; limit?: number } = {
   if (params.limit) searchParams.set("limit", String(params.limit));
   const query = searchParams.toString();
   return request<NotionPage[]>(`/integrations/notion/pages${query ? `?${query}` : ""}`);
+}
+
+export function importNotionPage(payload: { page_id: string; collection_id?: string | null; tags?: string[] }): Promise<NotionImportResponse> {
+  return request<NotionImportResponse>("/integrations/notion/import", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
 }
 
 export function disconnectNotion(): Promise<void> {

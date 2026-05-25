@@ -1,6 +1,6 @@
 "use client";
 
-import type { KnowledgeGraphConcern, KnowledgeGraphResponse } from "@/lib/types";
+import type { KnowledgeGraphConcern, KnowledgeGraphInsightsResponse, KnowledgeGraphResponse } from "@/lib/types";
 import { request } from "./transport";
 
 export interface KnowledgeGraphParams {
@@ -20,6 +20,15 @@ export function getKnowledgeGraph(params: KnowledgeGraphParams = {}): Promise<Kn
   }
   const query = search.toString();
   return request<KnowledgeGraphResponse>(`/knowledge-graph${query ? `?${query}` : ""}`);
+}
+
+export function getKnowledgeGraphInsights(params: KnowledgeGraphParams = {}): Promise<KnowledgeGraphInsightsResponse> {
+  const search = new URLSearchParams();
+  for (const [key, value] of Object.entries(params)) {
+    if (value !== undefined && value !== null && value !== "") search.set(key, String(value));
+  }
+  const query = search.toString();
+  return request<KnowledgeGraphInsightsResponse>(`/knowledge-graph/insights${query ? `?${query}` : ""}`);
 }
 
 export function createKnowledgeGraphConcern(payload: {

@@ -1,11 +1,21 @@
 "use client";
 
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { List, Network } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
-import { createKnowledgeGraphConcern, createNote, getKnowledgeGraph, listCollections } from "@/lib/api";
+import {
+  createKnowledgeGraphConcern,
+  createNote,
+  getKnowledgeGraph,
+  getKnowledgeGraphInsights,
+  ignoreTopic,
+  listCollections,
+  mergeTopic,
+  pinTopic,
+  renameTopic,
+} from "@/lib/api";
 import { errorMessage } from "@/lib/api/transport";
 
 import { GraphCanvas } from "./_components/graph-canvas";
@@ -20,6 +30,7 @@ import { useKnowledgeGraphLayout } from "./_hooks/use-knowledge-graph-layout";
 
 export default function GraphPage() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [view, setView] = useState<GraphView>(() => graphViewFromParam(searchParams.get("view")));
@@ -44,6 +55,19 @@ export default function GraphPage() {
         recency_days: filters.recencyDays ? Number(filters.recencyDays) : null,
       }),
   });
+  const insightsQuery = useQuery({
+    queryKey: ["knowledge-graph", "insights", filters],
+    queryFn: () =>
+      getKnowledgeGraphInsights({
+        document_limit: 120,
+        topic_limit: 40,
+        collection_id: filters.collectionId || null,
+        tag: filters.tag.trim() || null,
+        topic: filters.topic || null,
+        document_type: filters.documentType || null,
+        recency_days: filters.recencyDays ? Number(filters.recencyDays) : null,
+      }),
+  });
   const graph = graphQuery.data;
   const concernMutation = useMutation({
     mutationFn: createKnowledgeGraphConcern,
@@ -53,12 +77,35 @@ export default function GraphPage() {
     mutationFn: createNote,
     onSuccess: (note) => router.push(`/notes?note=${note.id}`),
   });
+  const topicManagementMutation = useMutation({
+    mutationFn: (action: TopicManagementAction) => {
+      if (action.type === "rename") return renameTopic(action.name, { display_name: action.displayName });
+      if (action.type === "merge") return mergeTopic(action.name, { source_names: action.sourceNames });
+      if (action.type === "pin") return pinTopic(action.name, action.pinned);
+      return ignoreTopic(action.name, action.ignored);
+    },
+    onSuccess: (topic, action) => {
+      void queryClient.invalidateQueries({ queryKey: ["knowledge-graph"] });
+      void queryClient.invalidateQueries({ queryKey: ["topics"] });
+      const renamed = action.type === "rename" && topic.name !== action.name;
+      setFilters((current) => {
+        if (!current.topic || current.topic === topic.name || !topic.source_names.includes(current.topic)) return current;
+        const next = { ...current, topic: topic.name };
+        replaceGraphUrl({ filters: next, nodeId: renamed ? `topic:${topic.name}` : selectedNodeId });
+        return next;
+      });
+      if (renamed) setSelectedNodeId(`topic:${topic.name}`);
+    },
+  });
 
   const nodes = graph?.nodes ?? [];
   const edges = graph?.edges ?? [];
   const clusters = useMemo(() => clusterGraph(nodes, edges), [nodes, edges]);
   const availableTopics = useMemo(() => {
-    const topics = nodes.filter((node) => node.kind === "topic").map((node) => node.label).sort((left, right) => left.localeCompare(right));
+    const topics = nodes
+      .filter((node) => node.kind === "topic")
+      .sort((left, right) => Number(Boolean(right.is_pinned)) - Number(Boolean(left.is_pinned)) || left.label.localeCompare(right.label))
+      .map((node) => node.label);
     return filters.topic && !topics.includes(filters.topic) ? [filters.topic, ...topics] : topics;
   }, [filters.topic, nodes]);
   const { layout, filteredLayout, selectedNode, focusedNodeId, focusedIds, selectedConnections } = useKnowledgeGraphLayout({
@@ -199,6 +246,7 @@ export default function GraphPage() {
           <GraphInspector
             activeTool={activeTool}
             clusters={clusters}
+            insights={insightsQuery.data?.items ?? null}
             nodes={filteredLayout.nodes}
             selectedNode={selectedNode}
             selectedConnections={selectedConnections}
@@ -208,6 +256,9 @@ export default function GraphPage() {
             concernError={concernMutation.error ? errorMessage(concernMutation.error) : null}
             noteSaving={noteMutation.isPending}
             noteError={noteMutation.error ? errorMessage(noteMutation.error) : null}
+            topicActionPending={topicManagementMutation.isPending}
+            topicActionError={topicManagementMutation.error ? errorMessage(topicManagementMutation.error) : null}
+            ignoredVisible={false}
             onConcernTextChange={(value) => {
               setConcernText(value);
               concernMutation.reset();
@@ -225,8 +276,24 @@ export default function GraphPage() {
               noteMutation.mutate({
                 title: `Graph: ${selectedNode.label}`,
                 content: noteContentFromNode(selectedNode, selectedConnections),
-                collection_id: selectedNode.collection_id ?? null,
+                collection_id: selectedNode.collection_id ?? (filters.collectionId || null),
               });
+            }}
+            onRenameTopic={(displayName) => {
+              if (selectedNode?.kind !== "topic") return;
+              topicManagementMutation.mutate({ type: "rename", name: selectedNode.label, displayName });
+            }}
+            onMergeTopic={(sourceNames) => {
+              if (selectedNode?.kind !== "topic") return;
+              topicManagementMutation.mutate({ type: "merge", name: selectedNode.label, sourceNames });
+            }}
+            onPinTopic={() => {
+              if (selectedNode?.kind !== "topic") return;
+              topicManagementMutation.mutate({ type: "pin", name: selectedNode.label, pinned: !selectedNode.is_pinned });
+            }}
+            onIgnoreTopic={() => {
+              if (selectedNode?.kind !== "topic") return;
+              topicManagementMutation.mutate({ type: "ignore", name: selectedNode.label, ignored: !selectedNode.is_ignored });
             }}
             onSelectNode={selectNode}
           />
@@ -237,6 +304,12 @@ export default function GraphPage() {
     </div>
   );
 }
+
+type TopicManagementAction =
+  | { type: "rename"; name: string; displayName: string }
+  | { type: "merge"; name: string; sourceNames: string[] }
+  | { type: "pin"; name: string; pinned: boolean }
+  | { type: "ignore"; name: string; ignored: boolean };
 
 function graphViewFromParam(value: string | null): GraphView {
   return value === "list" ? "list" : "graph";

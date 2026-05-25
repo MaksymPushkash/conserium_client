@@ -32,14 +32,24 @@ export function useGraphViewport(selectedNode: PositionedNode | null) {
   function handleWheel(event: WheelEvent<SVGSVGElement>) {
     event.preventDefault();
     const direction = event.deltaY > 0 ? -1 : 1;
-    zoomBy(direction * 0.12);
+    const rect = event.currentTarget.getBoundingClientRect();
+    zoomBy(direction * 0.12, {
+      x: ((event.clientX - rect.left) / rect.width) * GRAPH_CANVAS_WIDTH,
+      y: ((event.clientY - rect.top) / rect.height) * GRAPH_CANVAS_HEIGHT,
+    });
   }
 
-  function zoomBy(delta: number) {
-    setViewport((current) => ({
-      ...current,
-      scale: clamp(current.scale + delta, 0.55, 2.25),
-    }));
+  function zoomBy(delta: number, anchor = { x: GRAPH_CANVAS_WIDTH / 2, y: GRAPH_CANVAS_HEIGHT / 2 }) {
+    setViewport((current) => {
+      const nextScale = clamp(current.scale + delta, 0.55, 2.25);
+      const graphX = (anchor.x - current.x) / current.scale;
+      const graphY = (anchor.y - current.y) / current.scale;
+      return {
+        x: anchor.x - graphX * nextScale,
+        y: anchor.y - graphY * nextScale,
+        scale: nextScale,
+      };
+    });
   }
 
   function handlePointerDown(event: PointerEvent<SVGSVGElement>) {
