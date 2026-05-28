@@ -17,7 +17,7 @@ export default function LandingPage() {
       <header className="fixed inset-x-0 top-0 z-50 border-b border-white/10 bg-black/80 backdrop-blur-xl transition-colors duration-500">
         <div className="mx-auto flex h-20 max-w-7xl items-center justify-between px-6">
           <Link href="/" className="group flex items-center gap-3 transition-opacity duration-300 hover:opacity-80">
-            <span className="text-lg font-normal tracking-tight">CORTEX</span>
+            <span className="text-lg font-normal tracking-tight">CONSERIUM</span>
             <span className="font-jetbrains rounded-md border border-white/10 bg-white/[0.03] px-2 py-1 text-xs text-neutral-500 transition-colors duration-300 group-hover:border-white/20 group-hover:text-neutral-300">
               v0.1.0
             </span>
@@ -58,7 +58,7 @@ export default function LandingPage() {
             </span>
           </h1>
           <p className="font-jetbrains mt-8 max-w-xl text-sm font-normal leading-8 text-neutral-500">
-            Cortex turns PDFs, links, notes, screenshots, and videos into a source-grounded workspace you can
+            Conserium turns PDFs, links, notes, screenshots, and videos into a source-grounded workspace you can
             query like ChatGPT.
           </p>
           <div className="mt-10 flex flex-wrap gap-3">
@@ -91,7 +91,7 @@ export default function LandingPage() {
             <p>your saved knowledge should not disappear into bookmarks, folders, and forgotten notes.</p>
             <br />
             <p>
-              cortex keeps the archive calm: ingest asynchronously, retrieve with hybrid search, compress context with
+              conserium keeps the archive calm: ingest asynchronously, retrieve with hybrid search, compress context with
               REFRAG, answer with citations.
             </p>
             <br />
@@ -101,7 +101,7 @@ export default function LandingPage() {
       </section>
 
       <footer className="font-jetbrains relative z-10 mx-auto flex max-w-7xl items-center justify-between px-6 py-14 text-xs text-neutral-600">
-        <span>© 2026 Cortex. All rights reserved.</span>
+        <span>© 2026 Conserium. All rights reserved.</span>
         <div className="flex gap-8">
           <Link href="/privacy" className="hover:text-white">Privacy</Link>
           <Link href="/terms" className="hover:text-white">Terms</Link>
@@ -116,7 +116,7 @@ function ProductPreview() {
     <div className="animate-soft-in mt-32 overflow-hidden rounded-xl border border-white/10 bg-black/60 shadow-2xl shadow-white/[0.03] [animation-delay:140ms]">
       <div className="grid min-w-0 grid-cols-1 lg:grid-cols-[220px_minmax(0,1fr)_280px]">
         <div className="border-b border-white/10 p-6 lg:border-b-0 lg:border-r">
-          <div className="mb-8 text-sm font-semibold text-white">Cortex</div>
+          <div className="mb-8 text-sm font-semibold text-white">Conserium</div>
           <div className="space-y-3">
             <PreviewNav icon={FileText} label="Library" active />
             <PreviewNav icon={MessageSquare} label="Chat" />
@@ -153,7 +153,7 @@ function ProductPreview() {
             ))}
           </div>
           <div className="mt-5 rounded-lg border border-white/10 bg-white/[0.03] p-4">
-            <div className="mb-3 text-xs text-neutral-500">Ask Cortex</div>
+            <div className="mb-3 text-xs text-neutral-500">Ask Conserium</div>
             <div className="text-sm leading-6 text-neutral-300">
               What did I save about Clean Architecture and pgvector?
             </div>

@@ -2,6 +2,7 @@
 
 import type {
   DocumentChunkResponse,
+  DocumentConnectionsResponse,
   DocumentListResponse,
   DocumentQuestionHistoryResponse,
   DocumentResponse,
@@ -68,6 +69,10 @@ export function getDocumentQuestionHistory(documentId: string, limit = 5): Promi
   return request<DocumentQuestionHistoryResponse>(`/documents/${documentId}/questions?limit=${limit}`);
 }
 
+export function getDocumentConnections(documentId: string, limit = 5): Promise<DocumentConnectionsResponse> {
+  return request<DocumentConnectionsResponse>(`/documents/${documentId}/connections?limit=${limit}`);
+}
+
 export function renameDocument(id: string, payload: { title: string }): Promise<DocumentResponse> {
   return request<DocumentResponse>(`/documents/${id}`, { method: "PATCH", body: JSON.stringify(payload) });
 }
@@ -110,6 +115,20 @@ export function bulkDeleteDocuments(documentIds: string[]): Promise<{ deleted: n
   return request<{ deleted: number }>("/documents/bulk/delete", {
     method: "POST",
     body: JSON.stringify({ document_ids: documentIds }),
+  });
+}
+
+export function bulkMoveDocuments(documentIds: string[], collectionId: string | null): Promise<void> {
+  return request<void>("/documents/bulk/move", {
+    method: "POST",
+    body: JSON.stringify({ document_ids: documentIds, collection_id: collectionId }),
+  });
+}
+
+export function bulkAddDocumentTags(documentIds: string[], tags: string[]): Promise<void> {
+  return request<void>("/documents/bulk/tags", {
+    method: "POST",
+    body: JSON.stringify({ document_ids: documentIds, tags }),
   });
 }
 

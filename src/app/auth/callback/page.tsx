@@ -53,7 +53,7 @@ function CallbackShell({ error }: { error?: string | null }) {
           <CardTitle>Completing OAuth login</CardTitle>
         </CardHeader>
         <CardContent className="text-sm leading-6 text-neutral-600">
-          {error ?? "Completing the OAuth session and redirecting you back to Cortex."}
+          {error ?? "Completing the OAuth session and redirecting you back to Conserium."}
         </CardContent>
       </Card>
     </main>

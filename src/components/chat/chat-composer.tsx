@@ -19,7 +19,7 @@ export function ChatComposer({ query, onQueryChange, onSubmit }: ChatComposerPro
         <Textarea
           value={query}
           onChange={(event) => onQueryChange(event.target.value)}
-          placeholder="Ask Cortex. Answers cite saved sources..."
+          placeholder="Ask Conserium. Answers cite saved sources..."
           onKeyDown={(event) => {
             if (event.key === "Enter" && !event.shiftKey) {
               event.preventDefault();

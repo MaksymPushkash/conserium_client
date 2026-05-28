@@ -17,7 +17,7 @@ export function SourcePreviewDrawer({ source, onClose }: { source: QuerySource; 
           <div>
             <div className="text-xl font-light text-white">{source.document_title ?? "Untitled source"}</div>
             <div className="font-jetbrains mt-2 text-xs font-light text-neutral-500">
-              chunk {source.chunk_index} · page {source.page_number ?? "n/a"} · score {formatScore(source.score)}
+              chunk {source.chunk_index} · page {source.page_number ?? "n/a"}
             </div>
           </div>
           <Button variant="ghost" size="icon" onClick={onClose} aria-label="Close source preview">
@@ -31,7 +31,7 @@ export function SourcePreviewDrawer({ source, onClose }: { source: QuerySource; 
           <div className="text-sm font-medium text-white">Why this source?</div>
           <div className="mt-2 text-sm leading-6 text-neutral-400">
             Retrieved from {source.document_title ?? "this document"} at chunk {source.chunk_index}
-            {source.page_number ? `, page ${source.page_number}` : ""} with score {formatScore(source.score)}.
+            {source.page_number ? `, page ${source.page_number}` : ""}.
             {source.used_in_answer ? " The answer cited this source directly." : " It was retrieved as supporting context."}
           </div>
         </div>
@@ -41,8 +41,4 @@ export function SourcePreviewDrawer({ source, onClose }: { source: QuerySource; 
       </aside>
     </div>
   );
-}
-
-function formatScore(score: number | null) {
-  return typeof score === "number" ? score.toFixed(4) : "n/a";
 }

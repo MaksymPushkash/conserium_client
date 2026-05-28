@@ -61,7 +61,7 @@ function AuthContent() {
     <AuthShell>
       <Card className="w-full max-w-md border-white/10 bg-black/70 shadow-2xl shadow-white/5">
         <CardHeader>
-          <CardTitle>{mode === "login" ? "Sign in to Cortex" : "Create your Cortex account"}</CardTitle>
+          <CardTitle>{mode === "login" ? "Sign in to Conserium" : "Create your Conserium account"}</CardTitle>
           <p className="font-jetbrains pt-2 text-xs leading-6 text-neutral-500">
             Search saved documents, stream answers, and inspect citations from one quiet workspace.
           </p>
@@ -116,7 +116,7 @@ function AuthShell({ children }: { children?: React.ReactNode }) {
       </div>
       <header className="relative z-10 mx-auto flex h-24 max-w-7xl items-center justify-between px-6">
         <Link href="/" className="flex items-center gap-3">
-          <span className="text-lg font-normal tracking-tight">CORTEX</span>
+          <span className="text-lg font-normal tracking-tight">CONSERIUM</span>
           <span className="font-jetbrains rounded-md border border-white/10 bg-white/[0.03] px-2 py-1 text-xs text-neutral-500">
             v0.1.0
           </span>

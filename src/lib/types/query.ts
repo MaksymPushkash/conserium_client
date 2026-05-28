@@ -64,6 +64,7 @@ export interface QueryResponse {
   sources: QuerySource[];
   refrag_context: RefragContext;
   debug: QueryDebug | null;
+  suggested_follow_up_questions?: string[];
 }
 
 export interface QueryStreamDone {
@@ -71,6 +72,7 @@ export interface QueryStreamDone {
   conversation_id: string;
   eval_scores: Record<string, unknown>;
   trace_id: string | null;
+  suggested_follow_up_questions?: string[];
 }
 
 export type QueryStreamEventName = "metadata" | "token" | "sources" | "debug" | "refrag_context" | "done" | "error";

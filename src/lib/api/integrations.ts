@@ -1,6 +1,6 @@
 "use client";
 
-import type { IntegrationConnectUrlResponse, NotionConnection, NotionImportResponse, NotionPage } from "@/lib/types";
+import type { IntegrationConnectUrlResponse, NotionConnection, NotionImportResponse, NotionPage, TelegramPairingCode, TelegramStatus } from "@/lib/types";
 import { request } from "./transport";
 
 export function getNotionConnection(): Promise<NotionConnection> {
@@ -35,4 +35,17 @@ export function importNotionPage(payload: { page_id: string; collection_id?: str
 
 export function disconnectNotion(): Promise<void> {
   return request<void>("/integrations/notion", { method: "DELETE" });
+}
+
+
+export function getTelegramStatus(): Promise<TelegramStatus> {
+  return request<TelegramStatus>("/integrations/telegram");
+}
+
+export function createTelegramPairingCode(): Promise<TelegramPairingCode> {
+  return request<TelegramPairingCode>("/integrations/telegram/pairing-code", { method: "POST" });
+}
+
+export function revokeTelegramBinding(id: string): Promise<void> {
+  return request<void>(`/integrations/telegram/bindings/${id}`, { method: "DELETE" });
 }

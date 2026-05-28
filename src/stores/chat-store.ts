@@ -13,6 +13,7 @@ export interface ChatMessage {
   debug?: QueryDebug;
   evalScores?: Record<string, unknown>;
   traceId?: string | null;
+  suggestedFollowUpQuestions?: string[];
 }
 
 interface ChatState {

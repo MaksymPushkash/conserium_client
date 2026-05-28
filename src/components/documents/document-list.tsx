@@ -42,7 +42,11 @@ export function DocumentList({ documents, selectedIds, searchSnippets = {}, onTo
                 <p className="mt-2 line-clamp-2 max-w-3xl text-sm leading-6 text-neutral-300">{searchSnippet}</p>
               ) : document.summary ? (
                 <p className="mt-2 line-clamp-2 max-w-3xl text-sm leading-6 text-neutral-400">{document.summary}</p>
-              ) : null}
+              ) : (
+                <p className="font-jetbrains mt-2 text-sm leading-6 text-neutral-500">
+                  {document.status === "READY" ? "No summary yet" : "Processing summary..."}
+                </p>
+              )}
               {document.tags.length ? (
                 <div className="mt-2 flex flex-wrap gap-1.5">
                   {document.tags.map((documentTag) => (

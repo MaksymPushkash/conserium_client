@@ -25,7 +25,7 @@ export default function PublicCollectionPage() {
         <header className="flex flex-col gap-4 border-b border-white/10 pb-6 md:flex-row md:items-start md:justify-between">
           <div>
             <Link href="/" className="text-2xl font-normal tracking-tight text-white">
-              CORTEX
+              CONSERIUM
             </Link>
             <div className="mt-6 flex items-center gap-3">
               {collection?.color ? (

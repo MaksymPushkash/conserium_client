@@ -62,6 +62,7 @@ export default function ChatPage() {
     () => [...messages].reverse().find((message) => message.role === "assistant"),
     [messages],
   );
+  const followUpChips = useMemo(() => buildFollowUpChips(latestAssistant), [latestAssistant]);
   const selectedChat = chatsQuery.data?.items.find((chat) => chat.id === conversationId);
   const { submitQuery, abortQuery } = useChatQueryStream({
     conversationId,
@@ -142,7 +143,9 @@ export default function ChatPage() {
             messages={messages}
             hasReadyDocuments={hasReadyDocuments}
             suggestionChips={suggestionChips}
-            onPickSuggestion={setQuery}
+            followUpChips={followUpChips}
+            latestAssistantId={latestAssistant?.id ?? null}
+            onPickSuggestion={(suggestion) => void submitQuery(suggestion)}
           />
           <ChatComposer query={query} onQueryChange={setQuery} onSubmit={onSubmit} />
         </section>
@@ -152,6 +155,22 @@ export default function ChatPage() {
       {previewSource ? <SourcePreviewDrawer source={previewSource} onClose={() => setPreviewSource(null)} /> : null}
     </div>
   );
+}
+
+function buildFollowUpChips(message?: ChatMessage): string[] {
+  if (message?.suggestedFollowUpQuestions?.length) return message.suggestedFollowUpQuestions.slice(0, 3);
+  if (!message?.content || !message.sources?.some((source) => source.used_in_answer)) return [];
+  const title = message.sources.find((source) => source.document_title)?.document_title;
+  const topic = title ? trimTitle(title) : "this topic";
+  return [
+    `What are the key tradeoffs in ${topic}?`,
+    `Show the strongest evidence for ${topic}.`,
+    `What should I read next about ${topic}?`,
+  ];
+}
+
+function trimTitle(value: string): string {
+  return value.length > 34 ? `${value.slice(0, 31)}...` : value;
 }
 
 function toChatMessage(message: ChatMessageResponse): ChatMessage {

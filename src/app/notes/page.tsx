@@ -252,7 +252,7 @@ export default function NotesPage() {
                   </div>
                   <h2 className="text-4xl font-light tracking-normal text-white">Write into memory.</h2>
                   <p className="font-jetbrains mt-4 max-w-xl text-sm font-light leading-6 text-neutral-500">
-                    Create plain text notes. Cortex autosaves them, indexes them, and makes them available in chat retrieval.
+                    Create plain text notes. Conserium autosaves them, indexes them, and makes them available in chat retrieval.
                   </p>
                   <Button className="mt-8 font-normal" onClick={() => createMutation.mutate()} disabled={createMutation.isPending}>
                     <Plus className="h-4 w-4" />

@@ -30,3 +30,25 @@ export interface NotionImportResponse {
     status: string;
   } | null;
 }
+
+
+export interface TelegramChatBinding {
+  id: string;
+  chat_id: string;
+  chat_username: string | null;
+  chat_title: string | null;
+  paired_at: string;
+  revoked_at: string | null;
+  created_at: string;
+  updated_at: string | null;
+}
+
+export interface TelegramStatus {
+  bindings: TelegramChatBinding[];
+}
+
+export interface TelegramPairingCode {
+  id: string;
+  code: string;
+  expires_at: string;
+}

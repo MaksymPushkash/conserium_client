@@ -18,6 +18,7 @@ export * from "./api/notes";
 export * from "./api/observability";
 export * from "./api/query";
 export * from "./api/repo-syncs";
+export * from "./api/review";
 export * from "./api/stats";
 export * from "./api/topics";
 export { ApiError, errorMessage, readPayload, request } from "./api/transport";

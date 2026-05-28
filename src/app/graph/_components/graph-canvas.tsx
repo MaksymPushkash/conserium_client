@@ -77,8 +77,9 @@ export function GraphCanvas({
       {nodes.length ? (
         <div className="relative min-h-[720px] overflow-hidden">
           <div className="absolute left-4 top-4 z-10 flex flex-wrap gap-2">
-            <LegendChip label="Topic" color="#e5e7eb" />
-            <LegendChip label="Document" color="#a1a1aa" />
+            <LegendChip label="Topic" color="#f4f4f5" />
+            <LegendChip label="Document" color="#7dd3fc" />
+            <LegendChip label="Dense" color="#f97316" />
           </div>
           <svg
             viewBox={`0 0 ${GRAPH_CANVAS_WIDTH} ${GRAPH_CANVAS_HEIGHT}`}
@@ -130,6 +131,7 @@ export function GraphCanvas({
                   const active = !focusedNodeId || focusedIds.has(node.id);
                   const selected = selectedNodeId === node.id;
                   const isTopic = node.kind === "topic";
+                  const denseDocument = !isTopic && node.degree >= 4;
                   const docWidth = Math.max(76, Math.min(150, node.label.length * 5.6 + 28));
                   const docHeight = 32;
                   return (
@@ -160,7 +162,7 @@ export function GraphCanvas({
                             cx={node.x}
                             cy={node.y}
                             r={node.radius}
-                            fill="#d4d4d8"
+                            fill={node.is_pinned ? "#fef08a" : "#f4f4f5"}
                             stroke={selected ? "#ffffff" : "#070708"}
                             strokeWidth={selected ? 4 : 3}
                           />
@@ -183,12 +185,12 @@ export function GraphCanvas({
                             width={docWidth}
                             height={docHeight}
                             rx={9}
-                            fill={selected ? "rgba(255,255,255,0.16)" : "rgba(255,255,255,0.075)"}
-                            stroke={selected ? "#f4f4f5" : "rgba(255,255,255,0.24)"}
+                            fill={selected ? "rgba(125,211,252,0.20)" : denseDocument ? "rgba(249,115,22,0.18)" : "rgba(125,211,252,0.10)"}
+                            stroke={selected ? "#bae6fd" : denseDocument ? "#fb923c" : "#7dd3fc"}
                             strokeWidth={selected ? 3 : 1.4}
                             filter={selected ? "url(#node-glow)" : undefined}
                           />
-                          <circle cx={node.x - docWidth / 2 + 13} cy={node.y} r="4" fill="#a1a1aa" />
+                          <circle cx={node.x - docWidth / 2 + 13} cy={node.y} r="4" fill={denseDocument ? "#f97316" : "#7dd3fc"} />
                         </>
                       )}
                       <text

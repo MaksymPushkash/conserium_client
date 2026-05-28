@@ -98,6 +98,19 @@ export interface DocumentQuestionHistoryResponse {
   limit: number;
 }
 
+export interface DocumentConnection {
+  document: DocumentListItem;
+  reasons: string[];
+  relationship_score: number;
+}
+
+export interface DocumentConnectionsResponse {
+  items: DocumentConnection[];
+  document_id: string;
+  total: number;
+  limit: number;
+}
+
 export interface IngestDocumentPayload {
   title: string;
   type: DocumentType;

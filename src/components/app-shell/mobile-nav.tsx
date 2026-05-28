@@ -25,7 +25,7 @@ export function MobileNav({
     <header className="sticky top-0 z-10 border-b border-neutral-900 bg-black/95 backdrop-blur md:hidden">
       <div className="flex h-14 items-center justify-between px-4">
         <Link href="/dashboard" className="flex items-center gap-2" onClick={onClose}>
-          <span className="text-lg font-normal tracking-tight text-white">CORTEX</span>
+          <span className="text-lg font-normal tracking-tight text-white">CONSERIUM</span>
           <span className="font-jetbrains rounded-md border border-white/10 bg-white/[0.03] px-2 py-1 text-[10px] font-light text-neutral-500">
             v0.1.0
           </span>

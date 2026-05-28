@@ -129,7 +129,7 @@ export default function ProcessingPage() {
             <EmptyState
               icon={<ServerCog className="h-5 w-5" />}
               title="No active or failed jobs"
-              description="Queued, processing, and failed work will appear here as ingestion and sync jobs run."
+              description="Documents process automatically after ingestion. Queued, processing, and failed work will appear here when Conserium is busy."
               action={<LinkButton href="/ingest">Add source</LinkButton>}
             />
           )}

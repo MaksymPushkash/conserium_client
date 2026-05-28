@@ -6,7 +6,7 @@ import { Providers } from "@/app/providers";
 import "@/app/globals.css";
 
 export const metadata: Metadata = {
-  title: "Cortex",
+  title: "Conserium",
   description: "Personal AI memory for saved knowledge.",
 };
 

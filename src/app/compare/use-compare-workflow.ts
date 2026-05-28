@@ -37,8 +37,8 @@ export const compareDimensions = [
 export function useCompareWorkflow() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [leftDocumentId, setLeftDocumentId] = useState("");
-  const [rightDocumentId, setRightDocumentId] = useState("");
+  const [leftDocumentId, setLeftDocumentId] = useState(searchParams.get("left") ?? "");
+  const [rightDocumentId, setRightDocumentId] = useState(searchParams.get("right") ?? "");
   const [prompt, setPrompt] = useState("");
   const [selectedResultId, setSelectedResultId] = useState(searchParams.get("result") ?? "");
   const [selectedDimensions, setSelectedDimensions] = useState(compareDimensions.map((dimension) => dimension.id));
@@ -77,7 +77,7 @@ export function useCompareWorkflow() {
       exportMarkdown({
         title: activeCompare
           ? `${activeCompare.left_title} vs ${activeCompare.right_title}`
-          : "Cortex comparison",
+          : "Conserium comparison",
         markdown: activeCompare?.markdown ?? "",
         format,
       }),
