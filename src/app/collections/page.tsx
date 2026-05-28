@@ -37,7 +37,7 @@ export default function CollectionsPage() {
         title="Collections"
         description="Separate school, work, coding, research, and project material without changing the rest of your workflow."
         actions={
-          <Button onClick={workflow.createSelectedCollection} disabled={!name.trim() || createMutation.isPending}>
+          <Button variant="secondary" onClick={workflow.createSelectedCollection} disabled={!name.trim() || createMutation.isPending}>
             <Plus className="h-4 w-4" />
             Create
           </Button>
@@ -70,7 +70,7 @@ export default function CollectionsPage() {
               ))}
             </div>
             <div className="flex justify-end border-t border-white/10 pt-4">
-              <Button disabled={!name.trim() || createMutation.isPending}>Create collection</Button>
+              <Button variant="secondary" disabled={!name.trim() || createMutation.isPending}>Create collection</Button>
             </div>
           </form>
         </SectionPanel>
@@ -137,7 +137,7 @@ export default function CollectionsPage() {
               <Button type="button" variant="ghost" onClick={() => setRenamingCollection(null)}>
                 Cancel
               </Button>
-              <Button type="submit" disabled={!renamingCollection.name.trim() || updateMutation.isPending}>
+              <Button type="submit" variant="secondary" disabled={!renamingCollection.name.trim() || updateMutation.isPending}>
                 Save
               </Button>
             </div>

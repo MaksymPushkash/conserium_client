@@ -163,7 +163,7 @@ export function SharePanel({ share }: { share: CollectionShare }) {
   );
 }
 
-export function LinkButton({ href, variant = "default", children }: { href: string; variant?: "default" | "secondary"; children: ReactNode }) {
+export function LinkButton({ href, variant = "secondary", children }: { href: string; variant?: "default" | "secondary"; children: ReactNode }) {
   return (
     <Link
       href={href}
