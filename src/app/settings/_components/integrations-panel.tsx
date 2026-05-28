@@ -26,11 +26,13 @@ export function IntegrationsPanel({
   revokeTelegramBindingPending,
   apiKeys,
   apiKeyName,
+  apiKeyScopes,
   createdApiKeyToken,
   createApiKeyPending,
   revokeApiKeyPending,
   onParentPageIdChange,
   onApiKeyNameChange,
+  onApiKeyScopesChange,
   onCreateTelegramPairing,
   onRevokeTelegramBinding,
   onClearTelegramPairing,
@@ -64,11 +66,13 @@ export function IntegrationsPanel({
   revokeTelegramBindingPending: boolean;
   apiKeys: ApiKey[];
   apiKeyName: string;
+  apiKeyScopes: string[];
   createdApiKeyToken: string | null;
   createApiKeyPending: boolean;
   revokeApiKeyPending: boolean;
   onParentPageIdChange: (value: string) => void;
   onApiKeyNameChange: (value: string) => void;
+  onApiKeyScopesChange: (value: string[]) => void;
   onCreateTelegramPairing: () => void;
   onRevokeTelegramBinding: (id: string) => void;
   onClearTelegramPairing: () => void;
@@ -247,16 +251,42 @@ export function IntegrationsPanel({
               </div>
             </div>
           ) : null}
-          <div className="grid gap-2 md:grid-cols-[minmax(0,1fr)_auto]">
-            <input
-              value={apiKeyName}
-              onChange={(event) => onApiKeyNameChange(event.target.value)}
-              placeholder="Telegram bot, browser extension, n8n"
-              className="h-10 rounded-md border border-white/10 bg-black px-3 text-sm text-white outline-none transition-colors focus:border-white/40"
-            />
-            <Button onClick={onCreateApiKey} disabled={createApiKeyPending || !apiKeyName.trim()}>
-              {createApiKeyPending ? "Creating..." : "Create key"}
-            </Button>
+          <div className="grid gap-3">
+            <div className="grid gap-2 md:grid-cols-[minmax(0,1fr)_auto]">
+              <input
+                value={apiKeyName}
+                onChange={(event) => onApiKeyNameChange(event.target.value)}
+                placeholder="Telegram bot, browser extension, n8n"
+                className="h-10 rounded-md border border-white/10 bg-black px-3 text-sm text-white outline-none transition-colors focus:border-white/40"
+              />
+              <Button onClick={onCreateApiKey} disabled={createApiKeyPending || !apiKeyName.trim() || apiKeyScopes.length === 0}>
+                {createApiKeyPending ? "Creating..." : "Create key"}
+              </Button>
+            </div>
+            <div className="grid gap-2 rounded-md border border-white/10 bg-black p-3">
+              <div className="font-jetbrains text-xs uppercase tracking-[0.28em] text-neutral-500">Scopes</div>
+              <div className="grid gap-2 sm:grid-cols-2">
+                {apiKeyScopeOptions.map((option) => (
+                  <label key={option.value} className="flex items-start gap-2 rounded-md border border-white/10 bg-white/[0.03] p-2 text-xs text-neutral-300">
+                    <input
+                      type="checkbox"
+                      checked={apiKeyScopes.includes(option.value)}
+                      onChange={(event) => {
+                        const next = event.target.checked
+                          ? [...apiKeyScopes, option.value]
+                          : apiKeyScopes.filter((scope) => scope !== option.value);
+                        onApiKeyScopesChange(next);
+                      }}
+                      className="mt-0.5 h-4 w-4 accent-white"
+                    />
+                    <span>
+                      <span className="block text-neutral-100">{option.label}</span>
+                      <span className="font-jetbrains mt-1 block text-[11px] text-neutral-500">{option.description}</span>
+                    </span>
+                  </label>
+                ))}
+              </div>
+            </div>
           </div>
           {apiKeys.length ? (
             <div className="grid gap-2">
@@ -289,6 +319,13 @@ export function IntegrationsPanel({
     </Card>
   );
 }
+
+const apiKeyScopeOptions = [
+  { value: "ingest:write", label: "Ingest", description: "Create documents from webhooks, Telegram, extension, or scripts." },
+  { value: "status:read", label: "Status", description: "Read intake and document processing status after saving." },
+  { value: "collections:read", label: "Collections", description: "Load collection pickers in extensions and automations." },
+  { value: "query:write", label: "Query", description: "Ask scoped questions through the public API." },
+];
 
 function formatDate(value: string | null) {
   if (!value) return "never";

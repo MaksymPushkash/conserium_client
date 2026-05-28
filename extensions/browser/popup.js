@@ -37,7 +37,12 @@ async function loadCollections(selectedId) {
     const response = await fetch(`${origin}/public-api/collections`, {
       headers: { Authorization: `Bearer ${apiKey}` },
     });
-    if (!response.ok) return;
+    if (!response.ok) {
+      if (response.status === 401 || response.status === 403) {
+        fields.status.textContent = "API key needs collections:read to load collections.";
+      }
+      return;
+    }
     const body = await response.json();
     for (const collection of body.items || []) {
       const option = document.createElement("option");
