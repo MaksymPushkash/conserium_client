@@ -13,6 +13,7 @@ import { DocumentEnrichmentCard } from "@/components/documents/document-enrichme
 import { DocumentMetadataCard } from "@/components/documents/document-metadata-card";
 import { DocumentProcessingCard } from "@/components/documents/document-processing-card";
 import { HighlightedContent } from "@/components/documents/highlighted-content";
+import { RelatedDocumentsCard } from "@/components/documents/related-documents-card";
 import { StatusPill } from "@/components/status-pill";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -22,6 +23,7 @@ import {
   exportDocument,
   getDocument,
   getDocumentChunk,
+  getDocumentConnections,
   getDocumentQuestionHistory,
   getDocumentStatus,
   listCollections,
@@ -63,6 +65,10 @@ export default function DocumentDetailPage() {
   const questionHistoryQuery = useQuery({
     queryKey: ["document", params.id, "questions"],
     queryFn: () => getDocumentQuestionHistory(params.id, 5),
+  });
+  const connectionsQuery = useQuery({
+    queryKey: ["document", params.id, "connections"],
+    queryFn: () => getDocumentConnections(params.id, 5),
   });
   const chunkQuery = useQuery({
     queryKey: ["document", params.id, "chunk", focusedChunkId],
@@ -199,6 +205,11 @@ export default function DocumentDetailPage() {
           document={document}
           collections={collectionsQuery.data?.items ?? []}
           onMove={(collectionId) => moveMutation.mutate(collectionId)}
+        />
+        <RelatedDocumentsCard
+          currentDocumentId={document.id}
+          items={connectionsQuery.data?.items ?? []}
+          loading={connectionsQuery.isLoading}
         />
         <Card>
           <CardHeader>

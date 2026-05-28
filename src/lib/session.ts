@@ -5,8 +5,8 @@ import type { QueryClient } from "@tanstack/react-query";
 import { useAuthStore } from "@/stores/auth-store";
 import { useChatStore } from "@/stores/chat-store";
 
-const SESSION_STORAGE_KEY = "cortex-session";
-const SESSION_INVALIDATED_EVENT = "cortex:session-invalidated";
+const SESSION_STORAGE_KEY = "conserium-session";
+const SESSION_INVALIDATED_EVENT = "conserium:session-invalidated";
 
 export function startSession(queryClient: QueryClient, accessToken: string): void {
   clearClientState(queryClient);

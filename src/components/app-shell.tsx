@@ -38,7 +38,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       {publicRoute ? (
         children
       ) : (
-        <div className="min-h-screen bg-[var(--cortex-bg)] text-white">
+        <div className="min-h-screen bg-[var(--conserium-bg)] text-white">
           <Sidebar
             pathname={pathname}
             displayName={displayName}

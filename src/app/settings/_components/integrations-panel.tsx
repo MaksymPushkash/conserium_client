@@ -1,8 +1,8 @@
-import { Copy, KeyRound, Link2, Trash2 } from "lucide-react";
+import { Bot, Copy, KeyRound, Link2, Trash2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import type { ApiKey, NotionPage } from "@/lib/types";
+import type { ApiKey, NotionPage, TelegramChatBinding } from "@/lib/types";
 
 import { Field } from "./settings-primitives";
 
@@ -19,6 +19,11 @@ export function IntegrationsPanel({
   searchPending,
   importPending,
   importedPageTitle,
+  telegramBindings,
+  telegramPairingCode,
+  telegramPairingExpiresAt,
+  createTelegramPairingPending,
+  revokeTelegramBindingPending,
   apiKeys,
   apiKeyName,
   createdApiKeyToken,
@@ -26,6 +31,9 @@ export function IntegrationsPanel({
   revokeApiKeyPending,
   onParentPageIdChange,
   onApiKeyNameChange,
+  onCreateTelegramPairing,
+  onRevokeTelegramBinding,
+  onClearTelegramPairing,
   onClearCreatedApiKey,
   onPageQueryChange,
   onSearchPages,
@@ -49,6 +57,11 @@ export function IntegrationsPanel({
   searchPending: boolean;
   importPending: boolean;
   importedPageTitle: string | null;
+  telegramBindings: TelegramChatBinding[];
+  telegramPairingCode: string | null;
+  telegramPairingExpiresAt: string | null;
+  createTelegramPairingPending: boolean;
+  revokeTelegramBindingPending: boolean;
   apiKeys: ApiKey[];
   apiKeyName: string;
   createdApiKeyToken: string | null;
@@ -56,6 +69,9 @@ export function IntegrationsPanel({
   revokeApiKeyPending: boolean;
   onParentPageIdChange: (value: string) => void;
   onApiKeyNameChange: (value: string) => void;
+  onCreateTelegramPairing: () => void;
+  onRevokeTelegramBinding: (id: string) => void;
+  onClearTelegramPairing: () => void;
   onClearCreatedApiKey: () => void;
   onPageQueryChange: (value: string) => void;
   onSearchPages: () => void;
@@ -151,6 +167,61 @@ export function IntegrationsPanel({
             </div>
           </div>
         ) : null}
+        <div className="space-y-3 rounded-md border border-white/10 bg-white/[0.03] p-3">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <div className="text-neutral-100">Telegram bot</div>
+              <div className="font-jetbrains mt-1 text-xs text-neutral-500">Generate a short pairing code, send it to the Conserium Telegram bot, then revoke access here.</div>
+            </div>
+            <Bot className="h-4 w-4 text-neutral-500" />
+          </div>
+          {telegramPairingCode ? (
+            <div className="rounded-md border border-emerald-500/30 bg-emerald-500/10 p-3">
+              <div className="font-jetbrains text-xs text-emerald-200">send this to the Telegram bot</div>
+              <div className="mt-2 flex flex-wrap items-center gap-2">
+                <code className="rounded-md bg-black px-3 py-2 font-jetbrains text-lg text-emerald-50">/pair {telegramPairingCode}</code>
+                <Button variant="secondary" onClick={() => navigator.clipboard.writeText(`/pair ${telegramPairingCode}`)}>
+                  <Copy className="h-4 w-4" />
+                  Copy
+                </Button>
+                <Button variant="secondary" onClick={onClearTelegramPairing}>
+                  Done
+                </Button>
+              </div>
+              <div className="font-jetbrains mt-2 text-xs text-emerald-200">Expires {formatDate(telegramPairingExpiresAt)}</div>
+            </div>
+          ) : null}
+          <div className="flex justify-end">
+            <Button onClick={onCreateTelegramPairing} disabled={createTelegramPairingPending}>
+              {createTelegramPairingPending ? "Generating..." : "Generate pairing code"}
+            </Button>
+          </div>
+          {telegramBindings.length ? (
+            <div className="grid gap-2">
+              {telegramBindings.map((binding) => (
+                <div key={binding.id} className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-white/10 bg-black p-3">
+                  <div>
+                    <div className="text-neutral-100">{binding.chat_title || binding.chat_username || binding.chat_id}</div>
+                    <div className="font-jetbrains mt-1 text-xs text-neutral-500">
+                      chat {binding.chat_id} · paired {formatDate(binding.paired_at)}
+                      {binding.revoked_at ? ` · revoked ${formatDate(binding.revoked_at)}` : ""}
+                    </div>
+                  </div>
+                  <Button
+                    variant="secondary"
+                    onClick={() => onRevokeTelegramBinding(binding.id)}
+                    disabled={revokeTelegramBindingPending || Boolean(binding.revoked_at)}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                    {binding.revoked_at ? "Revoked" : "Revoke"}
+                  </Button>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="rounded-md border border-dashed border-white/10 p-3 text-sm text-neutral-500">No Telegram chats paired.</div>
+          )}
+        </div>
         <div className="space-y-3 rounded-md border border-white/10 bg-white/[0.03] p-3">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>

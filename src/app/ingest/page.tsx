@@ -43,7 +43,7 @@ export default function IngestPage() {
         <PageHeader
           eyebrow="Add source"
           title="Ingest content"
-          description="Drop files, paste text, or index a URL. Cortex extracts, embeds, summarizes, and makes the source searchable."
+          description="Drop files, paste text, or index a URL. Conserium extracts, embeds, summarizes, and makes the source searchable."
         />
 
         <Card className="overflow-hidden">
@@ -174,7 +174,7 @@ export default function IngestPage() {
       </section>
 
       <aside className="space-y-4">
-        <SectionPanel title="What gets indexed" description="Cortex stores normalized text, metadata, embeddings, summaries, tags, topics, and citations.">
+        <SectionPanel title="What gets indexed" description="Conserium stores normalized text, metadata, embeddings, summaries, tags, topics, and citations.">
           <div className="space-y-3 text-sm">
             {["Source metadata", "Extracted text", "Embeddings", "Summary and topics"].map((item) => (
               <div key={item} className="flex items-center gap-3 rounded-lg border border-white/10 bg-black/25 px-3 py-2 text-neutral-300">

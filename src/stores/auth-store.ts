@@ -21,7 +21,7 @@ export const useAuthStore = create<AuthState>()(
       setHydrated: (hydrated) => set({ hydrated }),
     }),
     {
-      name: "cortex-session",
+      name: "conserium-session",
       partialize: (state) => ({ accessToken: state.accessToken }),
       onRehydrateStorage: () => (state) => {
         state?.setHydrated(true);

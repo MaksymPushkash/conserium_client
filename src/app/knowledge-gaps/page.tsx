@@ -87,9 +87,14 @@ export default function KnowledgeGapsPage() {
               Analyze
             </Button>
           </form>
-          <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_160px] md:items-center">
-            <Progress value={coveragePercent} indicatorClassName={coveragePercent > 60 ? "bg-emerald-400" : "bg-yellow-400"} />
-            <div className="font-jetbrains text-sm text-neutral-500">{coveragePercent}% covered</div>
+          <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_120px] md:items-center">
+            <div className="relative">
+              <Progress value={coveragePercent} indicatorClassName={coveragePercent > 60 ? "bg-emerald-400" : "bg-yellow-300"} />
+              <span className="font-jetbrains absolute right-2 top-1/2 -translate-y-1/2 text-xs font-medium text-white drop-shadow">
+                {coveragePercent}%
+              </span>
+            </div>
+            <div className="font-jetbrains text-sm text-neutral-300">covered</div>
           </div>
           {gapsQuery.data ? (
             <div className="rounded-md border border-white/10 bg-white/[0.025] p-3 text-sm text-neutral-300">
@@ -177,7 +182,7 @@ export default function KnowledgeGapsPage() {
         <EmptyState
           icon={<Gauge className="h-5 w-5" />}
           title="No saved topics yet"
-          description="Type any topic above to run a coverage check, or ingest documents first so Cortex can suggest topics automatically."
+          description="Type any topic above to run a coverage check, or ingest documents first so Conserium can suggest topics automatically."
         />
       ) : null}
     </div>

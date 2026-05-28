@@ -3,23 +3,25 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Cortex Clipper</title>
+    <title>Conserium Clipper</title>
     <link rel="stylesheet" href="popup.css" />
   </head>
   <body>
     <main>
-      <h1>Cortex</h1>
+      <h1>Conserium</h1>
       <label>
         API origin
-        <input id="apiOrigin" placeholder="https://api.cortexx.me/api/v1" />
+        <input id="apiOrigin" placeholder="https://api.conserium.app/api/v1" />
       </label>
       <label>
         API key
         <input id="apiKey" type="password" placeholder="ctx_..." />
       </label>
       <label>
-        Collection id
-        <input id="collectionId" placeholder="optional" />
+        Collection
+        <select id="collectionId">
+          <option value="">All collections</option>
+        </select>
       </label>
       <label>
         Tags
@@ -30,6 +32,10 @@
         <button id="saveSelection">Save selection</button>
       </div>
       <p id="status"></p>
+      <section>
+        <h2>Recent saves</h2>
+        <ul id="history"></ul>
+      </section>
     </main>
     <script src="popup.js"></script>
   </body>

@@ -12,7 +12,7 @@ test.describe("core user journey", () => {
 
     await page.goto("/ingest");
     await page.getByPlaceholder("Title").fill("Playwright smoke source");
-    await page.getByPlaceholder("Paste notes, markdown, or raw text").fill("Cortex smoke test content mentions scoped retrieval.");
+    await page.getByPlaceholder("Paste notes, markdown, or raw text").fill("Conserium smoke test content mentions scoped retrieval.");
     await page.getByRole("button", { name: /queue ingestion/i }).click();
     await expect(page.getByText(/waiting for worker status|ready|processing/i)).toBeVisible();
 

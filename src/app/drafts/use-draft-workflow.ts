@@ -105,7 +105,7 @@ export function useDraftWorkflow() {
   const exportMutation = useMutation({
     mutationFn: (format: "markdown" | "pdf") =>
       exportMarkdown({
-        title: "Cortex draft",
+        title: "Conserium draft",
         markdown: activeDraft?.markdown ?? "",
         format,
       }),
@@ -114,7 +114,7 @@ export function useDraftWorkflow() {
   const notionMutation = useMutation({
     mutationFn: () =>
       exportNotion({
-        title: "Cortex draft",
+        title: "Conserium draft",
         markdown: activeDraft?.markdown ?? "",
       }),
   });

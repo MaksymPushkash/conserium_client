@@ -15,5 +15,6 @@ export type * from "./types/notes";
 export type * from "./types/observability";
 export type * from "./types/query";
 export type * from "./types/repo-syncs";
+export type * from "./types/review";
 export type * from "./types/stats";
 export type * from "./types/topics";

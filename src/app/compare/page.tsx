@@ -46,7 +46,7 @@ export default function ComparePage() {
       <PageHeader
         eyebrow="Creation"
         title="Compare"
-        description="Choose two ready documents, define the angle, and Cortex will build a cited comparison from direct document context."
+        description="Choose two ready documents, define the angle, and Conserium will build a cited comparison from direct document context."
       />
 
       <div className="grid gap-4 md:grid-cols-3">
@@ -55,7 +55,7 @@ export default function ComparePage() {
         <MetricCard label="Saved results" value={historyQuery.data?.items.length ?? 0} detail="Reusable comparisons" icon={<NotebookPen className="h-4 w-4" />} />
       </div>
 
-      <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_380px]">
+      <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,0.92fr)_minmax(420px,0.78fr)]">
         <SectionPanel title="Document pair" description="Compare works best when both documents are ready and have enough extracted text.">
           <form className="space-y-4" onSubmit={workflow.submit}>
             <div className="grid gap-3 md:grid-cols-2">
@@ -131,63 +131,8 @@ export default function ComparePage() {
 
         <SectionPanel
           className="self-start"
-          title="History"
-          description="Persisted comparisons are reusable across sessions."
-        >
-          {historyQuery.data?.items.length ? (
-            <div className="space-y-2">
-              {historyQuery.data.items.map((item) => (
-                <button
-                  key={item.id}
-                  type="button"
-                  onClick={() => selectHistoryItem(item.id)}
-                  className="w-full rounded-lg border border-white/10 bg-white/[0.035] p-3 text-left transition hover:border-white/25 hover:bg-white/[0.07]"
-                >
-                  <p className="truncate text-sm font-medium text-white">
-                    {item.left_title} vs {item.right_title}
-                  </p>
-                  <p className="font-jetbrains mt-1 line-clamp-2 text-xs text-neutral-400">{item.summary}</p>
-                </button>
-              ))}
-            </div>
-          ) : (
-            <EmptyState
-              className="py-8"
-              icon={<GitCompareArrows className="h-5 w-5" />}
-              title="No saved comparisons"
-              description="Completed comparisons will stay here for reuse."
-            />
-          )}
-        </SectionPanel>
-      </div>
-
-      {leftDocumentId && rightDocumentId && leftDocumentId === rightDocumentId ? (
-        <div className="rounded-md border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-100">
-          Choose two different documents.
-        </div>
-      ) : null}
-
-      {documentsQuery.error ? (
-        <div className="rounded-md border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-200">
-          {errorMessage(documentsQuery.error)}
-        </div>
-      ) : null}
-
-      {compareMutation.error ? (
-        <div className="rounded-md border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-200">
-          {errorMessage(compareMutation.error)}
-        </div>
-      ) : null}
-
-      {actionError ? (
-        <div className="rounded-md border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-200">
-          {errorMessage(actionError)}
-        </div>
-      ) : null}
-
-      <SectionPanel
           title={activeCompare ? `${activeCompare.left_title} vs ${activeCompare.right_title}` : "Comparison output"}
-          description="Markdown preview, exports, and source citations stay together."
+          description="Preview, evidence, exports, and source citations stay together."
           actions={
             activeCompare ? (
               <div className="flex flex-wrap gap-2">
@@ -242,7 +187,7 @@ export default function ComparePage() {
                 <div className="space-y-3 border-t border-white/10 pt-4">
                   <h2 className="text-sm font-medium text-white">Sources</h2>
                   {compareSources.length ? (
-                    <div className="grid gap-3 md:grid-cols-2">
+                    <div className="grid gap-3">
                       {compareSources.map((source, index) => (
                         <CitationCard
                           key={source.chunk_id}
@@ -260,18 +205,70 @@ export default function ComparePage() {
               </>
             ) : (
               <EmptyState
-                className="flex min-h-[220px] flex-col justify-center"
+                className="flex min-h-[360px] flex-col justify-center"
                 icon={<GitCompareArrows className="h-5 w-5" />}
                 title={documents.length ? "Select two documents" : "No ready documents available"}
                 description={
                   documents.length
-                    ? "Cortex loads context directly from both selected documents, then ranks the strongest supporting passages."
+                    ? "Conserium loads context directly from both selected documents, then ranks the strongest supporting passages."
                     : "Ingest and process at least two documents before running compare."
                 }
               />
             )}
           </div>
         </SectionPanel>
+      </div>
+
+      {leftDocumentId && rightDocumentId && leftDocumentId === rightDocumentId ? (
+        <div className="rounded-md border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-100">
+          Choose two different documents.
+        </div>
+      ) : null}
+
+      {documentsQuery.error ? (
+        <div className="rounded-md border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-200">
+          {errorMessage(documentsQuery.error)}
+        </div>
+      ) : null}
+
+      {compareMutation.error ? (
+        <div className="rounded-md border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-200">
+          {errorMessage(compareMutation.error)}
+        </div>
+      ) : null}
+
+      {actionError ? (
+        <div className="rounded-md border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-200">
+          {errorMessage(actionError)}
+        </div>
+      ) : null}
+
+      <SectionPanel title="History" description="Persisted comparisons are reusable across sessions.">
+        {historyQuery.data?.items.length ? (
+          <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-3">
+            {historyQuery.data.items.map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => selectHistoryItem(item.id)}
+                className="w-full rounded-lg border border-white/10 bg-white/[0.035] p-3 text-left transition hover:border-white/25 hover:bg-white/[0.07]"
+              >
+                <p className="truncate text-sm font-medium text-white">
+                  {item.left_title} vs {item.right_title}
+                </p>
+                <p className="font-jetbrains mt-1 line-clamp-2 text-xs text-neutral-400">{item.summary}</p>
+              </button>
+            ))}
+          </div>
+        ) : (
+          <EmptyState
+            className="py-8"
+            icon={<GitCompareArrows className="h-5 w-5" />}
+            title="No saved comparisons"
+            description="Completed comparisons will stay here for reuse."
+          />
+        )}
+      </SectionPanel>
     </PageShell>
   );
 }

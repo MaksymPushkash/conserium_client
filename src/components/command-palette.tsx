@@ -43,7 +43,7 @@ const actions: PaletteAction[] = [
   { href: "/processing", label: "Processing", description: "Jobs", icon: ServerCog, keywords: "jobs queue retry failed processing ingest embeddings enrichment exports", group: "manage" },
   { href: "/notes", label: "Note", description: "Write memory", icon: FileText, keywords: "markdown writing notes", group: "create" },
   { href: "/drafts", label: "Draft", description: "Generate doc", icon: PenLine, keywords: "generate writing export", group: "create" },
-  { href: "/chat", label: "Chat", description: "Ask knowledge", icon: MessageSquare, keywords: "ask cortex query chat", group: "ask" },
+  { href: "/chat", label: "Chat", description: "Ask knowledge", icon: MessageSquare, keywords: "ask conserium query chat", group: "ask" },
   { href: "/compare", label: "Compare", description: "Two documents", icon: PanelsTopLeft, keywords: "document comparison compare", group: "ask" },
   { href: "/knowledge-gaps", label: "Gaps", description: "Coverage", icon: Gauge, keywords: "knowledge gaps coverage", group: "review" },
   { href: "/conflicts", label: "Conflicts", description: "Claims", icon: GitCompareArrows, keywords: "claims contradictions conflicts", group: "review" },
@@ -64,7 +64,9 @@ const groupLabels: Record<PaletteAction["group"], string> = {
   manage: "Manage",
 };
 
-export const COMMAND_PALETTE_EVENT = "cortex:open-command-palette";
+const RECENT_ACTIONS_KEY = "conserium:recent-command-actions";
+
+export const COMMAND_PALETTE_EVENT = "conserium:open-command-palette";
 
 export function openCommandPalette() {
   window.dispatchEvent(new Event(COMMAND_PALETTE_EVENT));
@@ -76,6 +78,7 @@ export function CommandPalette() {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [activeIndex, setActiveIndex] = useState(0);
+  const [recentHrefs, setRecentHrefs] = useState<string[]>([]);
 
   const filteredActions = useMemo(() => {
     const needle = query.trim().toLowerCase();
@@ -90,6 +93,13 @@ export function CommandPalette() {
       items: filteredActions.filter((action) => action.group === group),
     }));
   }, [filteredActions]);
+
+  const recentActions = useMemo(() => {
+    if (query.trim()) return [];
+    return recentHrefs
+      .map((href) => actions.find((action) => action.href === href))
+      .filter((action): action is PaletteAction => Boolean(action));
+  }, [query, recentHrefs]);
 
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
@@ -117,6 +127,7 @@ export function CommandPalette() {
 
     window.addEventListener("keydown", onKeyDown);
     window.addEventListener(COMMAND_PALETTE_EVENT, onOpenPalette);
+    setRecentHrefs(readRecentActions());
     return () => {
       window.removeEventListener("keydown", onKeyDown);
       window.removeEventListener(COMMAND_PALETTE_EVENT, onOpenPalette);
@@ -135,6 +146,9 @@ export function CommandPalette() {
   }, [query]);
 
   function navigate(href: Route) {
+    const nextRecent = [href, ...recentHrefs.filter((item) => item !== href)].slice(0, 3);
+    setRecentHrefs(nextRecent);
+    writeRecentActions(nextRecent);
     setOpen(false);
     router.push(href);
   }
@@ -182,40 +196,45 @@ export function CommandPalette() {
 
         <div className="scrollbar-thin grid gap-3 overflow-y-auto p-3">
           {filteredActions.length ? (
-            groupedActions.map(({ group, items }) =>
-              items.length ? (
+            <>
+              {recentActions.length ? (
+                <section className="grid gap-2">
+                  <div className="font-jetbrains px-1 text-[10px] uppercase tracking-[0.22em] text-neutral-400">Recent</div>
+                  <div className="grid gap-1">
+                    {recentActions.map((action) => (
+                      <PaletteActionButton
+                        key={action.href}
+                        action={action}
+                        active={filteredActions[activeIndex]?.href === action.href}
+                        onMouseEnter={() => setActiveIndex(filteredActions.findIndex((item) => item.href === action.href))}
+                        onClick={() => navigate(action.href)}
+                      />
+                    ))}
+                  </div>
+                </section>
+              ) : null}
+              {groupedActions.map(({ group, items }) =>
+                items.length ? (
                 <section key={group} className="grid gap-2">
                   <div className="font-jetbrains px-1 text-[10px] uppercase tracking-[0.22em] text-neutral-400">{groupLabels[group]}</div>
                   <div className="grid gap-1">
                     {items.map((action) => {
                       const absoluteIndex = filteredActions.findIndex((item) => item.href === action.href);
-                      const Icon = action.icon;
                       return (
-                        <button
+                        <PaletteActionButton
                           key={action.href}
-                          type="button"
+                          action={action}
+                          active={absoluteIndex === activeIndex}
                           onClick={() => navigate(action.href)}
                           onMouseEnter={() => setActiveIndex(absoluteIndex)}
-                          className={cn(
-                            "group flex h-11 items-center gap-3 rounded-lg border border-transparent px-2 text-left transition-all duration-150 hover:border-white/10 hover:bg-white/[0.06]",
-                            absoluteIndex === activeIndex && "border-white/25 bg-white/[0.08]",
-                          )}
-                        >
-                          <span className="grid h-8 w-8 shrink-0 place-items-center rounded-md border border-white/10 bg-black/35 text-neutral-300 transition-colors group-hover:text-white">
-                            <Icon className="h-4 w-4" />
-                          </span>
-                          <span className="flex min-w-0 flex-1 items-center gap-2">
-                            <span className="block truncate text-sm font-medium text-white">{action.label}</span>
-                            <span className="block truncate text-xs text-neutral-400">{action.description}</span>
-                          </span>
-                          <ArrowRight className="h-4 w-4 text-neutral-600 opacity-0 transition-all duration-200 group-hover:translate-x-0.5 group-hover:opacity-100" />
-                        </button>
+                        />
                       );
                     })}
                   </div>
                 </section>
-              ) : null,
-            )
+                ) : null,
+              )}
+            </>
           ) : (
             <div className="rounded-xl border border-white/10 bg-white/[0.025] px-4 py-10 text-center text-sm text-neutral-500">No matches.</div>
           )}
@@ -223,4 +242,46 @@ export function CommandPalette() {
       </div>
     </div>
   ) : null;
+}
+
+function PaletteActionButton({ action, active, onClick, onMouseEnter }: { action: PaletteAction; active: boolean; onClick: () => void; onMouseEnter: () => void }) {
+  const Icon = action.icon;
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      onMouseEnter={onMouseEnter}
+      className={cn(
+        "group flex h-11 items-center gap-3 rounded-lg border border-transparent px-2 text-left transition-all duration-150 hover:border-white/10 hover:bg-white/[0.06]",
+        active && "border-white/25 bg-white/[0.08]",
+      )}
+    >
+      <span className="grid h-8 w-8 shrink-0 place-items-center rounded-md border border-white/10 bg-black/35 text-neutral-300 transition-colors group-hover:text-white">
+        <Icon className="h-4 w-4" />
+      </span>
+      <span className="flex min-w-0 flex-1 items-center gap-2">
+        <span className="block truncate text-sm font-medium text-white">{action.label}</span>
+        <span className="block truncate text-xs text-neutral-400">{action.description}</span>
+      </span>
+      <ArrowRight className="h-4 w-4 text-neutral-600 opacity-0 transition-all duration-200 group-hover:translate-x-0.5 group-hover:opacity-100" />
+    </button>
+  );
+}
+
+function readRecentActions(): string[] {
+  try {
+    const raw = window.localStorage.getItem(RECENT_ACTIONS_KEY);
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? parsed.filter((item): item is string => typeof item === "string").slice(0, 3) : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeRecentActions(values: string[]) {
+  try {
+    window.localStorage.setItem(RECENT_ACTIONS_KEY, JSON.stringify(values));
+  } catch {
+    // Ignore storage failures; navigation still works.
+  }
 }

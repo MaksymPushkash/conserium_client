@@ -57,7 +57,7 @@ export default function DraftsPage() {
       <PageHeader
         eyebrow="Creation"
         title="Drafts"
-        description="Generate cited Markdown from saved Cortex sources. Pick a scope, choose a template, then refine the output."
+        description="Generate cited Markdown from saved Conserium sources. Pick a scope, choose a template, then refine the output."
       />
 
       <div className="grid gap-4 md:grid-cols-3">
@@ -67,7 +67,7 @@ export default function DraftsPage() {
       </div>
 
       <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_390px]">
-        <SectionPanel title="Draft setup" description="Request and retrieval scope define what Cortex is allowed to use.">
+        <SectionPanel title="Draft setup" description="Request and retrieval scope define what Conserium is allowed to use.">
           <form className="space-y-4" onSubmit={workflow.submit}>
             <label className="block space-y-2">
               <span className="font-jetbrains text-xs text-neutral-400">Request</span>
@@ -78,6 +78,24 @@ export default function DraftsPage() {
                 className="min-h-28"
               />
             </label>
+
+            <div className="flex flex-wrap gap-2">
+              {promptSuggestions.map((suggestion) => {
+                const Icon = suggestion.icon;
+                return (
+                  <button
+                    key={suggestion.title}
+                    type="button"
+                    onClick={() => setPrompt(suggestion.prompt)}
+                    className="inline-flex h-9 items-center gap-2 rounded-full border border-white/10 bg-white/[0.035] px-3 text-sm text-neutral-300 transition hover:border-white/25 hover:bg-white/[0.07] hover:text-white"
+                    title={suggestion.description}
+                  >
+                    <Icon className="h-4 w-4" />
+                    {suggestion.title}
+                  </button>
+                );
+              })}
+            </div>
 
             <div className="grid gap-3 md:grid-cols-3">
               <label className="block space-y-2">
@@ -192,32 +210,6 @@ export default function DraftsPage() {
               ))}
             </div>
           </SectionPanel>
-
-          <SectionPanel title="Fast prompts" description="Use these to set the request without leaving the workflow.">
-            <div className="grid gap-2">
-              {promptSuggestions.map((suggestion) => {
-                const Icon = suggestion.icon;
-                return (
-                  <button
-                    key={suggestion.title}
-                    type="button"
-                    onClick={() => setPrompt(suggestion.prompt)}
-                    className="group rounded-lg border border-white/10 bg-white/[0.035] p-3 text-left transition hover:border-white/25 hover:bg-white/[0.06]"
-                  >
-                    <span className="flex items-start gap-3">
-                      <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg border border-white/10 bg-white/[0.04] text-neutral-300 group-hover:text-white">
-                        <Icon className="h-4 w-4" />
-                      </span>
-                      <span className="min-w-0">
-                        <span className="block text-sm font-semibold text-white">{suggestion.title}</span>
-                        <span className="mt-1 block font-jetbrains text-xs leading-5 text-neutral-400">{suggestion.description}</span>
-                      </span>
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          </SectionPanel>
         </div>
       </div>
 
@@ -296,7 +288,7 @@ export default function DraftsPage() {
             className="flex min-h-[180px] flex-col justify-center"
             icon={<Sparkles className="h-5 w-5" />}
             title="No draft generated yet"
-            description="Choose a scope, write the request, and Cortex will build a Markdown draft from saved sources only."
+            description="Choose a scope, write the request, and Conserium will build a Markdown draft from saved sources only."
           />
         )}
       </SectionPanel>

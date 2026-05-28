@@ -40,7 +40,7 @@ export default function RepoSyncsPage() {
       <PageHeader
         eyebrow="System"
         title="Repo sync"
-        description="Sync public GitHub markdown into Cortex collections. Failed and partial syncs stay visible so they can be retried."
+        description="Sync public GitHub markdown into Conserium collections. Failed and partial syncs stay visible so they can be retried."
         actions={
           <Button
             variant="secondary"
@@ -130,7 +130,7 @@ export default function RepoSyncsPage() {
           </form>
         </SectionPanel>
 
-        <SectionPanel title="What gets indexed" description="Cortex indexes repository knowledge as searchable documents.">
+        <SectionPanel title="What gets indexed" description="Conserium indexes repository knowledge as searchable documents.">
           <div className="grid gap-3">
             <IndexRule icon={<CheckCircle2 className="h-4 w-4 text-emerald-400" />} title="Markdown first" text="README files, docs folders, and markdown pages become documents." />
             <IndexRule icon={<GitBranch className="h-4 w-4 text-neutral-300" />} title="Branch scoped" text="Each sync uses the selected branch and stores the latest attempt state." />

@@ -1,5 +1,6 @@
 import {
   Activity,
+  BookOpenCheck,
   FileText,
   Files,
   Folder,
@@ -30,6 +31,7 @@ export const baseNav: Array<{ href: Route; label: string; icon: typeof Search; d
   { href: "/graph", label: "Graph", icon: Network },
   { href: "/knowledge-gaps", label: "Gaps", icon: Gauge },
   { href: "/learning-goals", label: "Goals", icon: Goal },
+  { href: "/review", label: "Review", icon: BookOpenCheck },
   { href: "/conflicts", label: "Conflicts", icon: GitCompareArrows },
   { href: "/drafts", label: "Drafts", icon: PenLine },
   { href: "/compare", label: "Compare", icon: PanelsTopLeft },
@@ -50,7 +52,7 @@ export const navGroups = [
   },
   {
     label: "Intelligence",
-    items: nav.filter((item) => ["/topics", "/graph", "/knowledge-gaps", "/learning-goals", "/conflicts"].includes(item.href)),
+    items: nav.filter((item) => ["/topics", "/graph", "/knowledge-gaps", "/learning-goals", "/review", "/conflicts"].includes(item.href)),
   },
   {
     label: "Creation",

@@ -14,8 +14,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import { useDocumentFilters } from "@/hooks/use-document-filters";
 import { useUndoableDocumentDelete } from "@/hooks/use-undoable-document-delete";
-import { bulkDeleteDocuments, bulkReprocessDocuments, deleteDocument, listCollections, listDocuments, searchDocuments } from "@/lib/api";
+import { bulkAddDocumentTags, bulkDeleteDocuments, bulkMoveDocuments, bulkReprocessDocuments, deleteDocument, exportDocument, listCollections, listDocuments, searchDocuments } from "@/lib/api";
 import { errorMessage } from "@/lib/api/transport";
+import { downloadBlob } from "@/lib/download";
 
 const DOCUMENT_PAGE_SIZE = 100;
 
@@ -23,6 +24,8 @@ export default function DocumentsPage() {
   const queryClient = useQueryClient();
   const searchParams = useSearchParams();
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkCollectionId, setBulkCollectionId] = useState("");
+  const [bulkTags, setBulkTags] = useState("");
   const collectionsQuery = useQuery({ queryKey: ["collections"], queryFn: () => listCollections({ limit: 100 }) });
   const documentsQuery = useInfiniteQuery({
     queryKey: ["documents"],
@@ -74,6 +77,24 @@ export default function DocumentsPage() {
       setSelectedIds(new Set());
       await queryClient.invalidateQueries({ queryKey: ["documents"] });
     },
+  });
+  const bulkMoveMutation = useMutation({
+    mutationFn: () => bulkMoveDocuments([...selectedIds], bulkCollectionId || null),
+    onSuccess: async () => {
+      setSelectedIds(new Set());
+      await queryClient.invalidateQueries({ queryKey: ["documents"] });
+    },
+  });
+  const bulkTagMutation = useMutation({
+    mutationFn: () => bulkAddDocumentTags([...selectedIds], parseTags(bulkTags)),
+    onSuccess: async () => {
+      setBulkTags("");
+      setSelectedIds(new Set());
+      await queryClient.invalidateQueries({ queryKey: ["documents"] });
+    },
+  });
+  const bulkExportMutation = useMutation({
+    mutationFn: () => exportSelectedMarkdown(displayedDocuments.filter((document) => selectedIds.has(document.id))),
   });
   const { pendingDelete, scheduleDelete, undoDelete } = useUndoableDocumentDelete({
     onDeleteOne: (documentId) => deleteMutation.mutate(documentId),
@@ -139,6 +160,17 @@ export default function DocumentsPage() {
             count={selectedIds.size}
             reprocessPending={bulkReprocessMutation.isPending}
             deletePending={bulkDeleteMutation.isPending}
+            movePending={bulkMoveMutation.isPending}
+            tagPending={bulkTagMutation.isPending}
+            exportPending={bulkExportMutation.isPending}
+            collections={collectionsQuery.data?.items ?? []}
+            selectedCollectionId={bulkCollectionId}
+            tagInput={bulkTags}
+            onCollectionChange={setBulkCollectionId}
+            onTagInputChange={setBulkTags}
+            onMove={() => bulkMoveMutation.mutate()}
+            onAddTags={() => bulkTagMutation.mutate()}
+            onExport={() => bulkExportMutation.mutate()}
             onReprocess={() => bulkReprocessMutation.mutate([...selectedIds])}
             onDelete={bulkDeleteWithUndo}
           />
@@ -169,4 +201,19 @@ export default function DocumentsPage() {
       {pendingDelete ? <UndoDeleteToast label={pendingDelete.label} onUndo={undoDelete} /> : null}
     </div>
   );
+}
+
+function parseTags(value: string): string[] {
+  return [...new Set(value.split(",").map((tag) => tag.trim().toLowerCase()).filter(Boolean))];
+}
+
+async function exportSelectedMarkdown(documents: Array<{ id: string; title: string }>) {
+  const parts = await Promise.all(
+    documents.map(async (document) => {
+      const { blob } = await exportDocument(document.id, "markdown");
+      return `# ${document.title}\n\n${await blob.text()}`;
+    }),
+  );
+  const blob = new Blob([parts.join("\n\n---\n\n")], { type: "text/markdown;charset=utf-8" });
+  downloadBlob(blob, `conserium-selected-${new Date().toISOString().slice(0, 10)}.md`);
 }

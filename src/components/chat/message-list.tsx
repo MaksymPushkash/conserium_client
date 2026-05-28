@@ -12,10 +12,12 @@ interface MessageListProps {
   messages: ChatMessage[];
   hasReadyDocuments: boolean;
   suggestionChips: string[];
+  followUpChips?: string[];
+  latestAssistantId?: string | null;
   onPickSuggestion: (suggestion: string) => void;
 }
 
-export function MessageList({ messages, hasReadyDocuments, suggestionChips, onPickSuggestion }: MessageListProps) {
+export function MessageList({ messages, hasReadyDocuments, suggestionChips, followUpChips = [], latestAssistantId = null, onPickSuggestion }: MessageListProps) {
   return (
     <div className="flex-1 overflow-auto px-5 py-8">
       <div className="mx-auto flex min-h-full max-w-5xl flex-col justify-end gap-5">
@@ -50,6 +52,20 @@ export function MessageList({ messages, hasReadyDocuments, suggestionChips, onPi
                 })}
               </div>
             ) : null}
+            {message.id === latestAssistantId && followUpChips.length ? (
+              <div className="mt-4 flex flex-wrap gap-2 border-t border-white/10 pt-3">
+                {followUpChips.map((suggestion) => (
+                  <button
+                    key={suggestion}
+                    type="button"
+                    onClick={() => onPickSuggestion(suggestion)}
+                    className="font-jetbrains rounded-full border border-white/10 bg-black/20 px-3 py-1.5 text-xs text-neutral-300 transition hover:border-white/30 hover:bg-white/[0.06] hover:text-white"
+                  >
+                    {suggestion}
+                  </button>
+                ))}
+              </div>
+            ) : null}
           </div>
         ))}
         {!messages.length ? (
@@ -57,7 +73,7 @@ export function MessageList({ messages, hasReadyDocuments, suggestionChips, onPi
             <div className="mb-6 flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/[0.03]">
               <Sparkles className="h-4 w-4 text-neutral-300" />
             </div>
-            <h2 className="text-4xl font-semibold tracking-tight text-white">Ask Cortex anything across your sources.</h2>
+            <h2 className="text-4xl font-semibold tracking-tight text-white">Ask Conserium anything across your sources.</h2>
             <p className="mt-4 max-w-xl text-sm leading-6 text-neutral-400">
               Answers cite saved documents. Scope by collection when you need tighter retrieval.
             </p>
@@ -91,6 +107,5 @@ export function MessageList({ messages, hasReadyDocuments, suggestionChips, onPi
 
 function sourceDetail(source: NonNullable<ChatMessage["sources"]>[number]) {
   const page = source.page_number ? `page ${source.page_number}` : `chunk ${source.chunk_index}`;
-  const confidence = source.score !== null ? `score ${source.score.toFixed(3)}` : "score n/a";
-  return `${page} · ${confidence}`;
+  return page;
 }

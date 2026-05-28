@@ -7,17 +7,21 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   createNotionConnectUrl,
+  createTelegramPairingCode,
   createApiKey,
   deleteCurrentUser,
   disconnectNotion,
   getCurrentUser,
   getNotionConnection,
+  getStatsOverview,
+  getTelegramStatus,
   getUserPreferences,
   importNotionPage,
   listApiKeys,
   logout,
   logoutEverywhere,
   revokeApiKey,
+  revokeTelegramBinding,
   searchNotionPages,
   updateNotionConnectionSettings,
   updateUserPreferences,
@@ -44,11 +48,15 @@ export default function SettingsPage() {
   const [notionPageQuery, setNotionPageQuery] = useState("");
   const [apiKeyName, setApiKeyName] = useState("");
   const [createdApiKeyToken, setCreatedApiKeyToken] = useState<string | null>(null);
+  const [telegramPairingCode, setTelegramPairingCode] = useState<string | null>(null);
+  const [telegramPairingExpiresAt, setTelegramPairingExpiresAt] = useState<string | null>(null);
 
   const userQuery = useQuery({ queryKey: ["me"], queryFn: getCurrentUser });
   const preferencesQuery = useQuery({ queryKey: ["user-preferences"], queryFn: getUserPreferences });
   const notionQuery = useQuery({ queryKey: ["integrations", "notion"], queryFn: getNotionConnection });
+  const telegramQuery = useQuery({ queryKey: ["integrations", "telegram"], queryFn: getTelegramStatus });
   const apiKeysQuery = useQuery({ queryKey: ["api-keys"], queryFn: listApiKeys });
+  const statsQuery = useQuery({ queryKey: ["stats", "overview", "settings"], queryFn: getStatsOverview });
 
   const updateMutation = useMutation({
     mutationFn: updateUserPreferences,
@@ -113,6 +121,21 @@ export default function SettingsPage() {
     mutationFn: revokeApiKey,
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["api-keys"] }),
   });
+  const createTelegramPairingMutation = useMutation({
+    mutationFn: createTelegramPairingCode,
+    onSuccess: (result) => {
+      setTelegramPairingCode(result.code);
+      setTelegramPairingExpiresAt(result.expires_at);
+      void queryClient.invalidateQueries({ queryKey: ["api-keys"] });
+    },
+  });
+  const revokeTelegramBindingMutation = useMutation({
+    mutationFn: revokeTelegramBinding,
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["integrations", "telegram"] });
+      await queryClient.invalidateQueries({ queryKey: ["api-keys"] });
+    },
+  });
 
   useEffect(() => {
     if (preferencesQuery.data) setPreferences(preferencesQuery.data);
@@ -131,7 +154,7 @@ export default function SettingsPage() {
     setPreferences((current) => ({ ...current, ai: nextAI }));
   }
 
-  const loadError = preferencesQuery.error ?? userQuery.error ?? notionQuery.error ?? apiKeysQuery.error;
+  const loadError = preferencesQuery.error ?? userQuery.error ?? notionQuery.error ?? telegramQuery.error ?? apiKeysQuery.error;
   const actionError =
     connectNotionMutation.error ??
     disconnectNotionMutation.error ??
@@ -139,7 +162,9 @@ export default function SettingsPage() {
     searchNotionPagesMutation.error ??
     importNotionPageMutation.error ??
     createApiKeyMutation.error ??
-    revokeApiKeyMutation.error;
+    revokeApiKeyMutation.error ??
+    createTelegramPairingMutation.error ??
+    revokeTelegramBindingMutation.error;
 
   return (
     <div className="mx-auto max-w-5xl space-y-6 p-4 md:p-8">
@@ -167,6 +192,9 @@ export default function SettingsPage() {
           <AccountPanel
             email={userQuery.data?.email ?? "-"}
             createdAt={userQuery.data?.created_at ?? null}
+            totalDocuments={statsQuery.data?.total_documents ?? null}
+            readyDocuments={statsQuery.data?.ready_documents ?? null}
+            processingDocuments={statsQuery.data?.processing_documents ?? null}
             logoutPending={logoutMutation.isPending}
             logoutEverywherePending={logoutEverywhereMutation.isPending}
             deletePending={deleteMutation.isPending}
@@ -191,6 +219,11 @@ export default function SettingsPage() {
             searchPending={searchNotionPagesMutation.isPending}
             importPending={importNotionPageMutation.isPending}
             importedPageTitle={importNotionPageMutation.data?.document?.title ?? null}
+            telegramBindings={telegramQuery.data?.bindings ?? []}
+            telegramPairingCode={telegramPairingCode}
+            telegramPairingExpiresAt={telegramPairingExpiresAt}
+            createTelegramPairingPending={createTelegramPairingMutation.isPending}
+            revokeTelegramBindingPending={revokeTelegramBindingMutation.isPending}
             apiKeys={apiKeysQuery.data?.items ?? []}
             apiKeyName={apiKeyName}
             createdApiKeyToken={createdApiKeyToken}
@@ -201,6 +234,12 @@ export default function SettingsPage() {
               setNotionParentPageTitle("");
             }}
             onApiKeyNameChange={setApiKeyName}
+            onCreateTelegramPairing={() => createTelegramPairingMutation.mutate()}
+            onRevokeTelegramBinding={(id) => revokeTelegramBindingMutation.mutate(id)}
+            onClearTelegramPairing={() => {
+              setTelegramPairingCode(null);
+              setTelegramPairingExpiresAt(null);
+            }}
             onClearCreatedApiKey={() => setCreatedApiKeyToken(null)}
             onPageQueryChange={setNotionPageQuery}
             onSearchPages={() => searchNotionPagesMutation.mutate()}

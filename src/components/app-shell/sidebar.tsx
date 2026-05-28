@@ -1,10 +1,12 @@
 "use client";
 
+import { useQuery } from "@tanstack/react-query";
 import { BookOpen, Plus, Search } from "lucide-react";
 import Link from "next/link";
 
 import { openCommandPalette } from "@/components/command-palette";
 import { Button } from "@/components/ui/button";
+import { listCollections } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { navGroups } from "./nav";
 import { UserMenu } from "./user-menu";
@@ -30,6 +32,9 @@ export function Sidebar({
   onLogout: () => void;
   onNavigate: (href: string) => void;
 }) {
+  const collectionsQuery = useQuery({ queryKey: ["collections", "sidebar"], queryFn: () => listCollections({ limit: 5 }) });
+  const quickCollections = collectionsQuery.data?.items.slice(0, 5) ?? [];
+
   return (
     <aside className="fixed inset-y-0 left-0 hidden w-72 border-r border-white/10 bg-[#050509]/95 shadow-2xl shadow-black/40 md:flex md:flex-col">
       <div className="flex h-20 items-center justify-between px-5">
@@ -37,7 +42,7 @@ export function Sidebar({
           <span className="grid h-9 w-9 place-items-center rounded-full border border-white/15 bg-white/[0.03] text-sm font-medium text-white transition-transform duration-300 group-hover:scale-105">
             C
           </span>
-          <span className="text-lg font-normal tracking-tight text-white">CORTEX</span>
+          <span className="text-lg font-normal tracking-tight text-white">CONSERIUM</span>
         </Link>
         <div className="flex items-center gap-1 text-neutral-500">
           <Button variant="ghost" size="icon" onClick={() => onNavigate("/ingest")} aria-label="Ingest">
@@ -71,25 +76,46 @@ export function Sidebar({
               const Icon = item.icon;
               const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
               return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  title={item.label}
-                  aria-label={item.label}
-                  className={cn(
-                    "group relative flex h-10 items-center gap-3 rounded-lg px-3 text-sm font-light text-neutral-400 transition-all duration-200 hover:bg-white/[0.055] hover:text-white",
-                    active && "bg-white/[0.075] text-white shadow-[inset_0_0_0_1px_rgba(255,255,255,0.12),0_12px_28px_rgba(0,0,0,0.18)]",
-                  )}
-                >
-                  <span
+                <div key={item.href}>
+                  <Link
+                    href={item.href}
+                    title={item.label}
+                    aria-label={item.label}
                     className={cn(
-                      "absolute left-0 h-5 w-0.5 rounded-full bg-transparent transition-all duration-200",
-                      active && "bg-neutral-200 shadow-[0_0_14px_rgba(255,255,255,0.35)]",
+                      "group relative flex h-10 items-center gap-3 rounded-lg px-3 text-sm font-light text-neutral-400 transition-all duration-200 hover:bg-white/[0.055] hover:text-white",
+                      active && "bg-white/[0.075] text-white shadow-[inset_0_0_0_1px_rgba(255,255,255,0.12),0_12px_28px_rgba(0,0,0,0.18)]",
                     )}
-                  />
-                  <Icon className={cn("h-4 w-4 transition-transform duration-200 group-hover:scale-105", active && "text-neutral-100")} />
-                  <span>{item.label}</span>
-                </Link>
+                  >
+                    <span
+                      className={cn(
+                        "absolute left-0 h-5 w-0.5 rounded-full bg-transparent transition-all duration-200",
+                        active && "bg-neutral-200 shadow-[0_0_14px_rgba(255,255,255,0.35)]",
+                      )}
+                    />
+                    <Icon className={cn("h-4 w-4 transition-transform duration-200 group-hover:scale-105", active && "text-neutral-100")} />
+                    <span>{item.label}</span>
+                  </Link>
+                {item.href === "/collections" && quickCollections.length ? (
+                  <div className="ml-8 mt-1 grid gap-1 border-l border-white/10 pl-3">
+                    {quickCollections.map((collection) => {
+                      const collectionHref = `/collections/${collection.id}`;
+                      const collectionActive = pathname === collectionHref;
+                      return (
+                        <Link
+                          key={collection.id}
+                          href={collectionHref}
+                          className={cn(
+                            "truncate rounded-md px-2 py-1.5 text-xs text-neutral-500 transition-colors hover:bg-white/[0.045] hover:text-white",
+                            collectionActive && "bg-white/[0.06] text-neutral-100",
+                          )}
+                        >
+                          {collection.name}
+                        </Link>
+                      );
+                    })}
+                  </div>
+                ) : null}
+                </div>
               );
             })}
           </div>

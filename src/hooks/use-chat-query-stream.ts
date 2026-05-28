@@ -59,6 +59,7 @@ export function useChatQueryStream({
           sources: result.sources,
           refragContext: result.refrag_context,
           debug: result.debug ?? undefined,
+          suggestedFollowUpQuestions: result.suggested_follow_up_questions,
         });
         await queryClient.invalidateQueries({ queryKey: ["chats"] });
         await queryClient.invalidateQueries({ queryKey: ["chats", result.conversation_id] });
@@ -119,6 +120,9 @@ export function useChatQueryStream({
               debug,
               evalScores: event.data.eval_scores as Record<string, unknown> | undefined,
               traceId: typeof event.data.trace_id === "string" ? event.data.trace_id : null,
+              suggestedFollowUpQuestions: Array.isArray(event.data.suggested_follow_up_questions)
+                ? event.data.suggested_follow_up_questions.filter((item): item is string => typeof item === "string")
+                : [],
             });
             await queryClient.invalidateQueries({ queryKey: ["chats"] });
             if (activeConversationId) {

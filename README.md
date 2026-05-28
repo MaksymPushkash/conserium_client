@@ -1,6 +1,6 @@
-# Cortex Client
+# Conserium Client
 
-Next.js frontend for the Cortex backend.
+Next.js frontend for the Conserium backend.
 
 ## Tech Stack
 

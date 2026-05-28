@@ -194,9 +194,9 @@ function LearningResources({ goal }: { goal: LearningGoal }) {
     .at(-1);
   const resourceState = rankedResources.length
     ? rankedResources.some((resource) => resource.cached)
-      ? "Cached"
-      : "Refreshed"
-    : "Not loaded";
+      ? "Cached recommendations"
+      : "Recommended resources ready"
+    : "Recommended resources not loaded yet";
 
   async function refreshResources() {
     const result = await refreshMutation.mutateAsync();
@@ -214,14 +214,9 @@ function LearningResources({ goal }: { goal: LearningGoal }) {
             {newestRefresh ? ` · ${new Date(newestRefresh).toLocaleString()}` : ""}
           </div>
         </div>
-        <div className="flex gap-2">
-          <Button size="sm" variant="secondary" onClick={() => resourcesQuery.refetch()} disabled={resourcesQuery.isFetching}>
-            {resourcesQuery.isFetching ? "Loading..." : "Load cache"}
-          </Button>
-          <Button size="sm" variant="secondary" onClick={refreshResources} disabled={refreshMutation.isPending}>
-            {refreshMutation.isPending ? "Refreshing..." : "Refresh"}
-          </Button>
-        </div>
+        <Button size="sm" variant="secondary" onClick={refreshResources} disabled={refreshMutation.isPending || resourcesQuery.isFetching}>
+          {refreshMutation.isPending ? "Loading..." : "Load recommendations"}
+        </Button>
       </div>
       {resourcesQuery.error || refreshMutation.error ? (
         <div className="rounded-md border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-200">
