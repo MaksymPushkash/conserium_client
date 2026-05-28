@@ -32,6 +32,8 @@ export interface CompareEvidenceRow {
   right_source_id: string | null;
   left_citation: string | null;
   right_citation: string | null;
+  confidence?: number | null;
+  rationale?: string | null;
 }
 
 export interface CompareListResponse {

@@ -1,17 +1,23 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { useParams } from "next/navigation";
+import { useState } from "react";
 
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { getPublicCollection } from "@/lib/api";
+import { getPublicCollection, queryPublicCollection } from "@/lib/api";
 import { formatDateTime } from "@/lib/utils";
 
 export default function PublicCollectionPage() {
   const params = useParams<{ slug: string }>();
   const slug = params.slug;
+  const [question, setQuestion] = useState("");
+  const publicQueryMutation = useMutation({
+    mutationFn: () => queryPublicCollection(slug, { query: question, limit: 6 }),
+  });
   const collectionQuery = useQuery({
     queryKey: ["public-collection", slug],
     queryFn: () => getPublicCollection(slug),
@@ -51,6 +57,49 @@ export default function PublicCollectionPage() {
 
         {collection ? (
           <section className="grid gap-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Ask this collection</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+              <div className="grid gap-2 md:grid-cols-[minmax(0,1fr)_auto]">
+                <input
+                  value={question}
+                  onChange={(event) => setQuestion(event.target.value)}
+                  placeholder="Ask a question about these shared sources"
+                  className="h-11 rounded-md border border-white/10 bg-black px-3 text-sm text-white outline-none transition-colors focus:border-white/40"
+                />
+                <Button
+                  onClick={() => publicQueryMutation.mutate()}
+                  disabled={publicQueryMutation.isPending || !question.trim() || collection.documents.length === 0}
+                >
+                  {publicQueryMutation.isPending ? "Asking..." : "Ask"}
+                </Button>
+              </div>
+              {publicQueryMutation.isError ? (
+                <div className="rounded-md border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-200">
+                  Could not answer from this public collection.
+                </div>
+              ) : null}
+              {publicQueryMutation.data ? (
+                <div className="rounded-md border border-white/10 bg-white/[0.03] p-4">
+                  <div className="prose prose-invert max-w-none whitespace-pre-wrap text-sm leading-6 text-neutral-200">
+                    {publicQueryMutation.data.answer}
+                  </div>
+                  {publicQueryMutation.data.sources.length ? (
+                    <div className="mt-4 grid gap-2">
+                      {publicQueryMutation.data.sources.slice(0, 4).map((source, index) => (
+                        <div key={source.chunk_id} className="rounded-md border border-white/10 bg-black p-3 text-xs text-neutral-400">
+                          <div className="text-neutral-200">[{index + 1}] {source.document_title ?? "Source"}</div>
+                          <div className="mt-1 line-clamp-2">{source.content}</div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : null}
+                </div>
+              ) : null}
+            </CardContent>
+          </Card>
             {collection.documents.length === 0 ? (
               <Card>
                 <CardContent className="py-6 text-sm text-neutral-400">No public documents in this collection yet.</CardContent>

@@ -1,6 +1,6 @@
 "use client";
 
-import type { Collection, CollectionListResponse, CollectionShare, CollectionWorkspace, PublicCollectionResponse } from "@/lib/types";
+import type { Collection, CollectionListResponse, CollectionShare, CollectionWorkspace, PublicCollectionResponse, QueryResponse } from "@/lib/types";
 import { request } from "./transport";
 
 export function listCollections(params: { limit?: number; offset?: number } = {}): Promise<CollectionListResponse> {
@@ -44,4 +44,9 @@ export function revokeCollectionShare(id: string): Promise<void> {
 
 export function getPublicCollection(slug: string): Promise<PublicCollectionResponse> {
   return request<PublicCollectionResponse>(`/public/collections/${slug}`);
+}
+
+
+export function queryPublicCollection(slug: string, payload: { query: string; limit: number }): Promise<QueryResponse> {
+  return request<QueryResponse>(`/public/collections/${slug}/query`, { method: "POST", body: JSON.stringify(payload) });
 }

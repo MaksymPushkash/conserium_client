@@ -47,6 +47,7 @@ export default function SettingsPage() {
   const [notionParentPageTitle, setNotionParentPageTitle] = useState("");
   const [notionPageQuery, setNotionPageQuery] = useState("");
   const [apiKeyName, setApiKeyName] = useState("");
+  const [apiKeyScopes, setApiKeyScopes] = useState<string[]>(["ingest:write", "status:read", "collections:read"]);
   const [createdApiKeyToken, setCreatedApiKeyToken] = useState<string | null>(null);
   const [telegramPairingCode, setTelegramPairingCode] = useState<string | null>(null);
   const [telegramPairingExpiresAt, setTelegramPairingExpiresAt] = useState<string | null>(null);
@@ -110,7 +111,7 @@ export default function SettingsPage() {
     mutationFn: (page: NotionPage) => importNotionPage({ page_id: page.id, tags: ["notion"] }),
   });
   const createApiKeyMutation = useMutation({
-    mutationFn: () => createApiKey({ name: apiKeyName, scopes: ["ingest:write"] }),
+    mutationFn: () => createApiKey({ name: apiKeyName, scopes: apiKeyScopes }),
     onSuccess: async (result) => {
       setCreatedApiKeyToken(result.token);
       setApiKeyName("");
@@ -226,6 +227,7 @@ export default function SettingsPage() {
             revokeTelegramBindingPending={revokeTelegramBindingMutation.isPending}
             apiKeys={apiKeysQuery.data?.items ?? []}
             apiKeyName={apiKeyName}
+            apiKeyScopes={apiKeyScopes}
             createdApiKeyToken={createdApiKeyToken}
             createApiKeyPending={createApiKeyMutation.isPending}
             revokeApiKeyPending={revokeApiKeyMutation.isPending}
@@ -234,6 +236,7 @@ export default function SettingsPage() {
               setNotionParentPageTitle("");
             }}
             onApiKeyNameChange={setApiKeyName}
+            onApiKeyScopesChange={setApiKeyScopes}
             onCreateTelegramPairing={() => createTelegramPairingMutation.mutate()}
             onRevokeTelegramBinding={(id) => revokeTelegramBindingMutation.mutate(id)}
             onClearTelegramPairing={() => {
