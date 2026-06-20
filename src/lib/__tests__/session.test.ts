@@ -63,7 +63,7 @@ describe("session coordinator", () => {
     useChatStore.getState().addMessage({ id: "message-1", role: "assistant", content: "old answer" });
     const uninstall = installSessionSync(queryClient);
 
-    window.dispatchEvent(new StorageEvent("storage", { key: "conserium-session" }));
+    window.dispatchEvent(new StorageEvent("storage", { key: "conserium-session-invalidated" }));
 
     expect(queryClient.getQueryData(["documents"])).toBeUndefined();
     expect(useChatStore.getState().conversationId).toBeNull();

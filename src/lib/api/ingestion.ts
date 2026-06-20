@@ -1,6 +1,8 @@
 "use client";
 
 import type { DocumentResponse } from "@/lib/types";
+import { apiClient, unwrapApiResponse } from "./generated/client";
+import { normalizeDocument } from "./generated/normalizers";
 import { request } from "./transport";
 
 export function ingestFile(
@@ -19,15 +21,15 @@ export function uploadDocument(file: File, collectionId?: string): Promise<Docum
   return ingestFile(file.type === "application/pdf" ? "pdf" : "image", { file, collection_id: collectionId });
 }
 
-export function ingestDocument(payload: {
+export async function ingestDocument(payload: {
   title: string;
-  type: string;
+  type: DocumentResponse["type"];
   collection_id?: string | null;
   source_url?: string | null;
   raw_content?: string | null;
   language?: string | null;
 }): Promise<DocumentResponse> {
-  return request<DocumentResponse>("/ingest", { method: "POST", body: JSON.stringify(payload) });
+  return normalizeDocument(unwrapApiResponse(await apiClient.POST("/api/v1/ingest", { body: payload })));
 }
 
 export function ingestUrl(payload: { url: string; title?: string; collection_id?: string | null }): Promise<DocumentResponse> {
@@ -39,13 +41,14 @@ export function ingestUrl(payload: { url: string; title?: string; collection_id?
   });
 }
 
-export function ingestText(payload: {
+export async function ingestText(payload: {
   title: string;
   content: string;
   collection_id?: string | null;
 }): Promise<DocumentResponse> {
-  return request<DocumentResponse>("/documents/ingest-text", {
-    method: "POST",
-    body: JSON.stringify({ title: payload.title, raw_text: payload.content, collection_id: payload.collection_id }),
-  });
+  return normalizeDocument(unwrapApiResponse(
+    await apiClient.POST("/api/v1/documents/ingest-text", {
+      body: { title: payload.title, raw_text: payload.content, collection_id: payload.collection_id, type: "TEXT" },
+    }),
+  ));
 }

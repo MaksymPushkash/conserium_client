@@ -1,7 +1,9 @@
 "use client";
 
-import type { KnowledgeGraphConcern, KnowledgeGraphInsightsResponse, KnowledgeGraphResponse } from "@/lib/types";
-import { request } from "./transport";
+import type { DocumentType, KnowledgeGraphConcern, KnowledgeGraphInsightsResponse, KnowledgeGraphResponse } from "@/lib/types";
+
+import { apiClient, unwrapApiResponse } from "./generated/client";
+import { normalizeKnowledgeGraphInsights, normalizeKnowledgeGraphResponse } from "./generated/normalizers";
 
 export interface KnowledgeGraphParams {
   document_limit?: number;
@@ -13,32 +15,40 @@ export interface KnowledgeGraphParams {
   recency_days?: number | null;
 }
 
-export function getKnowledgeGraph(params: KnowledgeGraphParams = {}): Promise<KnowledgeGraphResponse> {
-  const search = new URLSearchParams();
-  for (const [key, value] of Object.entries(params)) {
-    if (value !== undefined && value !== null && value !== "") search.set(key, String(value));
-  }
-  const query = search.toString();
-  return request<KnowledgeGraphResponse>(`/knowledge-graph${query ? `?${query}` : ""}`);
+export async function getKnowledgeGraph(params: KnowledgeGraphParams = {}): Promise<KnowledgeGraphResponse> {
+  return normalizeKnowledgeGraphResponse(unwrapApiResponse(
+    await apiClient.GET("/api/v1/knowledge-graph", { params: { query: knowledgeGraphQuery(params) } }),
+  ));
 }
 
-export function getKnowledgeGraphInsights(params: KnowledgeGraphParams = {}): Promise<KnowledgeGraphInsightsResponse> {
-  const search = new URLSearchParams();
-  for (const [key, value] of Object.entries(params)) {
-    if (value !== undefined && value !== null && value !== "") search.set(key, String(value));
-  }
-  const query = search.toString();
-  return request<KnowledgeGraphInsightsResponse>(`/knowledge-graph/insights${query ? `?${query}` : ""}`);
+export async function getKnowledgeGraphInsights(
+  params: KnowledgeGraphParams = {},
+): Promise<KnowledgeGraphInsightsResponse> {
+  return normalizeKnowledgeGraphInsights(unwrapApiResponse(
+    await apiClient.GET("/api/v1/knowledge-graph/insights", { params: { query: knowledgeGraphQuery(params) } }),
+  ));
 }
 
-export function createKnowledgeGraphConcern(payload: {
+function knowledgeGraphQuery(params: KnowledgeGraphParams) {
+  return {
+    ...params,
+    document_type: isDocumentType(params.document_type) ? params.document_type : null,
+  };
+}
+
+function isDocumentType(value: string | null | undefined): value is DocumentType {
+  return value === "PDF" || value === "URL" || value === "YOUTUBE" || value === "IMAGE" || value === "TEXT" || value === "MARKDOWN";
+}
+
+export async function createKnowledgeGraphConcern(payload: {
   message: string;
   node_id?: string | null;
   node_kind?: string | null;
   node_label?: string | null;
 }): Promise<KnowledgeGraphConcern> {
-  return request<KnowledgeGraphConcern>("/knowledge-graph/concerns", {
-    method: "POST",
-    body: JSON.stringify(payload),
-  });
+  return unwrapApiResponse(
+    await apiClient.POST("/api/v1/knowledge-graph/concerns", {
+      body: payload,
+    }),
+  );
 }

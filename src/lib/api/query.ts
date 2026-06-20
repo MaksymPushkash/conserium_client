@@ -1,10 +1,12 @@
 "use client";
 
 import type { QueryRequest, QueryResponse, QueryStreamDone, QueryStreamEvent } from "@/lib/types";
-import { ApiError, authenticatedFetch, errorMessage, readPayload, request } from "./transport";
+import { ApiError, authenticatedFetch, errorMessage, readPayload } from "./transport";
+import { apiClient, unwrapApiResponse } from "./generated/client";
+import { normalizeQueryResponse } from "./generated/normalizers";
 
-export function queryDocuments(payload: QueryRequest): Promise<QueryResponse> {
-  return request<QueryResponse>("/query", { method: "POST", body: JSON.stringify(payload) });
+export async function queryDocuments(payload: QueryRequest): Promise<QueryResponse> {
+  return normalizeQueryResponse(unwrapApiResponse(await apiClient.POST("/api/v1/query", { body: payload })));
 }
 
 export function parseQueryStreamEvent(raw: string): QueryStreamEvent | null {
@@ -59,7 +61,7 @@ export async function streamQueryDocuments(
         }
         onEvent(event);
         if (event.event === "done") {
-          final = event.data as unknown as QueryStreamDone;
+          final = queryStreamDone(event.data);
         }
         if (event.event === "error") {
           const message = (event.data as { message?: unknown }).message;
@@ -72,4 +74,20 @@ export async function streamQueryDocuments(
   }
 
   return final;
+}
+
+function queryStreamDone(data: Record<string, unknown>): QueryStreamDone {
+  return {
+    query_id: typeof data.query_id === "string" ? data.query_id : "",
+    conversation_id: typeof data.conversation_id === "string" ? data.conversation_id : "",
+    eval_scores: objectValue(data.eval_scores),
+    trace_id: typeof data.trace_id === "string" ? data.trace_id : null,
+    suggested_follow_up_questions: Array.isArray(data.suggested_follow_up_questions)
+      ? data.suggested_follow_up_questions.filter((item): item is string => typeof item === "string")
+      : undefined,
+  };
+}
+
+function objectValue(value: unknown): Record<string, unknown> {
+  return value && typeof value === "object" && !Array.isArray(value) ? (value as Record<string, unknown>) : {};
 }

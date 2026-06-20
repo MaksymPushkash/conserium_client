@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { ReactNode, useEffect } from "react";
 
 import { getCurrentUser } from "@/lib/api";
+import { refreshSessionOnce } from "@/lib/api/session-refresh";
 import { useAuthStore } from "@/stores/auth-store";
 
 export function isPublicRoute(pathname: string) {
@@ -16,6 +17,29 @@ export function useAuthenticatedUser(pathname: string) {
   const accessToken = useAuthStore((state) => state.accessToken);
   const authHydrated = useAuthStore((state) => state.hydrated);
   const publicRoute = isPublicRoute(pathname);
+
+  useEffect(() => {
+    if (authHydrated) return;
+    window.localStorage.removeItem("conserium-session");
+    let active = true;
+    refreshSessionOnce()
+      .then((session) => {
+        if (active && !useAuthStore.getState().accessToken) {
+          useAuthStore.getState().setSession(session.access_token);
+        }
+      })
+      .catch(() => {
+        if (active && !useAuthStore.getState().accessToken) {
+          useAuthStore.getState().clearSession();
+        }
+      })
+      .finally(() => {
+        if (active) useAuthStore.getState().setHydrated(true);
+      });
+    return () => {
+      active = false;
+    };
+  }, [authHydrated]);
 
   useEffect(() => {
     if (!authHydrated) return;
@@ -33,12 +57,12 @@ export function useAuthenticatedUser(pathname: string) {
   return { accessToken, authHydrated, publicRoute, user: userQuery.data };
 }
 
-export function AuthGate({ authHydrated, publicRoute, children }: { authHydrated: boolean; publicRoute: boolean; children: ReactNode }) {
+export function AuthGate({ accessToken, authHydrated, publicRoute, children }: { accessToken: string | null; authHydrated: boolean; publicRoute: boolean; children: ReactNode }) {
   if (publicRoute) {
     return <>{children}</>;
   }
-  if (!authHydrated) {
-    return <div className="min-h-screen bg-[#0b0b0d]" />;
+  if (!authHydrated || !accessToken) {
+    return <div className="min-h-screen bg-[#0b0b0b]" />;
   }
   return <>{children}</>;
 }

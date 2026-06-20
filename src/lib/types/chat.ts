@@ -1,34 +1,13 @@
 import type { QuerySource, RefragContext } from "./query";
+import type { ApiSchema } from "./generated";
 
-export interface ChatSession {
-  id: string;
-  user_id: string;
-  title: string;
-  message_count: number;
-  created_at: string;
-  updated_at: string | null;
-}
-
-export interface ChatListResponse {
-  items: ChatSession[];
-  total: number;
-  limit: number;
-  offset: number;
-}
-
-export interface ChatMessageResponse {
-  id: string;
-  chat_id: string;
-  role: "user" | "assistant" | "system" | string;
-  content: string;
+export type ChatSession = ApiSchema<"ChatSessionResponse">;
+export type ChatListResponse = ApiSchema<"ChatListResponse">;
+export type ChatMessageResponse = Omit<ApiSchema<"ChatMessageResponse">, "refrag_context" | "sources"> & {
   sources: QuerySource[] | null;
   refrag_context: RefragContext | null;
-  eval_scores: Record<string, unknown> | null;
-  trace_id: string | null;
-  created_at: string;
-}
-
-export interface ChatDetailResponse {
+};
+export type ChatDetailResponse = Omit<ApiSchema<"ChatDetailResponse">, "messages" | "session"> & {
   session: ChatSession;
   messages: ChatMessageResponse[];
-}
+};

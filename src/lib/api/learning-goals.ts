@@ -1,27 +1,42 @@
 import type { LearningGoal, LearningGoalRequest, LearningGoalUpdateRequest, RankedLearningResource } from "@/lib/types";
-import { request } from "./transport";
 
-export function listLearningGoals(): Promise<LearningGoal[]> {
-  return request<LearningGoal[]>("/learning-goals");
+import { apiClient, unwrapApiResponse } from "./generated/client";
+import { normalizeLearningGoal } from "./generated/normalizers";
+
+export async function listLearningGoals(): Promise<LearningGoal[]> {
+  return unwrapApiResponse(await apiClient.GET("/api/v1/learning-goals")).map(normalizeLearningGoal);
 }
 
-export function listLearningGoalReminders(): Promise<LearningGoal[]> {
-  return request<LearningGoal[]>("/learning-goals/reminders");
+export async function listLearningGoalReminders(): Promise<LearningGoal[]> {
+  return unwrapApiResponse(await apiClient.GET("/api/v1/learning-goals/reminders")).map(normalizeLearningGoal);
 }
 
-export function listLearningGoalResources(id: string, params: { refresh?: boolean } = {}): Promise<RankedLearningResource[]> {
-  const query = params.refresh ? "?refresh=true" : "";
-  return request<RankedLearningResource[]>(`/learning-goals/${id}/resources${query}`);
+export async function listLearningGoalResources(
+  id: string,
+  params: { refresh?: boolean } = {},
+): Promise<RankedLearningResource[]> {
+  return unwrapApiResponse(
+    await apiClient.GET("/api/v1/learning-goals/{goal_id}/resources", {
+      params: { path: { goal_id: id }, query: params },
+    }),
+  );
 }
 
-export function createLearningGoal(payload: LearningGoalRequest): Promise<LearningGoal> {
-  return request<LearningGoal>("/learning-goals", { method: "POST", body: JSON.stringify(payload) });
+export async function createLearningGoal(payload: LearningGoalRequest): Promise<LearningGoal> {
+  return normalizeLearningGoal(unwrapApiResponse(await apiClient.POST("/api/v1/learning-goals", { body: payload })));
 }
 
-export function updateLearningGoal(id: string, payload: LearningGoalUpdateRequest): Promise<LearningGoal> {
-  return request<LearningGoal>(`/learning-goals/${id}`, { method: "PATCH", body: JSON.stringify(payload) });
+export async function updateLearningGoal(id: string, payload: LearningGoalUpdateRequest): Promise<LearningGoal> {
+  return normalizeLearningGoal(unwrapApiResponse(
+    await apiClient.PATCH("/api/v1/learning-goals/{goal_id}", {
+      params: { path: { goal_id: id } },
+      body: payload,
+    }),
+  ));
 }
 
-export function deleteLearningGoal(id: string): Promise<void> {
-  return request<void>(`/learning-goals/${id}`, { method: "DELETE" });
+export async function deleteLearningGoal(id: string): Promise<void> {
+  return unwrapApiResponse(
+    await apiClient.DELETE("/api/v1/learning-goals/{goal_id}", { params: { path: { goal_id: id } } }),
+  );
 }

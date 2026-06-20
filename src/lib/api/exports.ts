@@ -2,7 +2,7 @@
 
 import type { NotionExportResponse } from "@/lib/types";
 
-import { request } from "./transport";
+import { apiClient, unwrapApiResponse } from "./generated/client";
 import { ApiError, authenticatedFetch, readPayload } from "./transport";
 
 export async function exportMarkdown(payload: {
@@ -23,12 +23,12 @@ export async function exportMarkdown(payload: {
   };
 }
 
-export function exportNotion(payload: {
+export async function exportNotion(payload: {
   title: string;
   markdown: string;
   parent_page_id?: string | null;
 }): Promise<NotionExportResponse> {
-  return request<NotionExportResponse>("/exports/notion", { method: "POST", body: JSON.stringify(payload) });
+  return unwrapApiResponse(await apiClient.POST("/api/v1/exports/notion", { body: payload }));
 }
 
 export function filenameFromContentDisposition(value: string | null): string | null {

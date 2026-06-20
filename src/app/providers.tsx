@@ -20,5 +20,11 @@ export function Providers({ children }: { children: ReactNode }) {
 
   useEffect(() => installSessionSync(queryClient), [queryClient]);
 
+  useEffect(() => {
+    const stored = window.localStorage.getItem("conserium-theme");
+    const theme = stored === "light" ? "light" : "dark";
+    document.documentElement.dataset.theme = theme;
+  }, []);
+
   return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
 }

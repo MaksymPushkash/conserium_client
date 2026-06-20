@@ -1,26 +1,26 @@
 "use client";
 
 import type { ChatDetailResponse, ChatListResponse, ChatSession } from "@/lib/types";
-import { request } from "./transport";
 
-export function listChats(params: { limit?: number; offset?: number } = {}): Promise<ChatListResponse> {
-  const search = new URLSearchParams();
-  if (params.limit !== undefined) search.set("limit", String(params.limit));
-  if (params.offset !== undefined) search.set("offset", String(params.offset));
-  const query = search.toString();
-  return request<ChatListResponse>(`/chats${query ? `?${query}` : ""}`);
+import { apiClient, unwrapApiResponse } from "./generated/client";
+import { normalizeChatDetail } from "./generated/normalizers";
+
+export async function listChats(params: { limit?: number; offset?: number } = {}): Promise<ChatListResponse> {
+  return unwrapApiResponse(await apiClient.GET("/api/v1/chats", { params: { query: params } }));
 }
 
-export function createChat(payload: { title: string }): Promise<ChatSession> {
-  return request<ChatSession>("/chats", { method: "POST", body: JSON.stringify(payload) });
+export async function createChat(payload: { title: string }): Promise<ChatSession> {
+  return unwrapApiResponse(await apiClient.POST("/api/v1/chats", { body: payload }));
 }
 
-export function getChat(chatId: string): Promise<ChatDetailResponse> {
-  return request<ChatDetailResponse>(`/chats/${chatId}`);
+export async function getChat(chatId: string): Promise<ChatDetailResponse> {
+  return normalizeChatDetail(
+    unwrapApiResponse(await apiClient.GET("/api/v1/chats/{chat_id}", { params: { path: { chat_id: chatId } } })),
+  );
 }
 
 export const getChatMessages = getChat;
 
-export function deleteChat(chatId: string): Promise<void> {
-  return request<void>(`/chats/${chatId}`, { method: "DELETE" });
+export async function deleteChat(chatId: string): Promise<void> {
+  return unwrapApiResponse(await apiClient.DELETE("/api/v1/chats/{chat_id}", { params: { path: { chat_id: chatId } } }));
 }

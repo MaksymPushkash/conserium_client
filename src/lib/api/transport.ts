@@ -2,18 +2,29 @@
 
 import { API_V1_URL } from "@/lib/config";
 import { invalidateSession } from "@/lib/session";
-import type { TokenResponse } from "@/lib/types";
 import { useAuthStore } from "@/stores/auth-store";
+
+import { refreshSessionOnce } from "./session-refresh";
 
 export class ApiError extends Error {
   status: number;
   detail: unknown;
 
   constructor(status: number, detail: unknown) {
-    super(typeof detail === "string" ? detail : `Request failed with status ${status}`);
+    super(apiErrorMessage(status, detail));
     this.status = status;
     this.detail = detail;
   }
+}
+
+function apiErrorMessage(status: number, detail: unknown): string {
+  if (typeof detail === "string") {
+    return detail;
+  }
+  if (detail && typeof detail === "object" && "detail" in detail && typeof (detail as { detail?: unknown }).detail === "string") {
+    return (detail as { detail: string }).detail;
+  }
+  return `Request failed with status ${status}`;
 }
 
 export async function readPayload(response: Response): Promise<unknown> {
@@ -48,16 +59,6 @@ export function errorMessage(error: unknown): string {
   return "Something went wrong";
 }
 
-async function refreshSessionRequest(): Promise<TokenResponse> {
-  return request<TokenResponse>(
-    "/auth/refresh",
-    {
-      method: "POST",
-    },
-    false,
-  );
-}
-
 export async function authenticatedFetch(path: string, init: RequestInit = {}, retry = true): Promise<Response> {
   const { accessToken, setSession } = useAuthStore.getState();
   const headers = new Headers(init.headers);
@@ -83,7 +84,7 @@ export async function authenticatedFetch(path: string, init: RequestInit = {}, r
 
   if (response.status === 401 && retry) {
     try {
-      const refreshed = await refreshSessionRequest();
+      const refreshed = await refreshSessionOnce();
       setSession(refreshed.access_token);
       return authenticatedFetch(path, init, false);
     } catch {

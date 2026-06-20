@@ -1,4 +1,3 @@
-export interface NotionExportResponse {
-  page_id: string;
-  url: string | null;
-}
+import type { components } from "@/lib/api/generated/v1";
+
+export type NotionExportResponse = components["schemas"]["NotionExportResponse"];

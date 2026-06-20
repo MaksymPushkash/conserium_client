@@ -2,16 +2,16 @@
 
 import type { ApiKeyListResponse, CreatedApiKeyResponse } from "@/lib/types";
 
-import { request } from "./transport";
+import { apiClient, unwrapApiResponse } from "./generated/client";
 
-export function listApiKeys(): Promise<ApiKeyListResponse> {
-  return request<ApiKeyListResponse>("/api-keys");
+export async function listApiKeys(): Promise<ApiKeyListResponse> {
+  return unwrapApiResponse(await apiClient.GET("/api/v1/api-keys"));
 }
 
-export function createApiKey(payload: { name: string; scopes: string[] }): Promise<CreatedApiKeyResponse> {
-  return request<CreatedApiKeyResponse>("/api-keys", { method: "POST", body: JSON.stringify(payload) });
+export async function createApiKey(payload: { name: string; scopes: string[] }): Promise<CreatedApiKeyResponse> {
+  return unwrapApiResponse(await apiClient.POST("/api/v1/api-keys", { body: payload }));
 }
 
-export function revokeApiKey(id: string): Promise<void> {
-  return request<void>(`/api-keys/${id}`, { method: "DELETE" });
+export async function revokeApiKey(id: string): Promise<void> {
+  return unwrapApiResponse(await apiClient.DELETE("/api/v1/api-keys/{api_key_id}", { params: { path: { api_key_id: id } } }));
 }

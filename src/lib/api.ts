@@ -22,3 +22,6 @@ export * from "./api/review";
 export * from "./api/stats";
 export * from "./api/topics";
 export { ApiError, errorMessage, readPayload, request } from "./api/transport";
+export { apiClient } from "./api/generated/client";
+export type { ApiPaths } from "./api/generated/client";
+export * from "./api/workspaces";

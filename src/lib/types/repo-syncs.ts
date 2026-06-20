@@ -1,28 +1,5 @@
-export interface RepoSync {
-  id: string;
-  collection_id: string;
-  provider: string;
-  owner: string;
-  repo: string;
-  branch: string;
-  include_paths: string[];
-  exclude_paths: string[];
-  status: string;
-  last_error: string | null;
-  last_synced_at: string | null;
-  created_at: string;
-  updated_at: string | null;
-}
+import type { components } from "@/lib/api/generated/v1";
 
-export interface RepoSyncListResponse {
-  items: RepoSync[];
-}
-
-export interface RepoSyncRunResponse {
-  repo_sync: RepoSync;
-  created: number;
-  updated: number;
-  skipped: number;
-  deleted: number;
-  warnings: string[];
-}
+export type RepoSync = components["schemas"]["RepoSyncResponse"];
+export type RepoSyncListResponse = components["schemas"]["RepoSyncListResponse"];
+export type RepoSyncRunResponse = components["schemas"]["RepoSyncRunResponse"];

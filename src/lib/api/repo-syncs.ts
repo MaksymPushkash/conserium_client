@@ -1,25 +1,29 @@
 "use client";
 
 import type { RepoSync, RepoSyncListResponse, RepoSyncRunResponse } from "@/lib/types";
-import { request } from "./transport";
 
-export function listRepoSyncs(): Promise<RepoSyncListResponse> {
-  return request<RepoSyncListResponse>("/repo-syncs");
+import { apiClient, unwrapApiResponse } from "./generated/client";
+import { normalizeRepoSyncRun } from "./generated/normalizers";
+
+export async function listRepoSyncs(): Promise<RepoSyncListResponse> {
+  return unwrapApiResponse(await apiClient.GET("/api/v1/repo-syncs"));
 }
 
-export function createRepoSync(payload: {
+export async function createRepoSync(payload: {
   collection_id: string;
   repo_url: string;
   branch: string;
   include_paths?: string[];
   exclude_paths?: string[];
 }): Promise<RepoSync> {
-  return request<RepoSync>("/repo-syncs", { method: "POST", body: JSON.stringify(payload) });
+  return unwrapApiResponse(await apiClient.POST("/api/v1/repo-syncs", { body: payload }));
 }
 
-export function runRepoSync(id: string, payload: { max_files?: number } = {}): Promise<RepoSyncRunResponse> {
-  return request<RepoSyncRunResponse>(`/repo-syncs/${id}/run`, {
-    method: "POST",
-    body: JSON.stringify({ max_files: payload.max_files ?? 50 }),
-  });
+export async function runRepoSync(id: string, payload: { max_files?: number } = {}): Promise<RepoSyncRunResponse> {
+  return normalizeRepoSyncRun(unwrapApiResponse(
+    await apiClient.POST("/api/v1/repo-syncs/{repo_sync_id}/run", {
+      params: { path: { repo_sync_id: id } },
+      body: { max_files: payload.max_files ?? 50 },
+    }),
+  ));
 }

@@ -1,52 +1,203 @@
 "use client";
 
-import type { Collection, CollectionListResponse, CollectionShare, CollectionWorkspace, PublicCollectionResponse, QueryResponse } from "@/lib/types";
-import { request } from "./transport";
+import type {
+  AnswerShareListResponse,
+  Collection,
+  CollectionAuditEventListResponse,
+  CollectionListResponse,
+  CollectionMember,
+  CollectionMemberListResponse,
+  CollectionShare,
+  CollectionWorkspace,
+  PublicAnswerShare,
+  PublicAskEventListResponse,
+  PublicCollectionQueryResponse,
+  PublicCollectionResponse,
+} from "@/lib/types";
 
-export function listCollections(params: { limit?: number; offset?: number } = {}): Promise<CollectionListResponse> {
-  const search = new URLSearchParams();
-  if (params.limit !== undefined) search.set("limit", String(params.limit));
-  if (params.offset !== undefined) search.set("offset", String(params.offset));
-  const query = search.toString();
-  return request<CollectionListResponse>(`/collections${query ? `?${query}` : ""}`);
+import { apiClient, unwrapApiResponse } from "./generated/client";
+import {
+  normalizeAnswerShareList,
+  normalizeCollection,
+  normalizeCollectionList,
+  normalizeCollectionMember,
+  normalizeCollectionMemberList,
+  normalizeCollectionWorkspace,
+  normalizePublicAnswerShare,
+  normalizePublicAskEvents,
+  normalizePublicCollection,
+  normalizePublicCollectionQuery,
+} from "./generated/normalizers";
+
+export async function listCollections(
+  params: { limit?: number; offset?: number; workspace_id?: string | null } = {},
+): Promise<CollectionListResponse> {
+  return normalizeCollectionList(unwrapApiResponse(
+    await apiClient.GET("/api/v1/collections", { params: { query: params } }),
+  ));
 }
 
-export function getCollectionWorkspace(id: string): Promise<CollectionWorkspace> {
-  return request<CollectionWorkspace>(`/collections/${id}/workspace`);
+export async function getCollectionWorkspace(id: string): Promise<CollectionWorkspace> {
+  return normalizeCollectionWorkspace(unwrapApiResponse(
+    await apiClient.GET("/api/v1/collections/{collection_id}/workspace", {
+      params: { path: { collection_id: id } },
+    }),
+  ));
 }
 
-export function createCollection(payload: { name: string; description?: string | null; color?: string | null }): Promise<Collection> {
-  return request<Collection>("/collections", { method: "POST", body: JSON.stringify(payload) });
+export async function createCollection(payload: {
+  name: string;
+  description?: string | null;
+  color?: string | null;
+  workspace_id?: string | null;
+}): Promise<Collection> {
+  return normalizeCollection(unwrapApiResponse(await apiClient.POST("/api/v1/collections", { body: payload })));
 }
 
-export function updateCollection(
+export async function updateCollection(
   id: string,
-  payload: { name?: string; description?: string | null; color?: string | null },
+  payload: { name: string; description?: string | null; color?: string | null },
 ): Promise<Collection> {
-  return request<Collection>(`/collections/${id}`, { method: "PATCH", body: JSON.stringify(payload) });
+  return normalizeCollection(unwrapApiResponse(
+    await apiClient.PATCH("/api/v1/collections/{collection_id}", {
+      params: { path: { collection_id: id } },
+      body: payload,
+    }),
+  ));
 }
 
-export function deleteCollection(id: string): Promise<void> {
-  return request<void>(`/collections/${id}`, { method: "DELETE" });
+export async function deleteCollection(id: string): Promise<void> {
+  return unwrapApiResponse(
+    await apiClient.DELETE("/api/v1/collections/{collection_id}", { params: { path: { collection_id: id } } }),
+  );
 }
 
-export function getCollectionShare(id: string): Promise<CollectionShare | null> {
-  return request<CollectionShare | null>(`/collections/${id}/share`);
+export async function listCollectionMembers(id: string): Promise<CollectionMemberListResponse> {
+  return normalizeCollectionMemberList(unwrapApiResponse(
+    await apiClient.GET("/api/v1/collections/{collection_id}/members", {
+      params: { path: { collection_id: id } },
+    }),
+  ));
 }
 
-export function createCollectionShare(id: string): Promise<CollectionShare> {
-  return request<CollectionShare>(`/collections/${id}/share`, { method: "POST" });
+export async function inviteCollectionMember(
+  id: string,
+  payload: { email: string; role: "viewer" | "editor" },
+): Promise<CollectionMember> {
+  return normalizeCollectionMember(unwrapApiResponse(
+    await apiClient.POST("/api/v1/collections/{collection_id}/members", {
+      params: { path: { collection_id: id } },
+      body: payload,
+    }),
+  ));
 }
 
-export function revokeCollectionShare(id: string): Promise<void> {
-  return request<void>(`/collections/${id}/share`, { method: "DELETE" });
+export async function updateCollectionMemberRole(
+  id: string,
+  memberId: string,
+  payload: { role: "viewer" | "editor" },
+): Promise<CollectionMember> {
+  return normalizeCollectionMember(unwrapApiResponse(
+    await apiClient.PATCH("/api/v1/collections/{collection_id}/members/{member_id}", {
+      params: { path: { collection_id: id, member_id: memberId } },
+      body: payload,
+    }),
+  ));
 }
 
-export function getPublicCollection(slug: string): Promise<PublicCollectionResponse> {
-  return request<PublicCollectionResponse>(`/public/collections/${slug}`);
+export async function removeCollectionMember(id: string, memberId: string): Promise<void> {
+  return unwrapApiResponse(
+    await apiClient.DELETE("/api/v1/collections/{collection_id}/members/{member_id}", {
+      params: { path: { collection_id: id, member_id: memberId } },
+    }),
+  );
 }
 
+export async function listCollectionAuditEvents(id: string): Promise<CollectionAuditEventListResponse> {
+  return unwrapApiResponse(
+    await apiClient.GET("/api/v1/collections/{collection_id}/audit", {
+      params: { path: { collection_id: id } },
+    }),
+  );
+}
 
-export function queryPublicCollection(slug: string, payload: { query: string; limit: number }): Promise<QueryResponse> {
-  return request<QueryResponse>(`/public/collections/${slug}/query`, { method: "POST", body: JSON.stringify(payload) });
+export async function getCollectionShare(id: string): Promise<CollectionShare | null> {
+  const share = unwrapApiResponse(
+    await apiClient.GET("/api/v1/collections/{collection_id}/share", {
+      params: { path: { collection_id: id } },
+    }),
+  );
+  return share;
+}
+
+export async function createCollectionShare(id: string): Promise<CollectionShare> {
+  return unwrapApiResponse(
+    await apiClient.POST("/api/v1/collections/{collection_id}/share", {
+      params: { path: { collection_id: id } },
+    }),
+  );
+}
+
+export async function updateCollectionShareSettings(
+  id: string,
+  payload: { ask_enabled?: boolean; daily_ask_limit?: number },
+): Promise<CollectionShare> {
+  return unwrapApiResponse(
+    await apiClient.PATCH("/api/v1/collections/{collection_id}/share", {
+      params: { path: { collection_id: id } },
+      body: payload,
+    }),
+  );
+}
+
+export async function listCollectionShareAskEvents(id: string): Promise<PublicAskEventListResponse> {
+  return normalizePublicAskEvents(unwrapApiResponse(
+    await apiClient.GET("/api/v1/collections/{collection_id}/share/events", {
+      params: { path: { collection_id: id } },
+    }),
+  ));
+}
+
+export async function revokeCollectionShare(id: string): Promise<void> {
+  return unwrapApiResponse(
+    await apiClient.DELETE("/api/v1/collections/{collection_id}/share", {
+      params: { path: { collection_id: id } },
+    }),
+  );
+}
+
+export async function getPublicCollection(slug: string): Promise<PublicCollectionResponse> {
+  return normalizePublicCollection(unwrapApiResponse(
+    await apiClient.GET("/api/v1/public/collections/{slug}", { params: { path: { slug } } }),
+  ));
+}
+
+export async function queryPublicCollection(
+  slug: string,
+  payload: { query: string; limit: number },
+): Promise<PublicCollectionQueryResponse> {
+  return normalizePublicCollectionQuery(unwrapApiResponse(
+    await apiClient.POST("/api/v1/public/collections/{slug}/query", {
+      params: { path: { slug } },
+      body: payload,
+    }),
+  ));
+}
+
+export async function getPublicAnswerShare(slug: string): Promise<PublicAnswerShare> {
+  return normalizePublicAnswerShare(unwrapApiResponse(
+    await apiClient.GET("/api/v1/public/answers/{slug}", { params: { path: { slug } } }),
+  ));
+}
+
+export async function listAnswerShares(params: { limit?: number; offset?: number } = {}): Promise<AnswerShareListResponse> {
+  return normalizeAnswerShareList(unwrapApiResponse(
+    await apiClient.GET("/api/v1/answer-shares", { params: { query: params } }),
+  ));
+}
+
+export async function revokeAnswerShare(slug: string): Promise<void> {
+  return unwrapApiResponse(
+    await apiClient.DELETE("/api/v1/answer-shares/{slug}", { params: { path: { slug } } }),
+  );
 }

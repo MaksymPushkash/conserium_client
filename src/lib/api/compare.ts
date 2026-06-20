@@ -1,25 +1,32 @@
 "use client";
 
 import type { CompareDocumentsRequest, CompareDocumentsResponse, CompareListResponse } from "@/lib/types";
-import { request } from "./transport";
 
-export function compareDocuments(payload: CompareDocumentsRequest): Promise<CompareDocumentsResponse> {
-  return request<CompareDocumentsResponse>("/compare/documents", { method: "POST", body: JSON.stringify(payload) });
+import { apiClient, unwrapApiResponse } from "./generated/client";
+import { normalizeCompare, normalizeCompareList } from "./generated/normalizers";
+
+export async function compareDocuments(payload: CompareDocumentsRequest): Promise<CompareDocumentsResponse> {
+  return normalizeCompare(unwrapApiResponse(
+    await apiClient.POST("/api/v1/compare/documents", { body: { ...payload, limit: payload.limit ?? 8 } }),
+  ));
 }
 
-export function listCompareResults(params: { collection_id?: string | null; limit?: number; offset?: number } = {}): Promise<CompareListResponse> {
-  const search = new URLSearchParams();
-  if (params.collection_id) search.set("collection_id", params.collection_id);
-  if (params.limit !== undefined) search.set("limit", String(params.limit));
-  if (params.offset !== undefined) search.set("offset", String(params.offset));
-  const query = search.toString();
-  return request<CompareListResponse>(`/compare/results${query ? `?${query}` : ""}`);
+export async function listCompareResults(
+  params: { collection_id?: string | null; limit?: number; offset?: number } = {},
+): Promise<CompareListResponse> {
+  return normalizeCompareList(unwrapApiResponse(
+    await apiClient.GET("/api/v1/compare/results", { params: { query: params } }),
+  ));
 }
 
-export function getCompareResult(id: string): Promise<CompareDocumentsResponse> {
-  return request<CompareDocumentsResponse>(`/compare/results/${id}`);
+export async function getCompareResult(id: string): Promise<CompareDocumentsResponse> {
+  return normalizeCompare(unwrapApiResponse(
+    await apiClient.GET("/api/v1/compare/results/{comparison_id}", { params: { path: { comparison_id: id } } }),
+  ));
 }
 
-export function deleteCompareResult(id: string): Promise<void> {
-  return request<void>(`/compare/results/${id}`, { method: "DELETE" });
+export async function deleteCompareResult(id: string): Promise<void> {
+  return unwrapApiResponse(
+    await apiClient.DELETE("/api/v1/compare/results/{comparison_id}", { params: { path: { comparison_id: id } } }),
+  );
 }

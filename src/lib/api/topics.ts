@@ -1,47 +1,54 @@
 "use client";
 
 import type { Topic, TopicDetailResponse, TopicListResponse } from "@/lib/types";
-import { request } from "./transport";
 
-export function listTopics(params: { limit?: number; offset?: number } = {}): Promise<TopicListResponse> {
-  const search = new URLSearchParams();
-  if (params.limit !== undefined) search.set("limit", String(params.limit));
-  if (params.offset !== undefined) search.set("offset", String(params.offset));
-  const query = search.toString();
-  return request<TopicListResponse>(`/topics${query ? `?${query}` : ""}`);
+import { apiClient, unwrapApiResponse } from "./generated/client";
+import { normalizeTopic, normalizeTopicDetail, normalizeTopicList } from "./generated/normalizers";
+
+export async function listTopics(params: { limit?: number; offset?: number } = {}): Promise<TopicListResponse> {
+  return normalizeTopicList(unwrapApiResponse(await apiClient.GET("/api/v1/topics", { params: { query: params } })));
 }
 
-export function getTopic(name: string, params: { document_limit?: number } = {}): Promise<TopicDetailResponse> {
-  const search = new URLSearchParams();
-  if (params.document_limit !== undefined) search.set("document_limit", String(params.document_limit));
-  const query = search.toString();
-  return request<TopicDetailResponse>(`/topics/${encodeURIComponent(name)}${query ? `?${query}` : ""}`);
+export async function getTopic(name: string, params: { document_limit?: number } = {}): Promise<TopicDetailResponse> {
+  return normalizeTopicDetail(unwrapApiResponse(
+    await apiClient.GET("/api/v1/topics/{name}", {
+      params: { path: { name }, query: params },
+    }),
+  ));
 }
 
-export function renameTopic(name: string, body: { display_name: string }): Promise<Topic> {
-  return request<Topic>(`/topics/${encodeURIComponent(name)}`, {
-    method: "PATCH",
-    body: JSON.stringify(body),
-  });
+export async function renameTopic(name: string, body: { display_name: string }): Promise<Topic> {
+  return normalizeTopic(unwrapApiResponse(
+    await apiClient.PATCH("/api/v1/topics/{name}", {
+      params: { path: { name } },
+      body,
+    }),
+  ));
 }
 
-export function mergeTopic(name: string, body: { source_names: string[] }): Promise<Topic> {
-  return request<Topic>(`/topics/${encodeURIComponent(name)}/merge`, {
-    method: "POST",
-    body: JSON.stringify(body),
-  });
+export async function mergeTopic(name: string, body: { source_names: string[] }): Promise<Topic> {
+  return normalizeTopic(unwrapApiResponse(
+    await apiClient.POST("/api/v1/topics/{name}/merge", {
+      params: { path: { name } },
+      body,
+    }),
+  ));
 }
 
-export function pinTopic(name: string, pinned = true): Promise<Topic> {
-  return request<Topic>(`/topics/${encodeURIComponent(name)}/pin`, {
-    method: "POST",
-    body: JSON.stringify({ pinned }),
-  });
+export async function pinTopic(name: string, pinned = true): Promise<Topic> {
+  return normalizeTopic(unwrapApiResponse(
+    await apiClient.POST("/api/v1/topics/{name}/pin", {
+      params: { path: { name } },
+      body: { pinned },
+    }),
+  ));
 }
 
-export function ignoreTopic(name: string, ignored = true): Promise<Topic> {
-  return request<Topic>(`/topics/${encodeURIComponent(name)}/ignore`, {
-    method: "POST",
-    body: JSON.stringify({ ignored }),
-  });
+export async function ignoreTopic(name: string, ignored = true): Promise<Topic> {
+  return normalizeTopic(unwrapApiResponse(
+    await apiClient.POST("/api/v1/topics/{name}/ignore", {
+      params: { path: { name } },
+      body: { ignored },
+    }),
+  ));
 }

@@ -1,18 +1,7 @@
-export interface ConflictDocument {
-  id: string;
-  title: string;
-}
+import type { components } from "@/lib/api/generated/v1";
 
-export interface ConflictFinding {
-  subject: string;
-  summary: string;
-  documents: ConflictDocument[];
-  evidence: string[];
-  score: number;
-}
+type Schemas = components["schemas"];
 
-export interface ConflictDetectionResponse {
-  collection_id: string | null;
-  analyzed_document_count: number;
-  conflicts: ConflictFinding[];
-}
+export type ConflictDocument = Schemas["ConflictDocumentResponse"];
+export type ConflictFinding = Schemas["ConflictFindingResponse"];
+export type ConflictDetectionResponse = Schemas["ConflictDetectionResponse"];

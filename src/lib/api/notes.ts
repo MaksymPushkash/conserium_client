@@ -1,37 +1,71 @@
 "use client";
 
 import type { Note, NoteListResponse, NoteVersion } from "@/lib/types";
-import { request } from "./transport";
 
-export function listNotes(params: { limit?: number; offset?: number; collection_id?: string | null } = {}): Promise<NoteListResponse> {
-  const search = new URLSearchParams();
-  if (params.limit !== undefined) search.set("limit", String(params.limit));
-  if (params.offset !== undefined) search.set("offset", String(params.offset));
-  if (params.collection_id) search.set("collection_id", params.collection_id);
-  const query = search.toString();
-  return request<NoteListResponse>(`/notes${query ? `?${query}` : ""}`);
+import { apiClient, unwrapApiResponse } from "./generated/client";
+import { normalizeNote, normalizeNoteVersions } from "./generated/normalizers";
+
+export async function listNotes(
+  params: { limit?: number; offset?: number; collection_id?: string | null } = {},
+): Promise<NoteListResponse> {
+  return unwrapApiResponse(await apiClient.GET("/api/v1/notes", { params: { query: params } }));
 }
 
-export function createNote(payload: { title?: string | null; content?: string | null; collection_id?: string | null; language?: string | null }): Promise<Note> {
-  return request<Note>("/notes", { method: "POST", body: JSON.stringify(payload) });
+export async function createNote(payload: {
+  title?: string | null;
+  content?: string | null;
+  collection_id?: string | null;
+  language?: string | null;
+}): Promise<Note> {
+  return normalizeNote(unwrapApiResponse(await apiClient.POST("/api/v1/notes", { body: noteBody(payload) })));
 }
 
-export function getNote(id: string): Promise<Note> {
-  return request<Note>(`/notes/${id}`);
+export async function getNote(id: string): Promise<Note> {
+  return normalizeNote(unwrapApiResponse(await apiClient.GET("/api/v1/notes/{note_id}", { params: { path: { note_id: id } } })));
 }
 
-export function updateNote(id: string, payload: { title?: string; content?: string; collection_id?: string | null; language?: string | null }): Promise<Note> {
-  return request<Note>(`/notes/${id}`, { method: "PATCH", body: JSON.stringify(payload) });
+export async function updateNote(
+  id: string,
+  payload: { title?: string; content?: string; collection_id?: string | null; language?: string | null },
+): Promise<Note> {
+  return normalizeNote(unwrapApiResponse(
+    await apiClient.PATCH("/api/v1/notes/{note_id}", {
+      params: { path: { note_id: id } },
+      body: noteBody(payload),
+    }),
+  ));
 }
 
-export function deleteNote(id: string): Promise<void> {
-  return request<void>(`/notes/${id}`, { method: "DELETE" });
+export async function deleteNote(id: string): Promise<void> {
+  return unwrapApiResponse(
+    await apiClient.DELETE("/api/v1/notes/{note_id}", { params: { path: { note_id: id } } }),
+  );
 }
 
-export function listNoteVersions(id: string): Promise<NoteVersion[]> {
-  return request<NoteVersion[]>(`/notes/${id}/versions`);
+export async function listNoteVersions(id: string): Promise<NoteVersion[]> {
+  return normalizeNoteVersions(unwrapApiResponse(
+    await apiClient.GET("/api/v1/notes/{note_id}/versions", { params: { path: { note_id: id } } }),
+  ));
 }
 
-export function restoreNoteVersion(noteId: string, versionId: string): Promise<Note> {
-  return request<Note>(`/notes/${noteId}/versions/${versionId}/restore`, { method: "POST" });
+export async function restoreNoteVersion(noteId: string, versionId: string): Promise<Note> {
+  return normalizeNote(unwrapApiResponse(
+    await apiClient.POST("/api/v1/notes/{note_id}/versions/{version_id}/restore", {
+      params: { path: { note_id: noteId, version_id: versionId } },
+    }),
+  ));
+}
+
+function noteBody(payload: {
+  title?: string | null;
+  content?: string | null;
+  collection_id?: string | null;
+  language?: string | null;
+}) {
+  return {
+    title: payload.title ?? "",
+    content: payload.content ?? "",
+    collection_id: payload.collection_id,
+    language: payload.language,
+  };
 }

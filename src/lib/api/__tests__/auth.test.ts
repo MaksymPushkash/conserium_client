@@ -2,45 +2,53 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { deleteCurrentUser, getCurrentUser, getUserPreferences, oauthUrl, updateUserPreferences } from "@/lib/api/auth";
 
-vi.mock("@/lib/api/transport", () => ({
-  request: vi.fn(),
+vi.mock("@/lib/api/generated/client", () => ({
+  apiClient: {
+    DELETE: vi.fn(),
+    GET: vi.fn(),
+    PATCH: vi.fn(),
+  },
+  unwrapApiResponse: vi.fn((result: { data?: unknown }) => result.data),
 }));
 
-import { request } from "@/lib/api/transport";
+import { apiClient } from "@/lib/api/generated/client";
 
-const requestMock = vi.mocked(request);
+const apiClientMock = vi.mocked(apiClient);
 
 describe("auth api", () => {
   afterEach(() => {
-    requestMock.mockReset();
+    vi.clearAllMocks();
   });
 
   it("fetches the current user from the users endpoint", async () => {
-    requestMock.mockResolvedValueOnce({
-      id: "user-id",
-      email: "user@example.com",
-      display_name: null,
-      is_active: true,
-      preferences: {
-        appearance: { theme: "dark" },
-        privacy: { share_usage_data: false, retain_query_history: true },
-        ai: { answer_language: "match_question", retrieval_depth: "balanced" },
+    apiClientMock.GET.mockResolvedValueOnce({
+      data: {
+        id: "user-id",
+        email: "user@example.com",
+        display_name: null,
+        is_active: true,
+        preferences: {
+          appearance: { theme: "dark" },
+          privacy: { share_usage_data: false, retain_query_history: true },
+          ai: { answer_language: "match_question", retrieval_depth: "balanced" },
+        },
+        created_at: "2026-05-14T00:00:00Z",
+        updated_at: null,
       },
-      created_at: "2026-05-14T00:00:00Z",
-      updated_at: null,
+      response: new Response(),
     });
 
     await getCurrentUser();
 
-    expect(requestMock).toHaveBeenCalledWith("/users/me");
+    expect(apiClientMock.GET).toHaveBeenCalledWith("/api/v1/users/me");
   });
 
   it("deletes the current user through the users endpoint", async () => {
-    requestMock.mockResolvedValueOnce(undefined);
+    apiClientMock.DELETE.mockResolvedValueOnce({ data: undefined, response: new Response(null, { status: 204 }) });
 
     await deleteCurrentUser();
 
-    expect(requestMock).toHaveBeenCalledWith("/users/me", { method: "DELETE" });
+    expect(apiClientMock.DELETE).toHaveBeenCalledWith("/api/v1/users/me");
   });
 
   it("fetches and updates user preferences", async () => {
@@ -49,13 +57,14 @@ describe("auth api", () => {
       privacy: { share_usage_data: false, retain_query_history: true },
       ai: { answer_language: "match_question" as const, retrieval_depth: "balanced" as const },
     };
-    requestMock.mockResolvedValueOnce(preferences).mockResolvedValueOnce(preferences);
+    apiClientMock.GET.mockResolvedValueOnce({ data: preferences, response: new Response() });
+    apiClientMock.PATCH.mockResolvedValueOnce({ data: preferences, response: new Response() });
 
     await getUserPreferences();
     await updateUserPreferences(preferences);
 
-    expect(requestMock).toHaveBeenNthCalledWith(1, "/users/preferences");
-    expect(requestMock).toHaveBeenNthCalledWith(2, "/users/preferences", { method: "PATCH", body: JSON.stringify(preferences) });
+    expect(apiClientMock.GET).toHaveBeenCalledWith("/api/v1/users/preferences");
+    expect(apiClientMock.PATCH).toHaveBeenCalledWith("/api/v1/users/preferences", { body: preferences });
   });
 
   it("builds OAuth URLs against the API origin", () => {

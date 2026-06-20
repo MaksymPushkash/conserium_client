@@ -84,7 +84,7 @@ function AuthContent() {
               type="password"
               className="font-jetbrains"
             />
-            {error ? <div className="rounded-md border border-red-500/30 bg-red-500/10 p-2 text-sm text-red-300">{error}</div> : null}
+            {error ? <div className="rounded-md border border-white/10 bg-white/[0.04] p-2 text-sm text-neutral-300">{error}</div> : null}
             <Button className="w-full" disabled={submitting}>
               {submitting ? "Working..." : mode === "login" ? "Sign in" : "Sign up"}
             </Button>

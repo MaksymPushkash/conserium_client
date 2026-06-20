@@ -9,41 +9,67 @@ import type {
   DraftTemplateListResponse,
   DraftVersionListResponse,
 } from "@/lib/types";
-import { request } from "./transport";
 
-export function listDrafts(params: { collection_id?: string | null; limit?: number; offset?: number } = {}): Promise<DraftListResponse> {
-  const search = new URLSearchParams();
-  if (params.collection_id) search.set("collection_id", params.collection_id);
-  if (params.limit !== undefined) search.set("limit", String(params.limit));
-  if (params.offset !== undefined) search.set("offset", String(params.offset));
-  const query = search.toString();
-  return request<DraftListResponse>(`/drafts${query ? `?${query}` : ""}`);
+import { apiClient, unwrapApiResponse } from "./generated/client";
+import {
+  normalizeDraft,
+  normalizeDraftDetail,
+  normalizeDraftVersions,
+} from "./generated/normalizers";
+
+export async function listDrafts(
+  params: { collection_id?: string | null; limit?: number; offset?: number } = {},
+): Promise<DraftListResponse> {
+  return unwrapApiResponse(await apiClient.GET("/api/v1/drafts", { params: { query: params } }));
 }
 
-export function getDraft(id: string): Promise<DraftDetail> {
-  return request<DraftDetail>(`/drafts/${id}`);
+export async function getDraft(id: string): Promise<DraftDetail> {
+  return normalizeDraftDetail(unwrapApiResponse(
+    await apiClient.GET("/api/v1/drafts/{draft_id}", { params: { path: { draft_id: id } } }),
+  ));
 }
 
-export function listDraftVersions(id: string): Promise<DraftVersionListResponse> {
-  return request<DraftVersionListResponse>(`/drafts/${id}/versions`);
+export async function listDraftVersions(id: string): Promise<DraftVersionListResponse> {
+  return normalizeDraftVersions(unwrapApiResponse(
+    await apiClient.GET("/api/v1/drafts/{draft_id}/versions", { params: { path: { draft_id: id } } }),
+  ));
 }
 
-export function restoreDraftVersion(draftId: string, versionId: string): Promise<DraftDetail> {
-  return request<DraftDetail>(`/drafts/${draftId}/versions/${versionId}/restore`, { method: "POST" });
+export async function restoreDraftVersion(draftId: string, versionId: string): Promise<DraftDetail> {
+  return normalizeDraftDetail(unwrapApiResponse(
+    await apiClient.POST("/api/v1/drafts/{draft_id}/versions/{version_id}/restore", {
+      params: { path: { draft_id: draftId, version_id: versionId } },
+    }),
+  ));
 }
 
-export function deleteDraft(id: string): Promise<void> {
-  return request<void>(`/drafts/${id}`, { method: "DELETE" });
+export async function deleteDraft(id: string): Promise<void> {
+  return unwrapApiResponse(
+    await apiClient.DELETE("/api/v1/drafts/{draft_id}", { params: { path: { draft_id: id } } }),
+  );
 }
 
-export function listDraftTemplates(): Promise<DraftTemplateListResponse> {
-  return request<DraftTemplateListResponse>("/drafts/templates");
+export async function listDraftTemplates(): Promise<DraftTemplateListResponse> {
+  return unwrapApiResponse(await apiClient.GET("/api/v1/drafts/templates"));
 }
 
-export function generateDraftOutline(payload: DraftGenerateRequest): Promise<DraftOutlineResponse> {
-  return request<DraftOutlineResponse>("/drafts/outline", { method: "POST", body: JSON.stringify(payload) });
+export async function generateDraftOutline(payload: DraftGenerateRequest): Promise<DraftOutlineResponse> {
+  return unwrapApiResponse(
+    await apiClient.POST("/api/v1/drafts/outline", { body: draftGenerateBody(payload) }),
+  );
 }
 
-export function generateDraft(payload: DraftGenerateRequest): Promise<DraftResponse> {
-  return request<DraftResponse>("/drafts/generate", { method: "POST", body: JSON.stringify(payload) });
+export async function generateDraft(payload: DraftGenerateRequest): Promise<DraftResponse> {
+  return normalizeDraft(unwrapApiResponse(
+    await apiClient.POST("/api/v1/drafts/generate", { body: draftGenerateBody(payload) }),
+  ));
+}
+
+function draftGenerateBody(payload: DraftGenerateRequest) {
+  return {
+    ...payload,
+    limit: payload.limit ?? 8,
+    scope_type: payload.scope_type ?? "all",
+    template_id: payload.template_id ?? "brief",
+  };
 }

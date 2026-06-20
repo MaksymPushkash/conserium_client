@@ -18,7 +18,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
-  const { authHydrated, publicRoute, user } = useAuthenticatedUser(pathname);
+  const { accessToken, authHydrated, publicRoute, user } = useAuthenticatedUser(pathname);
 
   async function handleLogout() {
     try {
@@ -34,11 +34,11 @@ export function AppShell({ children }: { children: ReactNode }) {
   const initial = displayName.slice(0, 1).toUpperCase();
 
   return (
-    <AuthGate authHydrated={authHydrated} publicRoute={publicRoute}>
+    <AuthGate accessToken={accessToken} authHydrated={authHydrated} publicRoute={publicRoute}>
       {publicRoute ? (
         children
       ) : (
-        <div className="min-h-screen bg-[var(--conserium-bg)] text-white">
+        <div className="min-h-screen bg-[var(--conserium-bg)] text-[var(--conserium-text)]">
           <Sidebar
             pathname={pathname}
             displayName={displayName}

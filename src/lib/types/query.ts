@@ -1,71 +1,25 @@
 import type { DocumentType } from "./documents";
+import type { ApiSchema } from "./generated";
 
-export interface QueryRequest {
-  query: string;
-  conversation_id?: string | null;
-  collection_id?: string | null;
-  document_id?: string | null;
-  tag_names?: string[] | null;
+export type QueryRequest = Omit<ApiSchema<"QueryRequest">, "document_types"> & {
   document_types?: DocumentType[] | null;
-  limit: number;
-}
-
-export interface QuerySource {
-  chunk_id: string;
-  document_id: string;
-  document_title: string | null;
-  content: string;
-  page_number: number | null;
-  chunk_index: number;
-  score: number | null;
-  citation?: string;
-  used_in_answer?: boolean;
-}
-
-export interface RefragChunk {
-  chunk_id: string;
-  document_id: string;
-  document_title: string | null;
-  representation: "FULL_TEXT" | "COMPRESSED" | "DISCARDED";
-  page_number: number | null;
-  chunk_index: number;
-  score: number | null;
-  context_text: string;
-  original_token_count: number;
-  context_token_count: number;
-  citation: string | null;
-}
-
-export interface RefragContext {
-  full_text_chunks: RefragChunk[];
-  compressed_chunks: RefragChunk[];
-  discarded_chunks: RefragChunk[];
-  total_original_tokens: number;
-  total_context_tokens: number;
-  compression_strategy: string;
-}
-
-export interface QueryDebug {
-  original_query: string;
-  retrieval_query: string;
-  selected_collection_id: string | null;
-  selected_tags: string[];
-  promoted_document_ids: string[];
-  retrieved_sources: QuerySource[];
-  final_sources: QuerySource[];
-  used_sources: QuerySource[];
-  filtered_sources: QuerySource[];
-}
-
-export interface QueryResponse {
-  conversation_id: string;
-  query: string;
-  answer: string;
+};
+export type QuerySource = ApiSchema<"QuerySourceResponse">;
+export type RefragChunk = ApiSchema<"RefragChunkResponse">;
+export type RefragContext = ApiSchema<"RefragContextResponse">;
+export type QueryDebug = ApiSchema<"QueryDebugResponse">;
+export type PublicAnswerShareSource = ApiSchema<"PublicAnswerShareSourceResponse">;
+export type AnswerShareSource = ApiSchema<"AnswerShareSourceResponse">;
+export type PublicAnswerShare = Omit<ApiSchema<"PublicAnswerShareResponse">, "sources"> & {
+  sources: PublicAnswerShareSource[];
+};
+export type AnswerShare = Omit<ApiSchema<"AnswerShareResponse">, "sources"> & { sources: AnswerShareSource[] };
+export type AnswerShareListResponse = Omit<ApiSchema<"AnswerShareListResponse">, "items"> & { items: AnswerShare[] };
+export type QueryResponse = Omit<ApiSchema<"QueryResponse">, "debug" | "refrag_context" | "sources"> & {
   sources: QuerySource[];
   refrag_context: RefragContext;
   debug: QueryDebug | null;
-  suggested_follow_up_questions?: string[];
-}
+};
 
 export interface QueryStreamDone {
   query_id: string;
@@ -81,3 +35,8 @@ export interface QueryStreamEvent {
   event: QueryStreamEventName;
   data: Record<string, unknown>;
 }
+
+export type PublicCollectionQueryResponse = Omit<ApiSchema<"PublicCollectionQueryResponse">, "share" | "sources"> & {
+  sources: PublicAnswerShareSource[];
+  share: PublicAnswerShare;
+};

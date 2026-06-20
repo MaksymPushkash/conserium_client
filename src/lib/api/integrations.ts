@@ -1,51 +1,66 @@
 "use client";
 
-import type { IntegrationConnectUrlResponse, NotionConnection, NotionImportResponse, NotionPage, TelegramPairingCode, TelegramStatus } from "@/lib/types";
-import { request } from "./transport";
+import type {
+  IntegrationConnectUrlResponse,
+  NotionConnection,
+  NotionImportResponse,
+  NotionPage,
+  TelegramPairingCode,
+  TelegramStatus,
+} from "@/lib/types";
 
-export function getNotionConnection(): Promise<NotionConnection> {
-  return request<NotionConnection>("/integrations/notion");
+import { apiClient, unwrapApiResponse } from "./generated/client";
+export async function getNotionConnection(): Promise<NotionConnection> {
+  return unwrapApiResponse(await apiClient.GET("/api/v1/integrations/notion"));
 }
 
-export function createNotionConnectUrl(): Promise<IntegrationConnectUrlResponse> {
-  return request<IntegrationConnectUrlResponse>("/integrations/notion/connect-url", { method: "POST" });
+export async function createNotionConnectUrl(): Promise<IntegrationConnectUrlResponse> {
+  return unwrapApiResponse(await apiClient.POST("/api/v1/integrations/notion/connect-url"));
 }
 
-export function updateNotionConnectionSettings(payload: {
+export async function updateNotionConnectionSettings(payload: {
   default_parent_page_id: string | null;
   default_parent_page_title?: string | null;
 }): Promise<NotionConnection> {
-  return request<NotionConnection>("/integrations/notion", { method: "PATCH", body: JSON.stringify(payload) });
+  return unwrapApiResponse(
+    await apiClient.PATCH("/api/v1/integrations/notion", { body: payload }),
+  );
 }
 
-export function searchNotionPages(params: { query?: string; limit?: number } = {}): Promise<NotionPage[]> {
-  const searchParams = new URLSearchParams();
-  if (params.query) searchParams.set("query", params.query);
-  if (params.limit) searchParams.set("limit", String(params.limit));
-  const query = searchParams.toString();
-  return request<NotionPage[]>(`/integrations/notion/pages${query ? `?${query}` : ""}`);
+export async function searchNotionPages(params: { query?: string; limit?: number } = {}): Promise<NotionPage[]> {
+  return unwrapApiResponse(
+    await apiClient.GET("/api/v1/integrations/notion/pages", { params: { query: params } }),
+  );
 }
 
-export function importNotionPage(payload: { page_id: string; collection_id?: string | null; tags?: string[] }): Promise<NotionImportResponse> {
-  return request<NotionImportResponse>("/integrations/notion/import", {
-    method: "POST",
-    body: JSON.stringify(payload),
-  });
+export async function importNotionPage(payload: {
+  page_id: string;
+  collection_id?: string | null;
+  tags?: string[];
+}): Promise<NotionImportResponse> {
+  return unwrapApiResponse(
+    await apiClient.POST("/api/v1/integrations/notion/import", { body: payload }),
+  );
 }
 
-export function disconnectNotion(): Promise<void> {
-  return request<void>("/integrations/notion", { method: "DELETE" });
+export async function disconnectNotion(): Promise<void> {
+  return unwrapApiResponse(await apiClient.DELETE("/api/v1/integrations/notion"));
 }
 
-
-export function getTelegramStatus(): Promise<TelegramStatus> {
-  return request<TelegramStatus>("/integrations/telegram");
+export async function getTelegramStatus(): Promise<TelegramStatus> {
+  return unwrapApiResponse(await apiClient.GET("/api/v1/integrations/telegram"));
 }
 
-export function createTelegramPairingCode(): Promise<TelegramPairingCode> {
-  return request<TelegramPairingCode>("/integrations/telegram/pairing-code", { method: "POST" });
+export async function createTelegramPairingCode(): Promise<TelegramPairingCode> {
+  return unwrapApiResponse(
+    await apiClient.POST("/api/v1/integrations/telegram/pairing-code"),
+  );
 }
 
-export function revokeTelegramBinding(id: string): Promise<void> {
-  return request<void>(`/integrations/telegram/bindings/${id}`, { method: "DELETE" });
+export async function revokeTelegramBinding(id: string): Promise<void> {
+  return unwrapApiResponse(
+    await apiClient.DELETE("/api/v1/integrations/telegram/bindings/{binding_id}", {
+      params: { path: { binding_id: id } },
+    }),
+  );
 }

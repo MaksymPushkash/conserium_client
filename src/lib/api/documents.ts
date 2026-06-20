@@ -12,7 +12,15 @@ import type {
   DocumentType,
 } from "@/lib/types";
 import { filenameFromContentDisposition } from "./exports";
-import { authenticatedFetch, readPayload, request, ApiError } from "./transport";
+import { apiClient, unwrapApiResponse } from "./generated/client";
+import {
+  normalizeDocument,
+  normalizeDocumentConnections,
+  normalizeDocumentList,
+  normalizeDocumentSearch,
+  normalizeDocumentStatus,
+} from "./generated/normalizers";
+import { authenticatedFetch, readPayload, ApiError } from "./transport";
 
 export interface DocumentListParams {
   limit?: number;
@@ -23,15 +31,10 @@ export interface DocumentListParams {
   tag?: string | null;
 }
 
-export function listDocuments(params: DocumentListParams = {}): Promise<DocumentListResponse> {
-  const search = new URLSearchParams();
-  for (const [key, value] of Object.entries(params)) {
-    if (value !== undefined && value !== null && value !== "") {
-      search.set(key, String(value));
-    }
-  }
-  const query = search.toString();
-  return request<DocumentListResponse>(`/documents${query ? `?${query}` : ""}`);
+export async function listDocuments(params: DocumentListParams = {}): Promise<DocumentListResponse> {
+  return normalizeDocumentList(unwrapApiResponse(
+    await apiClient.GET("/api/v1/documents", { params: { query: params } }),
+  ));
 }
 
 export interface DocumentSearchParams {
@@ -43,61 +46,82 @@ export interface DocumentSearchParams {
   tag?: string | null;
 }
 
-export function searchDocuments(params: DocumentSearchParams): Promise<DocumentSearchResponse> {
-  const search = new URLSearchParams();
-  for (const [key, value] of Object.entries(params)) {
-    if (value !== undefined && value !== null && value !== "") {
-      search.set(key, String(value));
-    }
-  }
-  return request<DocumentSearchResponse>(`/documents/search?${search.toString()}`);
+export async function searchDocuments(params: DocumentSearchParams): Promise<DocumentSearchResponse> {
+  return normalizeDocumentSearch(unwrapApiResponse(
+    await apiClient.GET("/api/v1/documents/search", { params: { query: params } }),
+  ));
 }
 
-export function getDocument(id: string): Promise<DocumentResponse> {
-  return request<DocumentResponse>(`/documents/${id}`);
+export async function getDocument(id: string): Promise<DocumentResponse> {
+  return normalizeDocument(unwrapApiResponse(
+    await apiClient.GET("/api/v1/documents/{document_id}", { params: { path: { document_id: id } } }),
+  ));
 }
 
-export function getDocumentChunk(documentId: string, chunkId: string): Promise<DocumentChunkResponse> {
-  return request<DocumentChunkResponse>(`/documents/${documentId}/chunks/${chunkId}`);
+export async function getDocumentChunk(documentId: string, chunkId: string): Promise<DocumentChunkResponse> {
+  return unwrapApiResponse(
+    await apiClient.GET("/api/v1/documents/{document_id}/chunks/{chunk_id}", {
+      params: { path: { document_id: documentId, chunk_id: chunkId } },
+    }),
+  );
 }
 
-export function getDocumentStatus(documentId: string): Promise<DocumentStatusResponse> {
-  return request<DocumentStatusResponse>(`/documents/${documentId}/status`);
+export async function getDocumentStatus(documentId: string): Promise<DocumentStatusResponse> {
+  return normalizeDocumentStatus(unwrapApiResponse(
+    await apiClient.GET("/api/v1/documents/{document_id}/status", { params: { path: { document_id: documentId } } }),
+  ));
 }
 
-export function getDocumentQuestionHistory(documentId: string, limit = 5): Promise<DocumentQuestionHistoryResponse> {
-  return request<DocumentQuestionHistoryResponse>(`/documents/${documentId}/questions?limit=${limit}`);
+export async function getDocumentQuestionHistory(documentId: string, limit = 5): Promise<DocumentQuestionHistoryResponse> {
+  return unwrapApiResponse(
+    await apiClient.GET("/api/v1/documents/{document_id}/questions", {
+      params: { path: { document_id: documentId }, query: { limit } },
+    }),
+  );
 }
 
-export function getDocumentConnections(documentId: string, limit = 5): Promise<DocumentConnectionsResponse> {
-  return request<DocumentConnectionsResponse>(`/documents/${documentId}/connections?limit=${limit}`);
+export async function getDocumentConnections(documentId: string, limit = 5): Promise<DocumentConnectionsResponse> {
+  return normalizeDocumentConnections(unwrapApiResponse(
+    await apiClient.GET("/api/v1/documents/{document_id}/connections", {
+      params: { path: { document_id: documentId }, query: { limit } },
+    }),
+  ));
 }
 
-export function renameDocument(id: string, payload: { title: string }): Promise<DocumentResponse> {
-  return request<DocumentResponse>(`/documents/${id}`, { method: "PATCH", body: JSON.stringify(payload) });
+export async function renameDocument(id: string, payload: { title: string }): Promise<DocumentResponse> {
+  return normalizeDocument(unwrapApiResponse(
+    await apiClient.PATCH("/api/v1/documents/{document_id}", {
+      params: { path: { document_id: id } },
+      body: payload,
+    }),
+  ));
 }
 
-export function moveDocument(id: string, payload: { collection_id: string | null }): Promise<DocumentResponse> {
-  return request<DocumentResponse>(`/documents/${id}/collection`, { method: "PATCH", body: JSON.stringify(payload) });
+export async function moveDocument(id: string, payload: { collection_id: string | null }): Promise<DocumentResponse> {
+  return normalizeDocument(unwrapApiResponse(
+    await apiClient.PATCH("/api/v1/documents/{document_id}/collection", {
+      params: { path: { document_id: id } },
+      body: payload,
+    }),
+  ));
 }
 
-export function updateDocument(
-  id: string,
-  payload: { title?: string; collection_id?: string | null; tag_names?: string[] },
-): Promise<DocumentResponse> {
-  return request<DocumentResponse>(`/documents/${id}`, { method: "PATCH", body: JSON.stringify(payload) });
+export async function retryDocument(id: string): Promise<DocumentResponse> {
+  return normalizeDocument(unwrapApiResponse(
+    await apiClient.POST("/api/v1/documents/{document_id}/retry", { params: { path: { document_id: id } } }),
+  ));
 }
 
-export function retryDocument(id: string): Promise<DocumentResponse> {
-  return request<DocumentResponse>(`/documents/${id}/retry`, { method: "POST" });
+export async function reprocessDocument(id: string): Promise<DocumentResponse> {
+  return normalizeDocument(unwrapApiResponse(
+    await apiClient.POST("/api/v1/documents/{document_id}/reprocess", { params: { path: { document_id: id } } }),
+  ));
 }
 
-export function reprocessDocument(id: string): Promise<DocumentResponse> {
-  return request<DocumentResponse>(`/documents/${id}/reprocess`, { method: "POST" });
-}
-
-export function deleteDocument(id: string): Promise<void> {
-  return request<void>(`/documents/${id}`, { method: "DELETE" });
+export async function deleteDocument(id: string): Promise<void> {
+  return unwrapApiResponse(
+    await apiClient.DELETE("/api/v1/documents/{document_id}", { params: { path: { document_id: id } } }),
+  );
 }
 
 export async function exportDocument(id: string, format: "markdown" | "pdf"): Promise<{ blob: Blob; filename: string }> {
@@ -111,34 +135,36 @@ export async function exportDocument(id: string, format: "markdown" | "pdf"): Pr
   };
 }
 
-export function bulkDeleteDocuments(documentIds: string[]): Promise<{ deleted: number }> {
-  return request<{ deleted: number }>("/documents/bulk/delete", {
-    method: "POST",
-    body: JSON.stringify({ document_ids: documentIds }),
-  });
+export async function bulkDeleteDocuments(documentIds: string[]): Promise<void> {
+  return unwrapApiResponse(
+    await apiClient.POST("/api/v1/documents/bulk/delete", { body: { document_ids: documentIds } }),
+  );
 }
 
-export function bulkMoveDocuments(documentIds: string[], collectionId: string | null): Promise<void> {
-  return request<void>("/documents/bulk/move", {
-    method: "POST",
-    body: JSON.stringify({ document_ids: documentIds, collection_id: collectionId }),
-  });
+export async function bulkMoveDocuments(documentIds: string[], collectionId: string | null): Promise<void> {
+  return unwrapApiResponse(
+    await apiClient.POST("/api/v1/documents/bulk/move", {
+      body: { document_ids: documentIds, collection_id: collectionId },
+    }),
+  );
 }
 
-export function bulkAddDocumentTags(documentIds: string[], tags: string[]): Promise<void> {
-  return request<void>("/documents/bulk/tags", {
-    method: "POST",
-    body: JSON.stringify({ document_ids: documentIds, tags }),
-  });
+export async function bulkAddDocumentTags(documentIds: string[], tags: string[]): Promise<void> {
+  return unwrapApiResponse(
+    await apiClient.POST("/api/v1/documents/bulk/tags", { body: { document_ids: documentIds, tags } }),
+  );
 }
 
-export function bulkReprocessDocuments(documentIds: string[]): Promise<{ queued: number }> {
-  return request<{ queued: number }>("/documents/bulk/reprocess", {
-    method: "POST",
-    body: JSON.stringify({ document_ids: documentIds }),
-  });
+export async function bulkReprocessDocuments(documentIds: string[]): Promise<void> {
+  unwrapApiResponse(
+    await apiClient.POST("/api/v1/documents/bulk/reprocess", { body: { document_ids: documentIds } }),
+  );
 }
 
-export function getDocumentSuggestedQuestions(id: string): Promise<string[]> {
-  return request<string[]>(`/documents/${id}/suggested-questions`);
+export async function getDocumentSuggestedQuestions(id: string): Promise<string[]> {
+  return unwrapApiResponse(
+    await apiClient.GET("/api/v1/documents/{document_id}/suggested-questions", {
+      params: { path: { document_id: id } },
+    }),
+  );
 }

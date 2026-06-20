@@ -2,7 +2,9 @@
 
 import { API_BASE_URL } from "@/lib/config";
 import type { ObservabilitySummary } from "@/lib/types";
-import { request } from "./transport";
+
+import { apiClient, unwrapApiResponse } from "./generated/client";
+import { normalizeObservabilitySummary } from "./generated/normalizers";
 
 export async function getMetricsText(): Promise<string> {
   const response = await fetch(`${API_BASE_URL}/metrics`, { credentials: "include" });
@@ -12,8 +14,8 @@ export async function getMetricsText(): Promise<string> {
   return response.text();
 }
 
-export function getObservabilitySummary(): Promise<ObservabilitySummary> {
-  return request<ObservabilitySummary>("/observability/summary");
+export async function getObservabilitySummary(): Promise<ObservabilitySummary> {
+  return normalizeObservabilitySummary(unwrapApiResponse(await apiClient.GET("/api/v1/observability/summary")));
 }
 
 export const getQueryMetricsSummary = getObservabilitySummary;

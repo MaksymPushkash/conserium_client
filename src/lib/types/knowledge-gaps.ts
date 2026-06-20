@@ -1,32 +1,14 @@
-export interface KnowledgeGapArea {
-  id: string;
-  name: string;
-  covered: boolean;
-  evidence_count: number;
-  evidence_titles: string[];
-  why_detected: string;
-  missing_source_types: string[];
-  severity: string;
-  rationale: string;
-  suggested_actions: string[];
-}
+import type { ApiSchema, RequiredApiFields } from "./generated";
 
-export interface KnowledgeGapResponse {
-  id: string;
-  topic: string;
-  collection_id: string | null;
-  covered_count: number;
-  missing_count: number;
-  coverage_ratio: number;
-  why_detected: string;
-  missing_source_types: string[];
-  severity: string;
-  rationale: string;
-  suggested_actions: string[];
-  areas: KnowledgeGapArea[];
-}
-
-export interface KnowledgeGapListResponse {
+export type KnowledgeGapArea = RequiredApiFields<
+  ApiSchema<"KnowledgeGapAreaResponse">,
+  "evidence_titles" | "missing_source_types" | "suggested_actions"
+>;
+type NormalizedKnowledgeGap = RequiredApiFields<
+  ApiSchema<"KnowledgeGapResponse">,
+  "areas" | "collection_id" | "missing_source_types" | "suggested_actions"
+>;
+export type KnowledgeGapResponse = Omit<NormalizedKnowledgeGap, "areas"> & { areas: KnowledgeGapArea[] };
+export type KnowledgeGapListResponse = Omit<ApiSchema<"KnowledgeGapListResponse">, "items"> & {
   items: KnowledgeGapResponse[];
-  total: number;
-}
+};
