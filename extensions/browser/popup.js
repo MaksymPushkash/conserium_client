@@ -44,12 +44,19 @@ async function loadCollections(selectedId) {
       return;
     }
     const body = await response.json();
+    let selectedCollectionFound = !selectedId;
     for (const collection of body.items || []) {
       const option = document.createElement("option");
       option.value = collection.id;
       option.textContent = collection.name;
       option.selected = collection.id === selectedId;
+      selectedCollectionFound = selectedCollectionFound || option.selected;
       fields.collectionId.appendChild(option);
+    }
+    if (!selectedCollectionFound) {
+      fields.collectionId.value = "";
+      await chrome.storage.local.set({ collectionId: "" });
+      fields.status.textContent = "Saved collection is unavailable. Saving will use all collections.";
     }
   } catch (_error) {
     return;
@@ -73,38 +80,31 @@ async function saveCurrentTab(selectionOnly) {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
     if (!tab?.id || !tab.url) throw new Error("No active tab");
     const selectedText = selectionOnly ? await getSelection(tab.id) : "";
-    const payload = selectedText
-      ? {
-          title: tab.title || "Browser selection",
-          type: "MARKDOWN",
-          raw_content: selectedText,
-          source_url: tab.url,
-        }
-      : {
-          title: tab.title || tab.url,
-          type: tab.url.includes("youtube.com/watch") || tab.url.includes("youtu.be/") ? "YOUTUBE" : "URL",
-          source_url: tab.url,
-        };
+    const collectionId = selectedCollectionId(fields.collectionId);
+    const payload = buildIngestPayload({
+      tab,
+      selectedText,
+      collectionId,
+      tags: fields.tags.value,
+    });
     const response = await fetch(`${origin}/public-api/ingest`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${apiKey}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        ...payload,
-        provider: "browser-extension",
-        external_id: `${tab.id}:${tab.url}:${selectedText ? hash(selectedText) : "page"}`,
-        idempotency_key: `${tab.url}:${selectedText ? hash(selectedText) : "page"}`,
-        collection_id: fields.collectionId.value.trim() || null,
-        tags: fields.tags.value.split(",").map((tag) => tag.trim()).filter(Boolean),
-        metadata: { browser_title: tab.title || null },
-      }),
+      body: JSON.stringify(payload),
     });
     const body = await response.json();
     if (!response.ok) throw new Error(body.detail || "Save failed");
     const title = body.document?.title || body.intake_item.title;
-    await recordSave({ title, status: body.intake_item.status, savedAt: new Date().toISOString() });
+    await recordSave({
+      title,
+      url: tab.url,
+      collectionId,
+      status: body.intake_item.status,
+      savedAt: new Date().toISOString(),
+    });
     setBusy(false, `Queued ${title}`);
   } catch (error) {
     setBusy(false, error instanceof Error ? error.message : "Save failed");
@@ -144,14 +144,43 @@ function renderHistory(history) {
     const row = document.createElement("li");
     row.textContent = item.title || "Saved item";
     const meta = document.createElement("span");
-    meta.textContent = `${String(item.status || "queued").toLowerCase()} · ${new Date(item.savedAt).toLocaleString()}`;
+    const host = safeHost(item.url);
+    meta.textContent = [
+      String(item.status || "queued").toLowerCase(),
+      host,
+      new Date(item.savedAt).toLocaleString(),
+    ].filter(Boolean).join(" · ");
     row.appendChild(meta);
     fields.history.appendChild(row);
   }
 }
 
+function selectedCollectionId(select) {
+  const value = String(select?.value || "").trim();
+  const availableIds = [...(select?.options || [])].map((option) => option.value);
+  return validateCollectionSelection(value, availableIds);
+}
+
+function validateCollectionSelection(collectionId, availableIds) {
+  const value = String(collectionId || "").trim();
+  if (!value) return "";
+  return availableIds.includes(value) ? value : "";
+}
+
+function safeHost(rawUrl) {
+  try {
+    return new URL(rawUrl).host;
+  } catch (_error) {
+    return "";
+  }
+}
+
 function normalizedOrigin() {
-  const value = fields.apiOrigin.value.trim().replace(/\/$/, "");
+  return normalizeOrigin(fields.apiOrigin.value);
+}
+
+function normalizeOrigin(rawValue) {
+  const value = String(rawValue || "").trim().replace(/\/$/, "");
   try {
     const url = new URL(value);
     if (!['http:', 'https:'].includes(url.protocol)) return null;
@@ -162,8 +191,48 @@ function normalizedOrigin() {
 }
 
 function normalizedApiKey() {
-  const value = fields.apiKey.value.trim();
-  return value.startsWith("ctx_") ? value : null;
+  const value = String(fields.apiKey.value || "").trim();
+  if (isLegacyApiKey(value)) {
+    fields.status.textContent = "Legacy ctx_ keys are no longer accepted. Create a con_ key in Settings.";
+    return null;
+  }
+  return normalizeApiKey(value);
+}
+
+function normalizeApiKey(rawValue) {
+  const value = String(rawValue || "").trim();
+  return value.startsWith("con_") ? value : null;
+}
+
+function isLegacyApiKey(rawValue) {
+  return String(rawValue || "").trim().startsWith("ctx_");
+}
+
+function buildIngestPayload({ tab, selectedText, collectionId, tags }) {
+  const trimmedSelection = String(selectedText || "").trim();
+  const url = tab.url;
+  const sourcePayload = trimmedSelection
+    ? {
+        title: tab.title || "Browser selection",
+        type: "MARKDOWN",
+        raw_content: trimmedSelection,
+        source_url: url,
+      }
+    : {
+        title: tab.title || url,
+        type: url.includes("youtube.com/watch") || url.includes("youtu.be/") ? "YOUTUBE" : "URL",
+        source_url: url,
+      };
+  const contentKey = trimmedSelection ? hash(trimmedSelection) : "page";
+  return {
+    ...sourcePayload,
+    provider: "browser-extension",
+    external_id: `${tab.id}:${url}:${contentKey}`,
+    idempotency_key: `${url}:${contentKey}`,
+    collection_id: String(collectionId || "").trim() || null,
+    tags: String(tags || "").split(",").map((tag) => tag.trim()).filter(Boolean),
+    metadata: { browser_title: tab.title || null },
+  };
 }
 
 function hash(value) {
@@ -174,3 +243,13 @@ function hash(value) {
   }
   return Math.abs(output).toString(36);
 }
+
+window.__conseriumClipper = {
+  buildIngestPayload,
+  hash,
+  normalizeApiKey,
+  isLegacyApiKey,
+  normalizeOrigin,
+  safeHost,
+  validateCollectionSelection,
+};
