@@ -219,7 +219,7 @@ export default function NotesPage() {
               <Button
                 variant="ghost"
                 size="icon"
-                className="text-neutral-600 hover:text-red-400"
+                className="text-neutral-600 hover:text-neutral-500"
                 onClick={confirmDeleteNote}
                 disabled={!selectedId || deleteMutation.isPending}
                 aria-label="Delete note"

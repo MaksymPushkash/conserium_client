@@ -45,7 +45,7 @@ export function JobCard({
           <StatusBadge status={job.status} />
         </div>
         <div className="font-jetbrains mt-2 text-xs text-neutral-500">{job.subtitle} / {job.updatedAt ? formatDateTime(job.updatedAt) : "no active run"}</div>
-        {job.reason ? <div className="mt-3 line-clamp-2 text-sm leading-6 text-red-200">{job.reason}</div> : null}
+        {job.reason ? <div className="mt-3 line-clamp-2 text-sm leading-6 text-neutral-300">{job.reason}</div> : null}
       </div>
       <div className="flex items-center gap-2 justify-self-start md:justify-self-end">
         {job.state === "failed" ? (

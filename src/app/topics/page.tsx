@@ -34,7 +34,7 @@ export default function TopicsPage() {
       </header>
 
       {topicsQuery.error ? (
-        <div className="rounded-md border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-200">
+        <div className="rounded-md border border-white/10 bg-white/[0.04] p-3 text-sm text-neutral-300">
           {errorMessage(topicsQuery.error)}
         </div>
       ) : null}

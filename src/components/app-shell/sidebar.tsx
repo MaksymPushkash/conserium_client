@@ -1,12 +1,12 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { BookOpen, Plus, Search } from "lucide-react";
+import { BookOpen, Building2, Plus, Search } from "lucide-react";
 import Link from "next/link";
 
 import { openCommandPalette } from "@/components/command-palette";
 import { Button } from "@/components/ui/button";
-import { listCollections } from "@/lib/api";
+import { listCollections, listWorkspaces } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { navGroups } from "./nav";
 import { UserMenu } from "./user-menu";
@@ -33,10 +33,12 @@ export function Sidebar({
   onNavigate: (href: string) => void;
 }) {
   const collectionsQuery = useQuery({ queryKey: ["collections", "sidebar"], queryFn: () => listCollections({ limit: 5 }) });
+  const workspacesQuery = useQuery({ queryKey: ["workspaces", "sidebar"], queryFn: () => listWorkspaces({ limit: 5 }) });
   const quickCollections = collectionsQuery.data?.items.slice(0, 5) ?? [];
+  const quickWorkspaces = workspacesQuery.data?.items.slice(0, 5) ?? [];
 
   return (
-    <aside className="fixed inset-y-0 left-0 hidden w-72 border-r border-white/10 bg-[#050509]/95 shadow-2xl shadow-black/40 md:flex md:flex-col">
+    <aside className="fixed inset-y-0 left-0 hidden w-72 border-r border-white/10 bg-[#050505]/95 shadow-2xl shadow-black/40 md:flex md:flex-col">
       <div className="flex h-20 items-center justify-between px-5">
         <Link href="/dashboard" className="group flex items-center gap-3">
           <span className="grid h-9 w-9 place-items-center rounded-full border border-white/15 bg-white/[0.03] text-sm font-medium text-white transition-transform duration-300 group-hover:scale-105">
@@ -69,6 +71,29 @@ export function Sidebar({
       </div>
 
       <nav className="scrollbar-thin flex-1 space-y-6 overflow-y-auto px-4 pb-5">
+        {quickWorkspaces.length ? (
+          <div className="space-y-1">
+            <div className="px-2 pb-1 text-[11px] font-medium uppercase tracking-[0.14em] text-neutral-500">Teams</div>
+            {quickWorkspaces.map((workspace) => {
+              const workspaceHref = `/workspaces/${workspace.id}`;
+              const active = pathname === workspaceHref || pathname.startsWith(`${workspaceHref}/`);
+              return (
+                <Link
+                  key={workspace.id}
+                  href={workspaceHref}
+                  className={cn(
+                    "group flex h-10 items-center gap-3 rounded-lg px-3 text-sm font-light text-neutral-400 transition-all duration-200 hover:bg-[var(--conserium-card-muted)] hover:text-[var(--conserium-text)]",
+                    active && "bg-[var(--conserium-card-muted)] text-[var(--conserium-text)] shadow-[inset_0_0_0_1px_var(--conserium-border)]",
+                  )}
+                >
+                  <Building2 className="h-4 w-4" />
+                  <span className="min-w-0 flex-1 truncate">{workspace.name}</span>
+                  <span className="font-jetbrains text-[10px] uppercase tracking-[0.12em] text-neutral-500">{workspace.access_role}</span>
+                </Link>
+              );
+            })}
+          </div>
+        ) : null}
         {navGroups.map((group) => (
           <div key={group.label} className="space-y-1">
             <div className="px-2 pb-1 text-[11px] font-medium uppercase tracking-[0.14em] text-neutral-500">{group.label}</div>

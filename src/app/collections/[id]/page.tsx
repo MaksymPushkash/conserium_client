@@ -8,7 +8,7 @@ import { useParams } from "next/navigation";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Button } from "@/components/ui/button";
 import { MetricCard, PageHeader, PageShell, SectionPanel } from "@/components/ui/page-shell";
-import { createCollectionShare, createKnowledgeGapNote, getCollectionShare, getCollectionWorkspace, revokeCollectionShare } from "@/lib/api";
+import { createCollectionShare, createKnowledgeGapNote, getCollectionShare, getCollectionWorkspace, inviteCollectionMember, listCollectionAuditEvents, listCollectionMembers, listCollectionShareAskEvents, removeCollectionMember, revokeCollectionShare, updateCollectionMemberRole, updateCollectionShareSettings } from "@/lib/api";
 import { errorMessage } from "@/lib/api/transport";
 import type { CollectionWorkspaceGap } from "@/lib/types";
 import {
@@ -19,6 +19,7 @@ import {
   LinkButton,
   QuestionCard,
   SharePanel,
+  TeamPanel,
   WorkspaceDocumentCard,
   WorkspaceTopicRow,
 } from "./_components/collection-workspace-components";
@@ -35,13 +36,54 @@ export default function CollectionWorkspacePage() {
     queryKey: ["collections", collectionId, "share"],
     queryFn: () => getCollectionShare(collectionId),
   });
+  const membersQuery = useQuery({
+    queryKey: ["collections", collectionId, "members"],
+    queryFn: () => listCollectionMembers(collectionId),
+  });
+  const auditQuery = useQuery({
+    queryKey: ["collections", collectionId, "audit"],
+    queryFn: () => listCollectionAuditEvents(collectionId),
+  });
+  const shareEventsQuery = useQuery({
+    queryKey: ["collections", collectionId, "share", "events"],
+    queryFn: () => listCollectionShareAskEvents(collectionId),
+    enabled: Boolean(shareQuery.data),
+  });
   const shareMutation = useMutation({
     mutationFn: createCollectionShare,
-    onSuccess: (share) => queryClient.setQueryData(["collections", collectionId, "share"], share),
+    onSuccess: (share) => {
+      queryClient.setQueryData(["collections", collectionId, "share"], share);
+      void queryClient.invalidateQueries({ queryKey: ["collections", collectionId, "share", "events"] });
+    },
   });
   const revokeShareMutation = useMutation({
     mutationFn: revokeCollectionShare,
     onSuccess: () => queryClient.setQueryData(["collections", collectionId, "share"], null),
+  });
+  const updateShareSettingsMutation = useMutation({
+    mutationFn: (payload: { ask_enabled?: boolean; daily_ask_limit?: number }) => updateCollectionShareSettings(collectionId, payload),
+    onSuccess: (share) => queryClient.setQueryData(["collections", collectionId, "share"], share),
+  });
+  const inviteMemberMutation = useMutation({
+    mutationFn: (payload: { email: string; role: "viewer" | "editor" }) => inviteCollectionMember(collectionId, payload),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["collections", collectionId, "members"] });
+      void queryClient.invalidateQueries({ queryKey: ["collections", collectionId, "audit"] });
+    },
+  });
+  const updateMemberRoleMutation = useMutation({
+    mutationFn: ({ memberId, role }: { memberId: string; role: "viewer" | "editor" }) => updateCollectionMemberRole(collectionId, memberId, { role }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["collections", collectionId, "members"] });
+      void queryClient.invalidateQueries({ queryKey: ["collections", collectionId, "audit"] });
+    },
+  });
+  const removeMemberMutation = useMutation({
+    mutationFn: (memberId: string) => removeCollectionMember(collectionId, memberId),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["collections", collectionId, "members"] });
+      void queryClient.invalidateQueries({ queryKey: ["collections", collectionId, "audit"] });
+    },
   });
   const createGapNoteMutation = useMutation({
     mutationFn: (gap: CollectionWorkspaceGap) =>
@@ -97,7 +139,7 @@ export default function CollectionWorkspacePage() {
       />
 
       {workspaceQuery.error ? (
-        <div className="rounded-md border border-red-500/20 bg-red-500/10 p-3 text-sm text-red-200">
+        <div className="rounded-md border border-white/10 bg-white/[0.04] p-3 text-sm text-neutral-300">
           {errorMessage(workspaceQuery.error)}
         </div>
       ) : null}
@@ -112,7 +154,27 @@ export default function CollectionWorkspacePage() {
             <MetricCard label="Gaps" value={workspace.gaps.length} detail="Coverage checks" icon={<AlertTriangle className="h-4 w-4" />} />
           </div>
 
-          {share ? <SharePanel share={share} /> : null}
+
+
+          <TeamPanel
+            members={membersQuery.data?.items ?? []}
+            auditEvents={auditQuery.data?.items ?? []}
+            pending={inviteMemberMutation.isPending || updateMemberRoleMutation.isPending || removeMemberMutation.isPending}
+            canManage={workspace.collection.access_role === "owner"}
+            onInvite={(payload) => inviteMemberMutation.mutate(payload)}
+            onRoleChange={(memberId, role) => updateMemberRoleMutation.mutate({ memberId, role })}
+            onRemove={(memberId) => removeMemberMutation.mutate(memberId)}
+          />
+
+          {share ? (
+            <SharePanel
+              share={share}
+              events={shareEventsQuery.data?.items ?? []}
+              settingsPending={updateShareSettingsMutation.isPending}
+              onToggleAsk={() => updateShareSettingsMutation.mutate({ ask_enabled: !share.ask_enabled })}
+              onDailyLimitChange={(dailyLimit) => updateShareSettingsMutation.mutate({ daily_ask_limit: dailyLimit })}
+            />
+          ) : null}
 
           <div className="grid gap-5 xl:grid-cols-[minmax(0,1.35fr)_minmax(320px,0.65fr)]">
             <SectionPanel title="Documents" description="Most recent sources in this workspace.">

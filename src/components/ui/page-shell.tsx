@@ -46,7 +46,7 @@ export function SectionPanel({
   actions?: ReactNode;
 }) {
   return (
-    <Card className={cn("overflow-hidden", className)}>
+    <Card className={cn("overflow-hidden", className)} role={title ? "region" : undefined} aria-label={title}>
       {title || description || actions ? (
         <CardHeader className="flex flex-row items-start justify-between gap-4">
           <div>

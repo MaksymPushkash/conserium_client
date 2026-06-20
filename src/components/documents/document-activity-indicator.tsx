@@ -11,7 +11,7 @@ const labels: Record<string, string> = {
 };
 
 const styles: Record<string, string> = {
-  hot: "border-emerald-500/30 bg-emerald-500/10 text-emerald-300",
+  hot: "border-white/20 bg-white/[0.07] text-neutral-100",
   cold: "border-neutral-500/30 bg-neutral-500/10 text-neutral-300",
   forgotten: "border-neutral-500/30 bg-neutral-500/10 text-neutral-400",
 };

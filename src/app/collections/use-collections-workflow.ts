@@ -3,7 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { FormEvent, useMemo, useState } from "react";
 
-import { createCollection, createCollectionShare, deleteCollection, listCollections, revokeCollectionShare, updateCollection } from "@/lib/api";
+import { createCollection, createCollectionShare, createWorkspace, deleteCollection, listCollections, listWorkspaces, revokeCollectionShare, updateCollection } from "@/lib/api";
 import type { CollectionShare } from "@/lib/types";
 
 export const COLLECTION_TEMPLATES = [
@@ -18,8 +18,15 @@ export function useCollectionsWorkflow() {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [renamingCollection, setRenamingCollection] = useState<{ id: string; name: string } | null>(null);
+  const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<string | null>(null);
+  const [workspaceFilterId, setWorkspaceFilterId] = useState<string | null>(null);
+  const [workspaceName, setWorkspaceName] = useState("");
+  const [workspaceDescription, setWorkspaceDescription] = useState("");
   const [shares, setShares] = useState<Record<string, CollectionShare>>({});
-  const collectionsQuery = useQuery({ queryKey: ["collections"], queryFn: () => listCollections({ limit: 100 }) });
+  const collectionsQuery = useQuery({ queryKey: ["collections", workspaceFilterId], queryFn: () => listCollections({ limit: 100, workspace_id: workspaceFilterId }) });
+  const workspacesQuery = useQuery({ queryKey: ["workspaces"], queryFn: () => listWorkspaces({ limit: 100 }) });
+  const workspaces = workspacesQuery.data?.items ?? [];
+  const writableWorkspaces = useMemo(() => workspaces.filter((workspace) => workspace.access_role === "owner" || workspace.access_role === "editor"), [workspaces]);
   const collections = collectionsQuery.data?.items ?? [];
   const recentlyUpdated = useMemo(() => collections.filter((collection) => collection.updated_at).length, [collections]);
 
@@ -29,6 +36,14 @@ export function useCollectionsWorkflow() {
       setName("");
       setDescription("");
       await queryClient.invalidateQueries({ queryKey: ["collections"] });
+    },
+  });
+  const createWorkspaceMutation = useMutation({
+    mutationFn: createWorkspace,
+    onSuccess: async () => {
+      setWorkspaceName("");
+      setWorkspaceDescription("");
+      await queryClient.invalidateQueries({ queryKey: ["workspaces"] });
     },
   });
   const updateMutation = useMutation({
@@ -62,7 +77,13 @@ export function useCollectionsWorkflow() {
   function createSelectedCollection() {
     const trimmed = name.trim();
     if (!trimmed) return;
-    createMutation.mutate({ name: trimmed, description: description.trim() || null });
+    createMutation.mutate({ name: trimmed, description: description.trim() || null, workspace_id: selectedWorkspaceId });
+  }
+
+  function createTeamWorkspace() {
+    const trimmed = workspaceName.trim();
+    if (!trimmed) return;
+    createWorkspaceMutation.mutate({ name: trimmed, description: workspaceDescription.trim() || null });
   }
 
   function applyTemplate(template: (typeof COLLECTION_TEMPLATES)[number]) {
@@ -82,19 +103,32 @@ export function useCollectionsWorkflow() {
     setName,
     description,
     setDescription,
+    selectedWorkspaceId,
+    setSelectedWorkspaceId,
+    workspaceFilterId,
+    setWorkspaceFilterId,
+    workspaceName,
+    setWorkspaceName,
+    workspaceDescription,
+    setWorkspaceDescription,
     renamingCollection,
     setRenamingCollection,
     shares,
     collections,
     collectionsQuery,
+    workspaces,
+    workspacesQuery,
+    writableWorkspaces,
     recentlyUpdated,
     createMutation,
+    createWorkspaceMutation,
     updateMutation,
     deleteMutation,
     shareMutation,
     revokeShareMutation,
     submit,
     createSelectedCollection,
+    createTeamWorkspace,
     applyTemplate,
     saveRename,
   };

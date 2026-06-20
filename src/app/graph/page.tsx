@@ -26,6 +26,7 @@ import { GraphListView } from "./_components/graph-list-view";
 import { GraphSideTools } from "./_components/graph-side-tools";
 import { GraphStats, ViewButton } from "./_components/graph-shared";
 import type { GraphTool, GraphView, PositionedNode } from "./_components/graph-types";
+import { emptyGraphFilters, graphFiltersFromParams, graphViewFromParam, noteContentFromNode, setOrDelete } from "./graph-page-helpers";
 import { useKnowledgeGraphLayout } from "./_hooks/use-knowledge-graph-layout";
 
 export default function GraphPage() {
@@ -118,7 +119,7 @@ export default function GraphPage() {
 
   const replaceGraphUrl = useCallback(
     (next: { view?: GraphView; query?: string; nodeId?: string | null; filters?: GraphFiltersValue }) => {
-      const params = new URLSearchParams(searchParams.toString());
+      const params = new URLSearchParams(typeof window === "undefined" ? searchParams.toString() : window.location.search);
       const nextView = next.view ?? view;
       const nextQuery = next.query ?? query;
       const nextNodeId = next.nodeId === undefined ? selectedNodeId : next.nodeId;
@@ -135,9 +136,14 @@ export default function GraphPage() {
       setOrDelete(params, "type", nextFilters.documentType);
       setOrDelete(params, "recency", nextFilters.recencyDays);
       const suffix = params.toString();
-      router.replace(suffix ? `${pathname}?${suffix}` : pathname, { scroll: false });
+      const nextUrl = suffix ? `${pathname}?${suffix}` : pathname;
+      if (typeof window === "undefined") {
+        router.replace(nextUrl, { scroll: false });
+      } else {
+        window.history.replaceState(null, "", nextUrl);
+      }
     },
-    [filters, pathname, query, router, searchParams, selectedNodeId, view],
+    [filters, pathname, query, router, selectedNodeId, view, searchParams],
   );
 
   useEffect(() => {
@@ -198,7 +204,7 @@ export default function GraphPage() {
       </header>
 
       {graphQuery.error ? (
-        <div className="rounded-md border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-200">
+        <div className="rounded-md border border-white/10 bg-white/[0.04] p-3 text-sm text-neutral-300">
           {errorMessage(graphQuery.error)}
         </div>
       ) : null}
@@ -310,39 +316,3 @@ type TopicManagementAction =
   | { type: "merge"; name: string; sourceNames: string[] }
   | { type: "pin"; name: string; pinned: boolean }
   | { type: "ignore"; name: string; ignored: boolean };
-
-function graphViewFromParam(value: string | null): GraphView {
-  return value === "list" ? "list" : "graph";
-}
-
-function graphFiltersFromParams(params: URLSearchParams): GraphFiltersValue {
-  return {
-    collectionId: params.get("collection") ?? "",
-    tag: params.get("tag") ?? "",
-    topic: params.get("topic") ?? "",
-    documentType: params.get("type") ?? "",
-    recencyDays: params.get("recency") ?? "",
-  };
-}
-
-function emptyGraphFilters(): GraphFiltersValue {
-  return { collectionId: "", tag: "", topic: "", documentType: "", recencyDays: "" };
-}
-
-function setOrDelete(params: URLSearchParams, key: string, value: string) {
-  if (value) params.set(key, value);
-  else params.delete(key);
-}
-
-function noteContentFromNode(node: PositionedNode, connections: PositionedNode[]) {
-  const connected = connections.slice(0, 8).map((connection) => `- ${connection.label} (${connection.kind})`).join("\n");
-  return [
-    `# ${node.label}`,
-    "",
-    `Type: ${node.kind}`,
-    node.detail ? `Detail: ${node.detail}` : null,
-    node.summary ? `Summary: ${node.summary}` : null,
-    connections.length ? "Connected nodes:" : null,
-    connected || null,
-  ].filter(Boolean).join("\n");
-}

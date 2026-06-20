@@ -86,7 +86,7 @@ export default function RepoSyncsPage() {
                 <select
                   value={selectedCollectionId}
                   onChange={(event) => setCollectionId(event.target.value)}
-                  className="h-10 rounded-md border border-white/10 bg-[#17171b] px-3 text-sm text-neutral-100 outline-none transition focus:border-white/25 focus:ring-2 focus:ring-white/15"
+                  className="h-10 rounded-md border border-white/10 bg-[#171717] px-3 text-sm text-neutral-100 outline-none transition focus:border-white/25 focus:ring-2 focus:ring-white/15"
                 >
                   {collections.map((collection) => (
                     <option key={collection.id} value={collection.id}>
@@ -110,7 +110,7 @@ export default function RepoSyncsPage() {
 
             {lastRunSummary ? <div className="rounded-md border border-white/10 bg-white/[0.04] p-3 text-sm text-neutral-300">{lastRunSummary}</div> : null}
             {lastRunWarnings.length ? (
-              <div className="grid gap-2 rounded-md border border-amber-500/20 bg-amber-500/10 p-3 text-sm text-amber-100">
+              <div className="grid gap-2 rounded-md border border-white/10 bg-white/[0.04] p-3 text-sm text-neutral-300">
                 {lastRunWarnings.map((warning) => (
                   <div key={warning} className="flex gap-2">
                     <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
@@ -132,7 +132,7 @@ export default function RepoSyncsPage() {
 
         <SectionPanel title="What gets indexed" description="Conserium indexes repository knowledge as searchable documents.">
           <div className="grid gap-3">
-            <IndexRule icon={<CheckCircle2 className="h-4 w-4 text-emerald-400" />} title="Markdown first" text="README files, docs folders, and markdown pages become documents." />
+            <IndexRule icon={<CheckCircle2 className="h-4 w-4 text-neutral-200" />} title="Markdown first" text="README files, docs folders, and markdown pages become documents." />
             <IndexRule icon={<GitBranch className="h-4 w-4 text-neutral-300" />} title="Branch scoped" text="Each sync uses the selected branch and stores the latest attempt state." />
             <IndexRule icon={<ShieldCheck className="h-4 w-4 text-neutral-300" />} title="Safe retries" text="Failures remain visible. Retry after fixing branch, access, or rate-limit issues." />
           </div>
@@ -181,7 +181,7 @@ function RepoSyncCard({ repoSync, onRun, isRunning }: { repoSync: RepoSync; onRu
           </div>
           <div className="rounded-md border border-white/10 bg-white/[0.035] p-3">
             <div className="font-jetbrains text-[11px] uppercase tracking-[0.18em] text-neutral-500">Latest failed attempt</div>
-            <div className={failed ? "mt-1 text-red-300" : "mt-1 text-neutral-400"}>{repoSync.last_error || "No recent failure"}</div>
+            <div className={failed ? "mt-1 text-neutral-400" : "mt-1 text-neutral-400"}>{repoSync.last_error || "No recent failure"}</div>
           </div>
         </div>
       </div>

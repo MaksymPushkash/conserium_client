@@ -25,7 +25,7 @@ export function UserMenu({
   return (
     <div className="relative border-t border-white/10 p-4">
       {open ? (
-        <div className="animate-soft-in absolute bottom-[76px] left-4 right-4 overflow-hidden rounded-lg border border-white/10 bg-[#131315] shadow-2xl shadow-black/60">
+        <div className="animate-soft-in absolute bottom-[76px] left-4 right-4 overflow-hidden rounded-lg border border-white/10 bg-[#131313] shadow-2xl shadow-black/60">
           <div className="flex items-center gap-3 border-b border-white/10 p-4">
             <span className="grid h-9 w-9 place-items-center rounded-full border border-white/10 bg-white/[0.04] text-sm text-neutral-300">
               {initial}

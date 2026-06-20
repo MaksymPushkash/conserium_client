@@ -13,9 +13,9 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { Select } from "@/components/ui/select";
-import { createKnowledgeGapNote, getKnowledgeGaps, listKnowledgeGaps, listTopics } from "@/lib/api";
+import { createKnowledgeGapNote, getKnowledgeGaps, listKnowledgeGaps, listLearningPaths, listQuizWeakAreas, listTopics } from "@/lib/api";
 import { errorMessage } from "@/lib/api/transport";
-import type { KnowledgeGapArea } from "@/lib/types";
+import type { KnowledgeGapArea, LearningPath } from "@/lib/types";
 
 export default function KnowledgeGapsPage() {
   const queryClient = useQueryClient();
@@ -23,6 +23,8 @@ export default function KnowledgeGapsPage() {
   const [topicInput, setTopicInput] = useState("");
   const topicsQuery = useQuery({ queryKey: ["topics", "knowledge-gaps"], queryFn: () => listTopics({ limit: 100 }) });
   const overviewQuery = useQuery({ queryKey: ["knowledge-gaps", "overview"], queryFn: () => listKnowledgeGaps({ limit: 8 }) });
+  const weakAreasQuery = useQuery({ queryKey: ["review", "quiz-weak-areas", "gaps"], queryFn: () => listQuizWeakAreas(8) });
+  const learningPathsQuery = useQuery({ queryKey: ["review", "learning-paths", "gaps"], queryFn: () => listLearningPaths(6) });
   const topics = topicsQuery.data?.items ?? [];
   const activeTopic = topicInput.trim() || selectedTopic || overviewQuery.data?.items[0]?.topic || topics[0]?.name || "";
   const gapsQuery = useQuery({
@@ -89,7 +91,7 @@ export default function KnowledgeGapsPage() {
           </form>
           <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_120px] md:items-center">
             <div className="relative">
-              <Progress value={coveragePercent} indicatorClassName={coveragePercent > 60 ? "bg-emerald-400" : "bg-yellow-300"} />
+              <Progress value={coveragePercent} indicatorClassName={coveragePercent > 60 ? "bg-neutral-200" : "bg-neutral-500"} />
               <span className="font-jetbrains absolute right-2 top-1/2 -translate-y-1/2 text-xs font-medium text-white drop-shadow">
                 {coveragePercent}%
               </span>
@@ -108,6 +110,32 @@ export default function KnowledgeGapsPage() {
           ) : null}
         </CardContent>
       </Card>
+
+      {learningPathsQuery.data?.items.length ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>Learning path progress</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <LearningPathProgressList paths={learningPathsQuery.data.items} />
+          </CardContent>
+        </Card>
+      ) : null}
+
+      {weakAreasQuery.data?.items.length ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>Quiz weak areas</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-wrap gap-2">
+              {weakAreasQuery.data.items.map((area) => (
+                <Badge key={area.name}>{area.name} x{area.count}</Badge>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      ) : null}
 
       {overviewQuery.data?.items.length ? (
         <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
@@ -129,7 +157,7 @@ export default function KnowledgeGapsPage() {
       ) : null}
 
       {topicsQuery.error || overviewQuery.error || gapsQuery.error ? (
-        <div className="rounded-md border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-200">
+        <div className="rounded-md border border-white/10 bg-white/[0.04] p-3 text-sm text-neutral-300">
           {errorMessage(topicsQuery.error ?? overviewQuery.error ?? gapsQuery.error)}
         </div>
       ) : null}
@@ -144,7 +172,7 @@ export default function KnowledgeGapsPage() {
               </CardHeader>
               <CardContent className="space-y-3">
                 <div className="flex items-center gap-2 text-sm text-neutral-300">
-                  {area.covered ? <Check className="h-4 w-4 text-emerald-400" /> : <X className="h-4 w-4 text-red-400" />}
+                  {area.covered ? <Check className="h-4 w-4 text-neutral-200" /> : <X className="h-4 w-4 text-neutral-500" />}
                   {area.why_detected}
                 </div>
                 <p className="text-sm leading-6 text-neutral-500">{area.rationale}</p>
@@ -185,6 +213,28 @@ export default function KnowledgeGapsPage() {
           description="Type any topic above to run a coverage check, or ingest documents first so Conserium can suggest topics automatically."
         />
       ) : null}
+    </div>
+  );
+}
+
+
+function LearningPathProgressList({ paths }: { paths: LearningPath[] }) {
+  return (
+    <div className="grid gap-3 md:grid-cols-2">
+      {paths.slice(0, 4).map((path) => {
+        const done = path.steps.filter((step) => step.status === "done").length;
+        const total = path.steps.length;
+        const progress = total ? Math.round((done / total) * 100) : 0;
+        return (
+          <div key={path.id} className="rounded-md border border-white/10 bg-white/[0.025] p-3">
+            <div className="truncate text-sm font-medium text-white">{path.title}</div>
+            <div className="font-jetbrains mt-1 text-xs text-neutral-500">{done}/{total} complete - {progress}%</div>
+            <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/[0.06]">
+              <div className="h-full bg-white" style={{ width: `${progress}%` }} />
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 }

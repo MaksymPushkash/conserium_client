@@ -37,8 +37,8 @@ function TimelineStep({ step }: { step: DocumentProcessingStep }) {
 }
 
 function markerStyle(state: string) {
-  if (state === "complete") return "border-emerald-400 bg-emerald-400";
-  if (state === "current") return "border-amber-300 bg-amber-300";
-  if (state === "failed") return "border-red-400 bg-red-400";
+  if (state === "complete") return "border-neutral-200 bg-neutral-200";
+  if (state === "current") return "border-neutral-400 bg-neutral-400";
+  if (state === "failed") return "border-neutral-500 bg-neutral-500";
   return "border-white/20 bg-transparent";
 }

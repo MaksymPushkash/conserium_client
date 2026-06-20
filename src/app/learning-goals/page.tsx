@@ -12,8 +12,10 @@ import { StatusBadge } from "@/components/ui/status-badge";
 import {
   errorMessage,
   listLearningGoalResources,
+  listLearningPaths,
+  listQuizWeakAreas,
 } from "@/lib/api";
-import type { LearningGoal, RankedLearningResource } from "@/lib/types";
+import type { LearningGoal, LearningPath, RankedLearningResource } from "@/lib/types";
 import { useLearningGoalsWorkflow } from "./use-learning-goals-workflow";
 
 export default function LearningGoalsPage() {
@@ -31,6 +33,8 @@ export default function LearningGoalsPage() {
     deleteMutation,
     refreshAllResourcesMutation,
   } = workflow;
+  const weakAreasQuery = useQuery({ queryKey: ["review", "quiz-weak-areas", "goals"], queryFn: () => listQuizWeakAreas(8) });
+  const learningPathsQuery = useQuery({ queryKey: ["review", "learning-paths", "goals"], queryFn: () => listLearningPaths(6) });
 
   return (
     <PageShell className="max-w-7xl space-y-5">
@@ -78,8 +82,24 @@ export default function LearningGoalsPage() {
           </form>
       </SectionPanel>
 
+      {learningPathsQuery.data?.items.length ? (
+        <SectionPanel title="Learning path progress" description="Ordered study paths feed goal planning.">
+          <LearningPathProgressList paths={learningPathsQuery.data.items} />
+        </SectionPanel>
+      ) : null}
+
+      {weakAreasQuery.data?.items.length ? (
+        <SectionPanel title="Quiz weak areas" description="Missed quiz topics feed the next learning focus.">
+          <div className="flex flex-wrap gap-2">
+            {weakAreasQuery.data.items.map((area) => (
+              <Badge key={area.name}>{area.name} x{area.count}</Badge>
+            ))}
+          </div>
+        </SectionPanel>
+      ) : null}
+
       {goalsQuery.error || createMutation.error || updateMutation.error || deleteMutation.error || refreshAllResourcesMutation.error ? (
-        <div className="rounded-md border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-200">
+        <div className="rounded-md border border-white/10 bg-white/[0.04] p-3 text-sm text-neutral-300">
           {errorMessage(
             goalsQuery.error ??
               createMutation.error ??
@@ -112,7 +132,7 @@ export default function LearningGoalsPage() {
                   </div>
                   <div className="h-2 overflow-hidden rounded-full bg-white/10">
                     <div
-                      className={`h-full transition-all duration-500 ${progress > 0 ? "bg-emerald-400" : "bg-neutral-500"}`}
+                      className={`h-full transition-all duration-500 ${progress > 0 ? "bg-neutral-200" : "bg-neutral-500"}`}
                       style={{ width: `${progress}%` }}
                     />
                   </div>
@@ -219,7 +239,7 @@ function LearningResources({ goal }: { goal: LearningGoal }) {
         </Button>
       </div>
       {resourcesQuery.error || refreshMutation.error ? (
-        <div className="rounded-md border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-200">
+        <div className="rounded-md border border-white/10 bg-white/[0.04] p-3 text-sm text-neutral-300">
           {errorMessage(resourcesQuery.error ?? refreshMutation.error)}
         </div>
       ) : null}
@@ -261,4 +281,26 @@ function deadlineLabel(status: string, daysRemaining: number) {
     return "due today";
   }
   return `${daysRemaining}d left`;
+}
+
+
+function LearningPathProgressList({ paths }: { paths: LearningPath[] }) {
+  return (
+    <div className="grid gap-3 md:grid-cols-2">
+      {paths.slice(0, 4).map((path) => {
+        const done = path.steps.filter((step) => step.status === "done").length;
+        const total = path.steps.length;
+        const progress = total ? Math.round((done / total) * 100) : 0;
+        return (
+          <div key={path.id} className="rounded-md border border-white/10 bg-white/[0.025] p-3">
+            <div className="truncate text-sm font-medium text-white">{path.title}</div>
+            <div className="font-jetbrains mt-1 text-xs text-neutral-500">{done}/{total} complete - {progress}%</div>
+            <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/[0.06]">
+              <div className="h-full bg-white" style={{ width: `${progress}%` }} />
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
 }

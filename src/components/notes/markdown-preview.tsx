@@ -1,11 +1,14 @@
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
-export function MarkdownPreview({ title, content }: { title: string; content: string }) {
+export function MarkdownPreview({ title, content }: { title?: string | null; content?: string | null }) {
+  const safeTitle = title ?? "";
+  const safeContent = content ?? "";
+
   return (
     <article className="min-h-[62vh] text-neutral-100">
-      <h1 className="text-3xl font-light tracking-normal text-white">{title.trim() || "Untitled"}</h1>
-      {content.trim() ? (
+      <h1 className="text-3xl font-light tracking-normal text-white">{safeTitle.trim() || "Untitled"}</h1>
+      {safeContent.trim() ? (
         <div className="mt-10 space-y-4 text-sm font-light leading-8 text-neutral-200">
           <ReactMarkdown
             remarkPlugins={[remarkGfm]}
@@ -27,7 +30,7 @@ export function MarkdownPreview({ title, content }: { title: string; content: st
               td: ({ children }) => <td className="border border-white/10 px-3 py-2 text-neutral-400">{children}</td>,
             }}
           >
-            {content}
+            {safeContent}
           </ReactMarkdown>
         </div>
       ) : (

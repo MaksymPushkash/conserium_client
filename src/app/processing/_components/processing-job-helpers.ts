@@ -39,7 +39,7 @@ export function buildJobs({
       updatedAt: sync.last_synced_at ?? sync.created_at,
       repoSync: sync,
     }));
-  return [...documentJobs, ...repoJobs, exportPlaceholder()].sort((left, right) => stateRank(left.state) - stateRank(right.state));
+  return [...documentJobs, ...repoJobs].sort((left, right) => stateRank(left.state) - stateRank(right.state));
 }
 
 export function retryJob(job: ProcessingJob, retryDocumentJob: (id: string) => void, retryRepoJob: (id: string) => void) {
@@ -59,19 +59,6 @@ export function reasonForStatus(status: string, kind: JobKind): string {
   if (status === "running") return "Repository sync is fetching and comparing source files.";
   if (status === "queueing") return "Repository sync created work and is waiting for the outbox drainer.";
   return "No detailed error reason was recorded.";
-}
-
-function exportPlaceholder(): ProcessingJob {
-  return {
-    id: "exports:sync",
-    kind: "export",
-    title: "Exports",
-    subtitle: "Markdown, PDF, Notion",
-    status: "idle",
-    state: "idle",
-    reason: null,
-    updatedAt: null,
-  };
 }
 
 function documentJobSubtitle(status: string): string {

@@ -188,10 +188,10 @@ function ProductPreview() {
 
 function PreviewStatus({ status }: { status: string }) {
   const colors: Record<string, string> = {
-    READY: "text-emerald-400",
-    FAILED: "text-red-400",
-    PROCESSING: "text-orange-400",
-    QUEUED: "text-sky-400",
+    READY: "text-neutral-200",
+    FAILED: "text-neutral-500",
+    PROCESSING: "text-neutral-300",
+    QUEUED: "text-neutral-400",
     PENDING: "text-neutral-500",
   };
 

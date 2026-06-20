@@ -38,15 +38,16 @@ export default function IngestPage() {
   } = workflow;
 
   return (
-    <PageShell className="grid max-w-7xl gap-6 md:grid-cols-[minmax(0,1fr)_360px]">
-      <section className="space-y-6">
-        <PageHeader
-          eyebrow="Add source"
-          title="Ingest content"
-          description="Drop files, paste text, or index a URL. Conserium extracts, embeds, summarizes, and makes the source searchable."
-        />
+    <PageShell className="max-w-7xl space-y-6">
+      <PageHeader
+        eyebrow="Add source"
+        title="Ingest content"
+        description="Drop files, paste text, or index a URL. Conserium extracts, embeds, summarizes, and makes the source searchable."
+      />
 
-        <Card className="overflow-hidden">
+      <div className="grid gap-6 md:grid-cols-[minmax(0,1fr)_360px]">
+        <section>
+          <Card className="overflow-hidden">
           <CardHeader className="flex flex-col gap-1">
             <CardTitle>Source type</CardTitle>
             <p className="text-xs text-neutral-400">1. Choose source, 2. add details, 3. queue ingestion.</p>
@@ -114,11 +115,22 @@ export default function IngestPage() {
                   <option value="" className="bg-black text-neutral-200">
                     No collection
                   </option>
-                  {collectionsQuery.data?.items.map((collection) => (
-                    <option key={collection.id} value={collection.id} className="bg-black text-neutral-200">
-                      {collection.name}
-                    </option>
-                  ))}
+                  {collectionsQuery.data?.items.map((collection) => {
+                    const isViewer = collection.access_role === "viewer";
+                    const accessLabel =
+                      collection.access_role === "owner"
+                        ? collection.workspace_id
+                          ? "workspace owner"
+                          : "owner"
+                        : collection.access_role === "editor"
+                          ? "shared editor"
+                          : "view only";
+                    return (
+                      <option key={collection.id} value={collection.id} disabled={isViewer} className="bg-black text-neutral-200">
+                        {collection.name} - {accessLabel}
+                      </option>
+                    );
+                  })}
                 </select>
               </div>
 
@@ -157,7 +169,7 @@ export default function IngestPage() {
               ) : null}
 
               {mutation.error ? (
-                <div className="rounded-md border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-200">
+                <div className="rounded-md border border-white/10 bg-white/[0.04] p-3 text-sm text-neutral-300">
                   {errorMessage(mutation.error)}
                 </div>
               ) : null}
@@ -170,15 +182,15 @@ export default function IngestPage() {
               </div>
             </form>
           </CardContent>
-        </Card>
-      </section>
+          </Card>
+        </section>
 
-      <aside className="space-y-4">
+        <aside className="space-y-4">
         <SectionPanel title="What gets indexed" description="Conserium stores normalized text, metadata, embeddings, summaries, tags, topics, and citations.">
           <div className="space-y-3 text-sm">
             {["Source metadata", "Extracted text", "Embeddings", "Summary and topics"].map((item) => (
               <div key={item} className="flex items-center gap-3 rounded-lg border border-white/10 bg-black/25 px-3 py-2 text-neutral-300">
-                <CheckCircle2 className="h-4 w-4 text-emerald-400" />
+                <CheckCircle2 className="h-4 w-4 text-neutral-300" />
                 {item}
               </div>
             ))}
@@ -201,7 +213,7 @@ export default function IngestPage() {
                 {(status?.status ?? trackedDocument.status) !== "READY" ? (
                   <div className="text-sm text-neutral-500">{status?.message ?? "Waiting for worker status..."}</div>
                 ) : null}
-                {status?.failure_reason ? <div className="text-sm text-red-400">{status.failure_reason}</div> : null}
+                {status?.failure_reason ? <div className="text-sm text-neutral-500">{status.failure_reason}</div> : null}
                 {status?.timeline?.length ? (
                   <div className="space-y-3 pt-2">
                     {status.timeline.map((step) => (
@@ -211,11 +223,11 @@ export default function IngestPage() {
                           className={cn(
                             "font-jetbrains",
                             step.state === "failed"
-                              ? "text-red-400"
+                              ? "text-neutral-500"
                               : step.state === "complete"
                                 ? "text-neutral-300"
                                 : step.state === "current"
-                                  ? "text-amber-300"
+                                  ? "text-neutral-200"
                                   : "text-neutral-500",
                           )}
                         >
@@ -231,7 +243,8 @@ export default function IngestPage() {
             )}
           </CardContent>
         </Card>
-      </aside>
+        </aside>
+      </div>
     </PageShell>
   );
 }

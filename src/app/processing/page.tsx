@@ -1,7 +1,7 @@
 "use client";
 
 import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
-import { AlertTriangle, FileText, RefreshCw, ServerCog, UploadCloud } from "lucide-react";
+import { AlertTriangle, FileArchive, FileText, RefreshCw, ServerCog, UploadCloud } from "lucide-react";
 import { useMemo, useState } from "react";
 
 import { EmptyState } from "@/components/ui/empty-state";
@@ -111,7 +111,8 @@ export default function ProcessingPage() {
       {repoSyncsQuery.error ? <ErrorBanner message={errorMessage(repoSyncsQuery.error)} /> : null}
 
       <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_420px]">
-        <SectionPanel title="Jobs" description="Active and failed work across ingestion and sync pipelines.">
+        <div className="space-y-5">
+          <SectionPanel title="Jobs" description="Active and failed work across ingestion and sync pipelines.">
           {jobs.length ? (
             <div className="grid gap-3">
               {jobs.map((job) => (
@@ -130,10 +131,28 @@ export default function ProcessingPage() {
               icon={<ServerCog className="h-5 w-5" />}
               title="No active or failed jobs"
               description="Documents process automatically after ingestion. Queued, processing, and failed work will appear here when Conserium is busy."
-              action={<LinkButton href="/ingest">Add source</LinkButton>}
+              action={<LinkButton href="/ingest" variant="secondary">Add source</LinkButton>}
             />
           )}
-        </SectionPanel>
+          </SectionPanel>
+
+          <SectionPanel title="Exports" description="Exports run from the object that owns the output.">
+            <div className="grid gap-3 sm:grid-cols-3">
+              <LinkButton href="/drafts" variant="secondary">
+                <FileArchive className="h-4 w-4" />
+                Draft exports
+              </LinkButton>
+              <LinkButton href="/library" variant="secondary">
+                <FileText className="h-4 w-4" />
+                Documents
+              </LinkButton>
+              <LinkButton href="/settings#integrations" variant="secondary">
+                <UploadCloud className="h-4 w-4" />
+                Notion
+              </LinkButton>
+            </div>
+          </SectionPanel>
+        </div>
 
         <ProcessingJobDetail
           selectedJob={selectedJob}

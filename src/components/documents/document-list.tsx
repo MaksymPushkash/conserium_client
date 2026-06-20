@@ -56,7 +56,7 @@ export function DocumentList({ documents, selectedIds, searchSnippets = {}, onTo
                   ))}
                 </div>
               ) : null}
-              {document.is_duplicate ? <div className="mt-1 text-xs text-red-400">Possible duplicate of {document.duplicate_of_id}</div> : null}
+              {document.is_duplicate ? <div className="mt-1 text-xs text-neutral-500">Possible duplicate of {document.duplicate_of_id}</div> : null}
             </Link>
             <div className="font-jetbrains text-sm text-neutral-500">{document.word_count ?? "—"} words</div>
             <StatusPill status={document.status} />

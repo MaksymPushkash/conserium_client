@@ -22,7 +22,7 @@ export function HighlightedContent({ content, start, end }: HighlightedContentPr
     <div className="max-h-[65vh] overflow-auto pr-2">
       <pre className={contentClassName}>
         {content.slice(0, start)}
-        <mark className="rounded bg-yellow-300 px-1 text-black">{content.slice(start, end)}</mark>
+        <mark className="rounded bg-neutral-200 px-1 text-black">{content.slice(start, end)}</mark>
         {content.slice(end)}
       </pre>
     </div>

@@ -78,7 +78,7 @@ export default function TopicDetailPage() {
       </header>
 
       {topicQuery.error ? (
-        <div className="rounded-md border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-200">
+        <div className="rounded-md border border-white/10 bg-white/[0.04] p-3 text-sm text-neutral-300">
           {errorMessage(topicQuery.error)}
         </div>
       ) : null}
@@ -144,7 +144,7 @@ export default function TopicDetailPage() {
                 {topic.ignored ? "Unignore" : confirmIgnore ? "Confirm ignore" : "Ignore"}
               </Button>
             </div>
-            {topicAction.error ? <p className="text-sm text-red-300 lg:col-span-2">{errorMessage(topicAction.error)}</p> : null}
+            {topicAction.error ? <p className="text-sm text-neutral-400 lg:col-span-2">{errorMessage(topicAction.error)}</p> : null}
           </CardContent>
         </Card>
       ) : null}

@@ -171,7 +171,7 @@ export function CommandPalette() {
   return open ? (
     <div className="animate-overlay-in fixed inset-0 z-50 bg-black/78 backdrop-blur-lg" onMouseDown={() => setOpen(false)}>
       <div
-        className="animate-palette-in mx-auto mt-[8vh] flex max-h-[82vh] w-[min(94vw,680px)] flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#111118] shadow-2xl shadow-black/60"
+        className="animate-palette-in mx-auto mt-[8vh] flex max-h-[82vh] w-[min(94vw,680px)] flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#111111] shadow-2xl shadow-black/60"
         onMouseDown={(event) => event.stopPropagation()}
       >
         <div className="flex items-center gap-3 border-b border-white/10 p-3">

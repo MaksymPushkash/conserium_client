@@ -2,13 +2,16 @@
 
 import { BookOpen, FilePlus, FileText, MessageSquareText } from "lucide-react";
 import Link from "next/link";
-import type { ReactNode } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 
 import { Button } from "@/components/ui/button";
 import { SectionPanel } from "@/components/ui/page-shell";
 import { StatusBadge } from "@/components/ui/status-badge";
 import type {
+  CollectionAuditEvent,
+  CollectionMember,
   CollectionShare,
+  PublicAskEvent,
   CollectionWorkspaceComparison,
   CollectionWorkspaceDocument,
   CollectionWorkspaceDraft,
@@ -150,17 +153,181 @@ export function QuestionCard({ question }: { question: CollectionWorkspaceQuesti
   );
 }
 
-export function SharePanel({ share }: { share: CollectionShare }) {
+export function SharePanel({ share, events, settingsPending, onToggleAsk, onDailyLimitChange }: { share: CollectionShare; events: PublicAskEvent[]; settingsPending: boolean; onToggleAsk: () => void; onDailyLimitChange: (dailyLimit: number) => void }) {
   return (
     <SectionPanel title="Public share" description="This collection has an active public page.">
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-        <div className="font-jetbrains break-all text-sm text-neutral-300">{`/public/${share.slug}`}</div>
-        <LinkButton href={`/public/${share.slug}`} variant="secondary">
-          Open public page
-        </LinkButton>
+        <div>
+          <div className="font-jetbrains break-all text-sm text-neutral-300">{`/public/${share.slug}`}</div>
+          <div className="font-jetbrains mt-1 text-xs text-neutral-500">
+            Public Ask {share.ask_enabled ? "enabled" : "disabled"} / {share.daily_ask_limit} asks per day
+          </div>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Button variant="secondary" onClick={onToggleAsk} disabled={settingsPending}>
+            {share.ask_enabled ? "Disable Ask" : "Enable Ask"}
+          </Button>
+          <LinkButton href={`/public/${share.slug}`} variant="secondary">
+            Open public page
+          </LinkButton>
+        </div>
+      </div>
+      <div className="mt-4 grid gap-3 md:grid-cols-[220px_minmax(0,1fr)]">
+        <label className="grid gap-1 text-sm text-neutral-300">
+          Daily Ask limit
+          <input
+            type="number"
+            min={1}
+            max={500}
+            defaultValue={share.daily_ask_limit}
+            disabled={settingsPending}
+            onBlur={(event) => {
+              const value = Number(event.currentTarget.value);
+              if (Number.isFinite(value) && value >= 1 && value <= 500 && value !== share.daily_ask_limit) {
+                onDailyLimitChange(Math.round(value));
+              }
+            }}
+            className="h-9 rounded-md border border-white/10 bg-black px-3 text-sm text-white outline-none focus:border-white/30"
+          />
+        </label>
+        <div className="rounded-md border border-white/10 bg-black/40 p-3">
+          <div className="text-sm text-neutral-100">Recent public Ask events</div>
+          <div className="mt-2 grid gap-2">
+            {events.length ? events.slice(0, 5).map((event) => (
+              <div key={event.id} className="grid gap-1 rounded-md border border-white/10 bg-white/[0.03] p-2 text-xs">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <span className="font-medium text-neutral-200">{event.status === "allowed" ? "Allowed" : "Blocked"}</span>
+                  <span className="font-jetbrains text-neutral-500">{formatDateTime(event.created_at)}</span>
+                </div>
+                <div className="line-clamp-1 text-neutral-400">{event.query_text}</div>
+                {event.reason ? <div className="font-jetbrains text-neutral-600">{event.reason}</div> : null}
+              </div>
+            )) : (
+              <div className="rounded-md border border-dashed border-white/10 p-3 text-xs text-neutral-500">No public Ask events yet.</div>
+            )}
+          </div>
+        </div>
       </div>
     </SectionPanel>
   );
+}
+
+
+export function TeamPanel({
+  members,
+  auditEvents,
+  pending,
+  canManage,
+  onInvite,
+  onRoleChange,
+  onRemove,
+}: {
+  members: CollectionMember[];
+  auditEvents: CollectionAuditEvent[];
+  pending: boolean;
+  canManage: boolean;
+  onInvite: (payload: { email: string; role: "viewer" | "editor" }) => void;
+  onRoleChange: (memberId: string, role: "viewer" | "editor") => void;
+  onRemove: (memberId: string) => void;
+}) {
+  const [search, setSearch] = useState("");
+  const filteredMembers = useMemo(() => {
+    const term = search.trim().toLowerCase();
+    if (!term) return members;
+    return members.filter((member) => member.email.toLowerCase().includes(term) || member.role.toLowerCase().includes(term));
+  }, [members, search]);
+
+  return (
+    <SectionPanel title="Team workspace" description="Workspace members inherit collection access from their role.">
+      {canManage ? (
+        <form
+          className="grid gap-2 md:grid-cols-[minmax(0,1fr)_140px_auto]"
+          onSubmit={(event) => {
+            event.preventDefault();
+            const form = new FormData(event.currentTarget);
+            const email = String(form.get("email") ?? "").trim();
+            const role = String(form.get("role") ?? "viewer") as "viewer" | "editor";
+            if (!email) return;
+            onInvite({ email, role });
+            event.currentTarget.reset();
+          }}
+        >
+          <input name="email" type="email" placeholder="teammate@example.com" className="h-10 rounded-md border border-white/10 bg-black px-3 text-sm text-white outline-none focus:border-white/30" />
+          <select name="role" defaultValue="viewer" className="h-10 rounded-md border border-white/10 bg-black px-3 text-sm text-white outline-none focus:border-white/30">
+            <option value="viewer">Viewer</option>
+            <option value="editor">Editor</option>
+          </select>
+          <Button type="submit" variant="secondary" disabled={pending}>Invite</Button>
+        </form>
+      ) : (
+        <EmptyPanelText>Only workspace owners can invite members or change roles.</EmptyPanelText>
+      )}
+
+      <div className="mt-4 grid gap-3 lg:grid-cols-2">
+        <div className="grid gap-2">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="text-sm font-medium text-white">Members</div>
+            <input
+              value={search}
+              onChange={(event) => setSearch(event.currentTarget.value)}
+              placeholder="Search members"
+              className="h-8 w-full rounded-md border border-white/10 bg-black px-3 text-xs text-white outline-none focus:border-white/30 sm:w-44"
+            />
+          </div>
+          {filteredMembers.length ? filteredMembers.map((member) => (
+            <div key={member.id} className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-white/10 bg-white/[0.03] p-3">
+              <div className="min-w-0">
+                <div className="truncate text-sm text-white">{member.email}</div>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  <RoleBadge role={member.role} />
+                  <StatusPill>{member.invite_status === "active" || member.user_id ? "Active" : "Pending invite"}</StatusPill>
+                </div>
+              </div>
+              {canManage ? (
+                <div className="flex items-center gap-2">
+                  <select
+                    value={member.role}
+                    disabled={pending}
+                    onChange={(event) => onRoleChange(member.id, event.currentTarget.value as "viewer" | "editor")}
+                    className="h-8 rounded-md border border-white/10 bg-black px-2 text-xs text-white outline-none focus:border-white/30"
+                  >
+                    <option value="viewer">Viewer</option>
+                    <option value="editor">Editor</option>
+                  </select>
+                  <Button size="sm" variant="ghost" disabled={pending} onClick={() => onRemove(member.id)}>Remove</Button>
+                </div>
+              ) : null}
+            </div>
+          )) : (
+            <EmptyPanelText>{members.length ? "No members match that search." : "No team members yet."}</EmptyPanelText>
+          )}
+        </div>
+
+        <div className="grid gap-2">
+          <div className="text-sm font-medium text-white">Audit trail</div>
+          {auditEvents.length ? auditEvents.slice(0, 6).map((event) => (
+            <div key={event.id} className="rounded-md border border-white/10 bg-white/[0.03] p-3">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <span className="text-sm text-white">{event.event_type.replaceAll("_", " ")}</span>
+                <span className="font-jetbrains text-xs text-neutral-500">{formatDateTime(event.created_at)}</span>
+              </div>
+              <div className="font-jetbrains mt-2 line-clamp-2 text-xs text-neutral-500">{JSON.stringify(event.metadata)}</div>
+            </div>
+          )) : (
+            <EmptyPanelText>No collection audit events yet.</EmptyPanelText>
+          )}
+        </div>
+      </div>
+    </SectionPanel>
+  );
+}
+
+function RoleBadge({ role }: { role: string }) {
+  return <StatusPill>{role === "editor" ? "Editor access" : role === "owner" ? "Owner" : "Viewer access"}</StatusPill>;
+}
+
+function StatusPill({ children }: { children: ReactNode }) {
+  return <span className="font-jetbrains rounded-full border border-white/10 bg-white/[0.04] px-2 py-1 text-[10px] uppercase tracking-[0.14em] text-neutral-400">{children}</span>;
 }
 
 export function LinkButton({ href, variant = "secondary", children }: { href: string; variant?: "default" | "secondary"; children: ReactNode }) {

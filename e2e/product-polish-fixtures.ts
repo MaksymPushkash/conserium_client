@@ -1,14 +1,20 @@
 import { expect, type Page, type Route } from "@playwright/test";
 
 export async function signIn(page: Page) {
-  await page.goto("/auth");
-  await page.getByPlaceholder("Email").fill("max@example.com");
-  await page.getByPlaceholder("Password").fill("password");
-  await page.getByRole("button", { name: /sign in/i }).click();
-  await expect(page).toHaveURL(/dashboard/);
+  await page.addInitScript(() => {
+    window.localStorage.setItem(
+      "conserium-session",
+      JSON.stringify({ state: { accessToken: "test-token" }, version: 0 }),
+    );
+  });
+  await expect(async () => {
+    await page.goto("/dashboard");
+    await expect(page).toHaveURL(/dashboard/);
+    await expect(page.getByRole("heading", { name: "Knowledge workspace" })).toBeVisible({ timeout: 3_000 });
+  }).toPass({ timeout: 15_000 });
 }
 
-export async function mockApi(page: Page) {
+export async function mockApi(page: Page, options: { theme?: "dark" | "light" } = {}) {
   await page.route("**/api/v1/**", async (route) => {
     const request = route.request();
     const url = new URL(request.url());
@@ -16,8 +22,17 @@ export async function mockApi(page: Page) {
     if (path === "/auth/login") return json(route, { access_token: "test-token" });
     if (path === "/auth/refresh") return json(route, { access_token: "test-token" });
     if (path === "/users/me") return json(route, user());
-    if (path === "/users/preferences") return json(route, preferences());
+    if (path === "/users/preferences") return json(route, preferences(options.theme ?? "dark"));
     if (path === "/collections") return json(route, collections());
+    if (path === "/workspaces") return json(route, workspaces());
+    if (path === "/workspaces/workspace-1" && request.method() === "PATCH") return json(route, updatedWorkspace());
+    if (path === "/workspaces/workspace-1" && request.method() === "DELETE") return json(route, null, 204);
+    if (path === "/workspaces/workspace-1/members") return json(route, workspaceMembers());
+    if (path === "/workspaces/workspace-1/transfer-ownership") return json(route, transferredWorkspace());
+    if (path === "/workspaces/workspace-1/audit") return json(route, workspaceAudit());
+    if (path === "/public/collections/public-cloud") return json(route, publicCollection());
+    if (path === "/public/collections/public-cloud/query") return json(route, publicCollectionQuery());
+    if (path === "/public/answers/share-cloud") return json(route, publicAnswerShare());
     if (path === "/collections/collection-1/workspace") return json(route, collectionWorkspace());
     if (path === "/collections/collection-1/share") return json(route, null);
     if (path === "/topics") return json(route, topics());
@@ -28,6 +43,16 @@ export async function mockApi(page: Page) {
     if (path === "/documents/doc-1/status") return json(route, readyDocumentStatus("doc-1"));
     if (path === "/documents/doc-1/questions") return json(route, documentQuestionHistory());
     if (path === "/documents/doc-failed/status") return json(route, failedDocumentStatus());
+    if (path === "/review/flashcards/due") return json(route, { items: [], total: 0, limit: 20 });
+    if (path === "/review/quizzes/history") return json(route, quizHistory());
+    if (path === "/review/quizzes/attempts") return json(route, quizAttempts());
+    if (path === "/review/quizzes/weak-areas") return json(route, quizWeakAreas());
+    if (path === "/review/quizzes/generate") return json(route, quiz(), 201);
+    if (path === "/review/quizzes/quiz-1/submit") return json(route, quizAttempt());
+    if (path === "/review/learning-paths") return json(route, learningPaths());
+    if (path === "/review/learning-paths/generate") return json(route, learningPath(), 201);
+    if (path === "/review/learning-paths/path-1/steps/step-1") return json(route, learningPath("done"));
+    if (path === "/review/learning-paths/path-1/regenerate") return json(route, learningPath(), 201);
     if (path === "/stats/overview") return json(route, statsOverview());
     if (path === "/stats/timeline") return json(route, statsTimeline());
     if (path === "/learning-goals/reminders") return json(route, []);
@@ -42,6 +67,8 @@ export async function mockApi(page: Page) {
     if (path === "/knowledge-graph") return json(route, graph());
     if (path === "/knowledge-graph/concerns") return json(route, concern(), 201);
     if (path === "/integrations/notion") return json(route, { connected: false });
+    if (path === "/answer-shares") return json(route, answerShares());
+    if (path === "/answer-shares/share-cloud" && request.method() === "DELETE") return json(route, null, 204);
     if (path === "/api-keys") {
       if (request.method() === "POST") return json(route, createdApiKey(), 201);
       return json(route, apiKeys());
@@ -70,6 +97,74 @@ export function json(route: Route, body: unknown, status = 200) {
   });
 }
 
+
+function publicCollection() {
+  return {
+    id: "collection-public",
+    name: "Public Cloud Notes",
+    description: "Shared notes about durable cloud storage.",
+    color: null,
+    documents: [
+      {
+        id: "public-doc-1",
+        title: "Cloud Storage Primer",
+        type: "TEXT",
+        status: "READY",
+        source_url: "https://example.com/cloud-storage",
+        summary: "Cloud storage keeps data durable through replication and recovery workflows.",
+        word_count: 640,
+        language: "en",
+        tags: ["cloud", "storage"],
+        created_at: "2026-05-20T00:00:00Z",
+        updated_at: null,
+        archived_at: null,
+      },
+    ],
+    created_at: "2026-05-20T00:00:00Z",
+    updated_at: null,
+  };
+}
+
+function publicCollectionQuery() {
+  return {
+    query: "How is cloud storage durable?",
+    answer: "Cloud storage is durable because data is replicated and recovery workflows validate copies [1].",
+    sources: [
+      {
+        document_title: "Cloud Storage Primer",
+        content: "Cloud storage keeps data durable through replication and recovery workflows.",
+        page_number: null,
+        chunk_index: 0,
+        citation: "[1]",
+        used_in_answer: true,
+      },
+    ],
+    suggested_follow_up_questions: ["What can fail in replication?"],
+    share: publicAnswerShare(),
+  };
+}
+
+function publicAnswerShare() {
+  return {
+    slug: "share-cloud",
+    url_path: "/public/answers/share-cloud",
+    query: "How is cloud storage durable?",
+    answer: "Cloud storage is durable because data is replicated and recovery workflows validate copies [1].",
+    sources: [
+      {
+        document_title: "Cloud Storage Primer",
+        content: "Cloud storage keeps data durable through replication and recovery workflows.",
+        page_number: null,
+        chunk_index: 0,
+        citation: "[1]",
+        used_in_answer: true,
+      },
+    ],
+    public_collection_slug: "public-cloud",
+    created_at: "2026-05-20T00:00:00Z",
+  };
+}
+
 function user() {
   return {
     id: "user-1",
@@ -82,9 +177,9 @@ function user() {
   };
 }
 
-function preferences() {
+function preferences(theme: "dark" | "light") {
   return {
-    appearance: { theme: "dark" },
+    appearance: { theme },
     privacy: { share_usage_data: false, retain_query_history: true },
     ai: { answer_language: "match_question", retrieval_depth: "balanced" },
   };
@@ -96,7 +191,7 @@ function apiKeys() {
       {
         id: "api-key-1",
         name: "Browser extension",
-        prefix: "ctx_test_123",
+        prefix: "con_test_123",
         scopes: ["ingest:write"],
         last_used_at: null,
         revoked_at: null,
@@ -106,20 +201,171 @@ function apiKeys() {
   };
 }
 
+function answerShares() {
+  return {
+    items: [
+      {
+        slug: "share-cloud",
+        url_path: "/public/answers/share-cloud",
+        query: "How is cloud storage durable?",
+        answer: "Cloud storage is durable because data is replicated.",
+        sources: [
+          {
+            chunk_id: "chunk-1",
+            document_id: "doc-1",
+            document_title: "Cloud Storage Primer",
+            content: "Cloud storage keeps data durable through replication.",
+            page_number: null,
+            chunk_index: 0,
+            citation: "[1]",
+            used_in_answer: true,
+          },
+        ],
+        public_collection_slug: "public-cloud",
+        collection_id: "collection-1",
+        collection_name: "Default",
+        revoked_at: null,
+        created_at: "2026-05-20T00:00:00Z",
+      },
+      {
+        slug: "share-revoked",
+        url_path: "/public/answers/share-revoked",
+        query: "What failed?",
+        answer: "The link was revoked.",
+        sources: [],
+        public_collection_slug: null,
+        collection_id: null,
+        collection_name: null,
+        revoked_at: "2026-05-21T00:00:00Z",
+        created_at: "2026-05-19T00:00:00Z",
+      },
+    ],
+  };
+}
+
 function createdApiKey() {
   return {
     api_key: apiKeys().items[0],
-    token: "ctx_test_123_plaintext",
+    token: "con_test_123_plaintext",
   };
 }
 
 function collections() {
-  return { items: [{ id: "collection-1", name: "Default", description: null, color: null, document_count: 2, created_at: "2026-05-20T00:00:00Z", updated_at: null }], total: 1 };
+  return {
+    items: [
+      {
+        id: "collection-1",
+        user_id: "user-1",
+        workspace_id: "workspace-1",
+        access_role: "owner",
+        name: "Default",
+        description: null,
+        color: null,
+        document_count: 2,
+        created_at: "2026-05-20T00:00:00Z",
+        updated_at: null,
+      },
+    ],
+    total: 1,
+    limit: 100,
+    offset: 0,
+  };
+}
+
+function workspaces() {
+  return {
+    items: [
+      {
+        id: "workspace-1",
+        user_id: "user-1",
+        name: "Core team",
+        description: "Shared research workspace",
+        access_role: "owner",
+        created_at: "2026-05-20T00:00:00Z",
+        updated_at: null,
+        archived_at: null,
+      },
+    ],
+    total: 1,
+    limit: 100,
+    offset: 0,
+  };
+}
+
+
+function transferredWorkspace() {
+  return {
+    id: "workspace-1",
+    user_id: "user-2",
+    name: "Core team",
+    description: "Shared research workspace",
+    access_role: "owner",
+    created_at: "2026-05-20T00:00:00Z",
+    updated_at: "2026-06-03T00:00:00Z",
+    archived_at: null,
+  };
+}
+
+function updatedWorkspace() {
+  return {
+    ...workspaces().items[0],
+    name: "Core team updated",
+    description: "Updated team workspace",
+    updated_at: "2026-06-03T00:00:00Z",
+    archived_at: null,
+  };
+}
+
+function workspaceMembers() {
+  return {
+    items: [
+      {
+        id: "workspace-member-1",
+        workspace_id: "workspace-1",
+        user_id: "user-2",
+        email: "editor@example.com",
+        role: "editor",
+        invite_status: "active",
+        invited_by_user_id: "user-1",
+        created_at: "2026-05-21T00:00:00Z",
+        updated_at: null,
+      },
+      {
+        id: "workspace-member-2",
+        workspace_id: "workspace-1",
+        user_id: null,
+        email: "viewer@example.com",
+        role: "viewer",
+        invite_status: "pending",
+        invited_by_user_id: "user-1",
+        created_at: "2026-05-22T00:00:00Z",
+        updated_at: null,
+      },
+    ],
+  };
+}
+
+function workspaceAudit() {
+  return {
+    items: [
+      {
+        id: "workspace-audit-1",
+        workspace_id: "workspace-1",
+        actor_user_id: "user-1",
+        event_type: "member_invited",
+        metadata: { email: "editor@example.com", role: "editor" },
+        created_at: "2026-05-21T00:00:00Z",
+      },
+    ],
+    total: 1,
+    limit: 50,
+    offset: 0,
+  };
 }
 
 function collectionWorkspace() {
   return {
-    collection: { id: "collection-1", user_id: "user-1", name: "Default", description: "Core workspace", color: null, created_at: "2026-05-20T00:00:00Z", updated_at: null },
+    collection: { id: "collection-1", user_id: "user-1", workspace_id: "workspace-1", access_role: "owner", name: "Default", description: "Core workspace", color: null, created_at: "2026-05-20T00:00:00Z", updated_at: null },
     stats: { total_documents: 2, ready_documents: 2, processing_documents: 0, failed_documents: 0, topic_count: 1, recent_question_count: 1 },
     documents: [
       { id: "doc-1", title: "Cloud A", type: "TEXT", status: "READY", summary: "Cloud storage notes.", tags: ["cloud"], activity_temperature: "hot", created_at: "2026-05-20T00:00:00Z", updated_at: null },
@@ -186,6 +432,7 @@ export function comparisonResult() {
         right_source_id: "chunk-2",
         left_citation: "[1]",
         right_citation: "[2]",
+        grounding_type: "structured",
       },
       {
         dimension: "architecture",
@@ -196,6 +443,7 @@ export function comparisonResult() {
         right_source_id: "chunk-2",
         left_citation: "[1]",
         right_citation: "[2]",
+        grounding_type: "structured",
       },
     ],
     sources: [
@@ -633,5 +881,114 @@ function concern() {
     message: "Needs review",
     status: "open",
     created_at: "2026-05-20T00:00:00Z",
+  };
+}
+
+export function quizHistory() {
+  return {
+    items: [quiz()],
+    total: 1,
+    limit: 8,
+  };
+}
+
+export function quizAttempts() {
+  return {
+    items: [
+      {
+        id: "attempt-1",
+        quiz_id: "quiz-1",
+        user_id: "user-1",
+        answers: [{ question_id: "q1", option_id: "a" }],
+        score: 0,
+        total: 1,
+        weak_areas: ["Cloud durability"],
+        quiz_title: "Quiz: Cloud A",
+        created_at: "2026-05-20T00:00:00Z",
+      },
+    ],
+    total: 1,
+    limit: 8,
+  };
+}
+
+export function quizWeakAreas() {
+  return {
+    items: [{ name: "Cloud durability", count: 2, last_seen_at: "2026-05-20T00:00:00Z" }],
+    total: 1,
+    limit: 8,
+  };
+}
+
+export function quiz() {
+  return {
+    id: "quiz-1",
+    user_id: "user-1",
+    scope_type: "document",
+    collection_id: null,
+    topic: null,
+    source_document_id: "doc-1",
+    title: "Quiz: Cloud A",
+    source_title: "Cloud A",
+    questions: [
+      {
+        id: "q1",
+        question: "What keeps cloud storage durable?",
+        options: [
+          { id: "a", text: "Replication" },
+          { id: "b", text: "Manual copies" },
+        ],
+        correct_option_id: "a",
+        area: "Cloud durability",
+      },
+    ],
+    created_at: "2026-05-20T00:00:00Z",
+    updated_at: null,
+  };
+}
+
+export function quizAttempt() {
+  return {
+    id: "attempt-2",
+    quiz_id: "quiz-1",
+    user_id: "user-1",
+    answers: [{ question_id: "q1", option_id: "a" }],
+    score: 1,
+    total: 1,
+    weak_areas: [],
+    quiz_title: "Quiz: Cloud A",
+    created_at: "2026-05-21T00:00:00Z",
+  };
+}
+
+export function learningPath(status: "todo" | "done" = "todo") {
+  return {
+    id: "path-1",
+    user_id: "user-1",
+    scope_type: "document",
+    collection_id: null,
+    topic: null,
+    source_document_id: "doc-1",
+    title: "Learning path: Cloud A",
+    steps: [
+      {
+        id: "step-1",
+        title: "Cloud A",
+        focus: "cloud",
+        summary: "Review durability and replication details.",
+        source_document_id: "doc-1",
+        status,
+      },
+    ],
+    created_at: "2026-05-20T00:00:00Z",
+    updated_at: null,
+  };
+}
+
+export function learningPaths(status: "todo" | "done" = "todo") {
+  return {
+    items: [learningPath(status)],
+    total: 1,
+    limit: 6,
   };
 }

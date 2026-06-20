@@ -38,7 +38,7 @@ export function ProcessingJobDetail({
         <div className="grid gap-4">
           <div className="rounded-md border border-white/10 bg-white/[0.035] p-3">
             <div className="font-jetbrains text-[11px] uppercase tracking-[0.18em] text-neutral-500">Reason</div>
-            <div className={selectedJob.reason ? "mt-2 text-sm leading-6 text-red-200" : "mt-2 text-sm leading-6 text-neutral-400"}>
+            <div className={selectedJob.reason ? "mt-2 text-sm leading-6 text-neutral-300" : "mt-2 text-sm leading-6 text-neutral-400"}>
               {selectedJob.reason ?? reasonForStatus(selectedJob.status, selectedJob.kind)}
             </div>
           </div>

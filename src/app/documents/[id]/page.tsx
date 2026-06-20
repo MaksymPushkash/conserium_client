@@ -172,11 +172,11 @@ export default function DocumentDetailPage() {
         </header>
 
         {status?.failure_reason ? (
-          <Card className="border-red-500/30 bg-red-500/[0.04]">
+          <Card className="border-white/10 bg-white/[0.04]">
             <CardHeader>
               <CardTitle>Failure reason</CardTitle>
             </CardHeader>
-            <CardContent className="text-sm leading-6 text-red-200">{status.failure_reason}</CardContent>
+            <CardContent className="text-sm leading-6 text-neutral-300">{status.failure_reason}</CardContent>
           </Card>
         ) : null}
 

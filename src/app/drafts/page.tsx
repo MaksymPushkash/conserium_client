@@ -1,12 +1,11 @@
 "use client";
 
-import { Download, ExternalLink, FileText, History, Layers3, Loader2, Plus, RotateCcw, Sparkles, X } from "lucide-react";
+import { FileText, History, Layers3, Loader2, Plus, Sparkles, X } from "lucide-react";
 
-import { MarkdownPreview } from "@/components/notes/markdown-preview";
 import { Button } from "@/components/ui/button";
-import { CitationCard } from "@/components/ui/citation-card";
-import { EmptyState } from "@/components/ui/empty-state";
 import { MetricCard, PageHeader, PageShell, SectionPanel } from "@/components/ui/page-shell";
+import { DraftPreview } from "./draft-preview";
+import { DraftVersionHistory } from "./draft-version-history";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { errorMessage } from "@/lib/api/transport";
@@ -214,133 +213,36 @@ export default function DraftsPage() {
       </div>
 
       {draftMutation.error ? (
-        <div className="rounded-md border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-200">
+        <div className="rounded-md border border-white/10 bg-white/[0.04] p-3 text-sm text-neutral-300">
           {errorMessage(draftMutation.error)}
         </div>
       ) : null}
       {notionErrorText ? (
-        <div className="rounded-md border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-200">
+        <div className="rounded-md border border-white/10 bg-white/[0.04] p-3 text-sm text-neutral-300">
           <div>{notionErrorText}</div>
           {notionErrorText.includes("default Notion parent page") ? (
-            <a href="/settings#integrations" className="mt-2 inline-block text-red-100 underline underline-offset-4">
+            <a href="/settings#integrations" className="mt-2 inline-block text-neutral-200 underline underline-offset-4">
               Open Notion settings
             </a>
           ) : null}
         </div>
       ) : null}
 
-      <SectionPanel
-        title="Markdown preview"
-        description="Export as Markdown, PDF, or Notion after the draft has cited enough saved context."
-        actions={
-          activeDraft ? (
-            <div className="flex flex-wrap gap-2">
-              <Button variant="secondary" onClick={() => exportMutation.mutate("markdown")} disabled={exportMutation.isPending}>
-                <Download className="h-4 w-4" />
-                MD
-              </Button>
-              <Button variant="secondary" onClick={() => exportMutation.mutate("pdf")} disabled={exportMutation.isPending}>
-                <Download className="h-4 w-4" />
-                PDF
-              </Button>
-              <Button variant="secondary" onClick={() => notionMutation.mutate()} disabled={notionMutation.isPending}>
-                <ExternalLink className="h-4 w-4" />
-                Notion
-              </Button>
-            </div>
-          ) : null
-        }
-      >
-        {activeDraft ? (
-          <div className="space-y-4">
-            {notionMutation.data?.url ? (
-              <a href={notionMutation.data.url} target="_blank" rel="noreferrer" className="font-jetbrains block text-right text-xs text-neutral-500 hover:text-white">
-                Open Notion page
-              </a>
-            ) : null}
-            {activeDraft.gaps?.length ? (
-              <div className="rounded-md border border-yellow-500/30 bg-yellow-500/10 p-3 text-sm text-yellow-100">
-                {activeDraft.gaps.join(" ")}
-              </div>
-            ) : null}
-            <MarkdownPreview title="Draft" content={activeDraft.markdown} />
-            <div className="space-y-2 border-t border-white/10 pt-4">
-              <h2 className="text-sm font-medium text-white">Sources</h2>
-              {draftSources.length ? (
-                <div className="grid gap-3 md:grid-cols-2">
-                  {draftSources.map((source, index) => (
-                    <CitationCard
-                      key={source.chunk_id}
-                      index={index + 1}
-                      title={source.document_title ?? source.document_id}
-                      detail={source.citation}
-                      href={`/documents/${source.document_id}`}
-                    />
-                  ))}
-                </div>
-              ) : (
-                <p className="font-jetbrains text-sm text-neutral-400">No cited saved sources.</p>
-              )}
-            </div>
-          </div>
-        ) : (
-          <EmptyState
-            className="flex min-h-[180px] flex-col justify-center"
-            icon={<Sparkles className="h-5 w-5" />}
-            title="No draft generated yet"
-            description="Choose a scope, write the request, and Conserium will build a Markdown draft from saved sources only."
-          />
-        )}
-      </SectionPanel>
+      <DraftPreview
+        activeDraft={activeDraft}
+        draftSources={draftSources}
+        exportMutation={exportMutation}
+        notionMutation={notionMutation}
+      />
 
-      <SectionPanel title="Version history" description="Recent generated drafts and server versions.">
-        <div className="grid gap-5 xl:grid-cols-2">
-          <div className="grid content-start gap-2">
-            {history.length ? (
-              history.slice(0, 6).map((item) => (
-                <button
-                  key={item.id}
-                  type="button"
-                  onClick={() => restoreHistory(item)}
-                  className="flex items-center justify-between gap-3 rounded-lg border border-white/10 bg-white/[0.035] p-3 text-left transition hover:border-white/25 hover:bg-white/[0.055]"
-                >
-                  <span className="min-w-0">
-                    <span className="block truncate text-sm text-white">{item.title}</span>
-                    <span className="font-jetbrains text-xs text-neutral-500">{new Date(item.created_at).toLocaleString()}</span>
-                  </span>
-                  <RotateCcw className="h-4 w-4 text-neutral-400" />
-                </button>
-              ))
-            ) : (
-              <p className="font-jetbrains text-sm text-neutral-500">No generated drafts yet.</p>
-            )}
-          </div>
-          <div className="grid content-start gap-2">
-            {versions.length ? (
-              versions.map((version) => (
-                <div key={version.id} className="flex items-center justify-between gap-3 rounded-lg border border-white/10 bg-white/[0.025] p-3">
-                  <span className="min-w-0">
-                    <span className="block text-sm text-white">Version {version.version_number}</span>
-                    <span className="font-jetbrains text-xs text-neutral-500">{new Date(version.created_at).toLocaleString()}</span>
-                  </span>
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="secondary"
-                    onClick={() => restoreVersion(version.id)}
-                    disabled={restoreMutation.isPending || version.id === activeVersionId}
-                  >
-                    <RotateCcw className="h-4 w-4" />
-                    Restore
-                  </Button>
-                </div>
-              ))
-            ) : (
-              <p className="font-jetbrains text-sm text-neutral-500">No server versions selected.</p>
-            )}
-          </div>
-        </div>
-      </SectionPanel>
+      <DraftVersionHistory
+        activeVersionId={activeVersionId}
+        history={history}
+        versions={versions}
+        restoreMutation={restoreMutation}
+        restoreHistory={restoreHistory}
+        restoreVersion={restoreVersion}
+      />
     </PageShell>
   );
 }

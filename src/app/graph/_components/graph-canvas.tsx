@@ -60,7 +60,7 @@ export function GraphCanvas({
   }
 
   return (
-    <section className="overflow-hidden rounded-xl border border-white/10 bg-[#070808] shadow-2xl shadow-black/30">
+    <section className="overflow-hidden rounded-xl border border-white/10 bg-[#080808] shadow-2xl shadow-black/30">
       <div className="flex flex-col gap-3 border-b border-white/10 p-4 md:flex-row md:items-center md:justify-between">
         <div>
           <h2 className="text-base font-medium text-white">Map</h2>
@@ -78,8 +78,8 @@ export function GraphCanvas({
         <div className="relative min-h-[720px] overflow-hidden">
           <div className="absolute left-4 top-4 z-10 flex flex-wrap gap-2">
             <LegendChip label="Topic" color="#f4f4f5" />
-            <LegendChip label="Document" color="#7dd3fc" />
-            <LegendChip label="Dense" color="#f97316" />
+            <LegendChip label="Document" color="#a3a3a3" />
+            <LegendChip label="Dense" color="#737373" />
           </div>
           <svg
             viewBox={`0 0 ${GRAPH_CANVAS_WIDTH} ${GRAPH_CANVAS_HEIGHT}`}
@@ -94,8 +94,8 @@ export function GraphCanvas({
           >
             <defs>
               <radialGradient id="graph-vignette" cx="50%" cy="45%" r="70%">
-                <stop offset="0%" stopColor="#171719" />
-                <stop offset="100%" stopColor="#070808" />
+                <stop offset="0%" stopColor="#181818" />
+                <stop offset="100%" stopColor="#080808" />
               </radialGradient>
               <filter id="node-glow" x="-80%" y="-80%" width="260%" height="260%">
                 <feGaussianBlur stdDeviation="8" result="blur" />
@@ -162,7 +162,7 @@ export function GraphCanvas({
                             cx={node.x}
                             cy={node.y}
                             r={node.radius}
-                            fill={node.is_pinned ? "#fef08a" : "#f4f4f5"}
+                            fill={node.is_pinned ? "#ffffff" : "#f4f4f5"}
                             stroke={selected ? "#ffffff" : "#070708"}
                             strokeWidth={selected ? 4 : 3}
                           />
@@ -185,12 +185,12 @@ export function GraphCanvas({
                             width={docWidth}
                             height={docHeight}
                             rx={9}
-                            fill={selected ? "rgba(125,211,252,0.20)" : denseDocument ? "rgba(249,115,22,0.18)" : "rgba(125,211,252,0.10)"}
-                            stroke={selected ? "#bae6fd" : denseDocument ? "#fb923c" : "#7dd3fc"}
+                            fill={selected ? "rgba(255,255,255,0.18)" : denseDocument ? "rgba(255,255,255,0.12)" : "rgba(255,255,255,0.08)"}
+                            stroke={selected ? "#ffffff" : denseDocument ? "#a3a3a3" : "#737373"}
                             strokeWidth={selected ? 3 : 1.4}
                             filter={selected ? "url(#node-glow)" : undefined}
                           />
-                          <circle cx={node.x - docWidth / 2 + 13} cy={node.y} r="4" fill={denseDocument ? "#f97316" : "#7dd3fc"} />
+                          <circle cx={node.x - docWidth / 2 + 13} cy={node.y} r="4" fill={denseDocument ? "#a3a3a3" : "#737373"} />
                         </>
                       )}
                       <text

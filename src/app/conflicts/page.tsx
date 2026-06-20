@@ -60,12 +60,12 @@ export default function ConflictsPage() {
       </Card>
 
       {collectionsQuery.error ? (
-        <div className="rounded-md border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-200">
+        <div className="rounded-md border border-white/10 bg-white/[0.04] p-3 text-sm text-neutral-300">
           {errorMessage(collectionsQuery.error)}
         </div>
       ) : null}
       {conflictsQuery.error ? (
-        <div className="rounded-md border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-200">
+        <div className="rounded-md border border-white/10 bg-white/[0.04] p-3 text-sm text-neutral-300">
           {errorMessage(conflictsQuery.error)}
         </div>
       ) : null}

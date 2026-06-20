@@ -17,9 +17,11 @@ import {
   getTelegramStatus,
   getUserPreferences,
   importNotionPage,
+  listAnswerShares,
   listApiKeys,
   logout,
   logoutEverywhere,
+  revokeAnswerShare,
   revokeApiKey,
   revokeTelegramBinding,
   searchNotionPages,
@@ -57,6 +59,7 @@ export default function SettingsPage() {
   const notionQuery = useQuery({ queryKey: ["integrations", "notion"], queryFn: getNotionConnection });
   const telegramQuery = useQuery({ queryKey: ["integrations", "telegram"], queryFn: getTelegramStatus });
   const apiKeysQuery = useQuery({ queryKey: ["api-keys"], queryFn: listApiKeys });
+  const answerSharesQuery = useQuery({ queryKey: ["answer-shares"], queryFn: () => listAnswerShares({ limit: 25 }) });
   const statsQuery = useQuery({ queryKey: ["stats", "overview", "settings"], queryFn: getStatsOverview });
 
   const updateMutation = useMutation({
@@ -122,6 +125,10 @@ export default function SettingsPage() {
     mutationFn: revokeApiKey,
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["api-keys"] }),
   });
+  const revokeAnswerShareMutation = useMutation({
+    mutationFn: revokeAnswerShare,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["answer-shares"] }),
+  });
   const createTelegramPairingMutation = useMutation({
     mutationFn: createTelegramPairingCode,
     onSuccess: (result) => {
@@ -139,13 +146,28 @@ export default function SettingsPage() {
   });
 
   useEffect(() => {
-    if (preferencesQuery.data) setPreferences(preferencesQuery.data);
+    if (!preferencesQuery.data) return;
+    const storedTheme = typeof window !== "undefined" ? window.localStorage.getItem("conserium-theme") : null;
+    const theme = storedTheme === "light" || storedTheme === "dark" ? storedTheme : preferencesQuery.data.appearance.theme;
+    setPreferences({ ...preferencesQuery.data, appearance: { ...preferencesQuery.data.appearance, theme } });
+    if (typeof window !== "undefined" && storedTheme !== "light" && storedTheme !== "dark") {
+      window.localStorage.setItem("conserium-theme", theme);
+      document.documentElement.dataset.theme = theme;
+    }
   }, [preferencesQuery.data]);
 
   useEffect(() => {
     setNotionParentPageId(notionQuery.data?.default_parent_page_id ?? "");
     setNotionParentPageTitle(notionQuery.data?.default_parent_page_title ?? "");
   }, [notionQuery.data?.default_parent_page_id, notionQuery.data?.default_parent_page_title]);
+
+  function updateAppearanceTheme(theme: "dark" | "light") {
+    setPreferences((current) => ({ ...current, appearance: { ...current.appearance, theme } }));
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem("conserium-theme", theme);
+      document.documentElement.dataset.theme = theme;
+    }
+  }
 
   function updatePrivacy(nextPrivacy: PrivacyPreferences) {
     setPreferences((current) => ({ ...current, privacy: nextPrivacy }));
@@ -155,7 +177,8 @@ export default function SettingsPage() {
     setPreferences((current) => ({ ...current, ai: nextAI }));
   }
 
-  const loadError = preferencesQuery.error ?? userQuery.error ?? notionQuery.error ?? telegramQuery.error ?? apiKeysQuery.error;
+  const loadError =
+    preferencesQuery.error ?? userQuery.error ?? notionQuery.error ?? telegramQuery.error ?? apiKeysQuery.error ?? answerSharesQuery.error;
   const actionError =
     connectNotionMutation.error ??
     disconnectNotionMutation.error ??
@@ -164,6 +187,7 @@ export default function SettingsPage() {
     importNotionPageMutation.error ??
     createApiKeyMutation.error ??
     revokeApiKeyMutation.error ??
+    revokeAnswerShareMutation.error ??
     createTelegramPairingMutation.error ??
     revokeTelegramBindingMutation.error;
 
@@ -175,20 +199,20 @@ export default function SettingsPage() {
       </header>
 
       {loadError ? (
-        <div className="rounded-md border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-200">
+        <div className="rounded-md border border-white/10 bg-white/[0.04] p-3 text-sm text-neutral-300">
           {errorMessage(loadError)}
         </div>
       ) : null}
       {actionError ? (
-        <div className="rounded-md border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-200">
+        <div className="rounded-md border border-white/10 bg-white/[0.04] p-3 text-sm text-neutral-300">
           {errorMessage(actionError)}
         </div>
       ) : null}
 
-      <div className="grid gap-6 lg:grid-cols-[220px_minmax(0,1fr)]">
+      <div className="grid items-start gap-6 lg:grid-cols-[220px_minmax(0,1fr)]">
         <SettingsTabs activeTab={activeTab} onChange={setActiveTab} />
 
-        {activeTab === "appearance" ? <AppearancePanel /> : null}
+        {activeTab === "appearance" ? <AppearancePanel theme={preferences.appearance.theme} onThemeChange={updateAppearanceTheme} /> : null}
         {activeTab === "account" ? (
           <AccountPanel
             email={userQuery.data?.email ?? "-"}
@@ -226,11 +250,13 @@ export default function SettingsPage() {
             createTelegramPairingPending={createTelegramPairingMutation.isPending}
             revokeTelegramBindingPending={revokeTelegramBindingMutation.isPending}
             apiKeys={apiKeysQuery.data?.items ?? []}
+            answerShares={answerSharesQuery.data?.items ?? []}
             apiKeyName={apiKeyName}
             apiKeyScopes={apiKeyScopes}
             createdApiKeyToken={createdApiKeyToken}
             createApiKeyPending={createApiKeyMutation.isPending}
             revokeApiKeyPending={revokeApiKeyMutation.isPending}
+            revokeAnswerSharePending={revokeAnswerShareMutation.isPending}
             onParentPageIdChange={(value) => {
               setNotionParentPageId(value);
               setNotionParentPageTitle("");
@@ -255,6 +281,7 @@ export default function SettingsPage() {
             onDisconnectNotion={() => disconnectNotionMutation.mutate()}
             onCreateApiKey={() => createApiKeyMutation.mutate()}
             onRevokeApiKey={(id) => revokeApiKeyMutation.mutate(id)}
+            onRevokeAnswerShare={(slug) => revokeAnswerShareMutation.mutate(slug)}
             onSaveNotionSettings={() =>
               updateNotionSettingsMutation.mutate({
                 default_parent_page_id: notionParentPageId.trim() || null,

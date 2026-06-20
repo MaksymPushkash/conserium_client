@@ -18,8 +18,8 @@ export function CompareEvidenceTable({ comparison }: { comparison: CompareDocume
         >
           <span className="space-y-2 font-medium capitalize text-white">
             <span className="block">{row.dimension.replace("_", " ")}</span>
-            {row.confidence === 0 ? (
-              <span className="font-jetbrains inline-flex rounded border border-amber-500/30 bg-amber-500/10 px-2 py-1 text-[10px] uppercase tracking-[0.2em] text-amber-200">
+            {row.grounding_type === "inferred" ? (
+              <span className="font-jetbrains inline-flex rounded border border-white/15 bg-white/[0.05] px-2 py-1 text-[10px] uppercase tracking-[0.2em] text-neutral-300">
                 Inferred
               </span>
             ) : null}

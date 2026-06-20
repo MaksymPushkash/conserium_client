@@ -14,7 +14,7 @@ interface ChatComposerProps {
 
 export function ChatComposer({ query, onQueryChange, onSubmit }: ChatComposerProps) {
   return (
-    <form onSubmit={onSubmit} className="border-t border-white/10 bg-[#09090b]/90 p-4">
+    <form onSubmit={onSubmit} className="border-t border-white/10 bg-[#090909]/90 p-4">
       <div className="mx-auto flex max-w-5xl gap-3 rounded-2xl border border-white/10 bg-white/[0.045] p-2 shadow-[0_-20px_70px_rgba(0,0,0,0.45)] transition-colors focus-within:border-white/25 focus-within:bg-white/[0.06]">
         <Textarea
           value={query}

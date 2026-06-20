@@ -88,7 +88,7 @@ export function GlobalDropIngest() {
       {status.message || status.error || status.uploading ? (
         <div className="pointer-events-auto absolute bottom-4 right-4 flex max-w-sm items-center gap-3 rounded-lg border border-white/10 bg-neutral-950 px-4 py-3 text-sm text-neutral-300 shadow-2xl">
           {status.uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileUp className="h-4 w-4" />}
-          <span className={status.error ? "text-red-300" : ""}>{status.error ?? status.message}</span>
+          <span className={status.error ? "text-neutral-400" : ""}>{status.error ?? status.message}</span>
           <Button variant="ghost" size="icon" onClick={() => setStatus(initialStatus)} aria-label="Dismiss upload status">
             <X className="h-4 w-4" />
           </Button>

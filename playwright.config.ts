@@ -4,10 +4,10 @@ export default defineConfig({
   testDir: "./e2e",
   timeout: 60_000,
   webServer: {
-    command: "npm run dev",
+    command: process.env.PLAYWRIGHT_DEV_SERVER ? "npm run dev" : "npm run build && npm run start",
     url: "http://localhost:3000",
-    reuseExistingServer: !process.env.CI,
-    timeout: 120_000,
+    reuseExistingServer: Boolean(process.env.PLAYWRIGHT_DEV_SERVER) && !process.env.CI,
+    timeout: 180_000,
   },
   use: {
     baseURL: process.env.PLAYWRIGHT_BASE_URL ?? "http://localhost:3000",

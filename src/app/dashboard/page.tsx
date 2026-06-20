@@ -87,11 +87,11 @@ export default function DashboardPage() {
           <MetricCard icon={<ServerCog className="h-4 w-4" />} label="Processing" value={formatMetric(stats?.processing_documents)} detail={`${formatMetric(stats?.failed_documents)} failed`} />
         </Link>
       </section>
-      {statsQuery.error ? <div className="text-sm text-red-300">{errorMessage(statsQuery.error)}</div> : null}
+      {statsQuery.error ? <div className="text-sm text-neutral-400">{errorMessage(statsQuery.error)}</div> : null}
 
       <section className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(320px,420px)]">
         <SectionPanel title="Daily digest" description="Questions from older saved sources that should be revisited.">
-          {dailyDigestQuery.error ? <div className="text-sm text-red-300">{errorMessage(dailyDigestQuery.error)}</div> : null}
+          {dailyDigestQuery.error ? <div className="text-sm text-neutral-400">{errorMessage(dailyDigestQuery.error)}</div> : null}
           {!dailyDigestQuery.error && digestItems.length ? (
             <div className="grid gap-2">
               {digestItems.map((item) => (
@@ -113,7 +113,7 @@ export default function DashboardPage() {
         </SectionPanel>
 
         <SectionPanel title="Weekly report" description={weeklyReport?.summary ?? "Workspace activity for the last 7 days."}>
-          {weeklyReportQuery.error ? <div className="text-sm text-red-300">{errorMessage(weeklyReportQuery.error)}</div> : null}
+          {weeklyReportQuery.error ? <div className="text-sm text-neutral-400">{errorMessage(weeklyReportQuery.error)}</div> : null}
           {!weeklyReportQuery.error && weeklyReport ? (
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-2">
@@ -123,7 +123,7 @@ export default function DashboardPage() {
                 <ReportMetric label="Stale" value={weeklyReport.stale_documents} />
               </div>
               <div className="space-y-2">
-                {weeklyReport.recommended_actions.map((action) => (
+                {(weeklyReport.recommended_actions ?? []).map((action) => (
                   <div key={action} className="flex gap-2 rounded-md border border-white/10 bg-white/[0.025] p-3 text-sm text-neutral-300">
                     <CalendarDays className="mt-0.5 h-4 w-4 shrink-0 text-neutral-500" />
                     {action}
@@ -158,10 +158,10 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
       ) : null}
-      {remindersQuery.error ? <div className="text-sm text-red-300">{errorMessage(remindersQuery.error)}</div> : null}
+      {remindersQuery.error ? <div className="text-sm text-neutral-400">{errorMessage(remindersQuery.error)}</div> : null}
 
       <SectionPanel title="Workspace activity" description="Saved, active, and queried material over time.">
-          {timelineQuery.error ? <div className="text-sm text-red-300">{errorMessage(timelineQuery.error)}</div> : null}
+          {timelineQuery.error ? <div className="text-sm text-neutral-400">{errorMessage(timelineQuery.error)}</div> : null}
           {!timelineQuery.error && timeline.length ? <TimelineChart items={timeline} /> : null}
           {!timelineQuery.error && !timeline.length ? <div className="py-8 text-sm text-neutral-400">No learning activity yet.</div> : null}
       </SectionPanel>
@@ -176,7 +176,7 @@ export default function DashboardPage() {
         <CardContent>
           <div className="space-y-2">
             {documentsQuery.error ? (
-              <div className="py-8 text-sm text-red-300">{errorMessage(documentsQuery.error)}</div>
+              <div className="py-8 text-sm text-neutral-400">{errorMessage(documentsQuery.error)}</div>
             ) : null}
             {!documentsQuery.error && documents.map((document) => (
               <Link
@@ -224,8 +224,8 @@ function TimelineChart({ items }: { items: StatsTimelineBucket[] }) {
     <div className="grid gap-3">
       <div className="flex flex-wrap gap-4 font-jetbrains text-xs text-neutral-500">
         <LegendSwatch className="bg-neutral-200" label="Saved" />
-        <LegendSwatch className="bg-emerald-400" label="Active" />
-        <LegendSwatch className="bg-sky-400" label="Queries" />
+        <LegendSwatch className="bg-neutral-300" label="Active" />
+        <LegendSwatch className="bg-neutral-500" label="Queries" />
       </div>
       {items.map((item) => {
         const total = item.saved_documents + item.active_documents + item.query_count;
@@ -238,8 +238,8 @@ function TimelineChart({ items }: { items: StatsTimelineBucket[] }) {
             <div className="font-jetbrains text-xs text-neutral-500">{formatMonth(item.month)}</div>
             <div className="flex h-3 overflow-hidden rounded-full bg-white/[0.06]" title={tooltip}>
               <div className="h-full bg-neutral-200" style={{ width: `${savedWidth}%` }} />
-              <div className="h-full bg-emerald-400" style={{ width: `${activeWidth}%` }} />
-              <div className="h-full bg-sky-400" style={{ width: `${queryWidth}%` }} />
+              <div className="h-full bg-neutral-300" style={{ width: `${activeWidth}%` }} />
+              <div className="h-full bg-neutral-500" style={{ width: `${queryWidth}%` }} />
               {!total ? <div className="h-full w-1 bg-white/20" /> : null}
             </div>
             <div className="font-jetbrains text-xs text-neutral-500">
@@ -287,7 +287,7 @@ function OnboardingCard({ documentCount, queryCount }: { documentCount: number; 
           {steps.map((step) => (
             <Link key={step.label} href={step.href} className="flex items-center gap-3 rounded-lg border border-white/10 bg-white/[0.025] p-3 text-sm text-neutral-300 transition hover:border-white/25 hover:bg-white/[0.055] hover:text-white">
               <span className="grid h-7 w-7 place-items-center rounded-full border border-white/10 bg-black/30">
-                {step.complete ? <CheckCircle2 className="h-4 w-4 text-emerald-400" /> : <ArrowRight className="h-4 w-4 text-neutral-500" />}
+                {step.complete ? <CheckCircle2 className="h-4 w-4 text-neutral-200" /> : <ArrowRight className="h-4 w-4 text-neutral-500" />}
               </span>
               {step.label}
             </Link>
