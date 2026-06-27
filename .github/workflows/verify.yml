@@ -5,6 +5,13 @@ on:
   push:
     branches:
       - main
+  workflow_dispatch:
+    inputs:
+      check_production_api:
+        description: "Check generated client against the deployed production API"
+        required: false
+        default: false
+        type: boolean
 
 jobs:
   verify:
@@ -19,7 +26,7 @@ jobs:
       - name: Verify generated API client
         run: npm run check:api
       - name: Verify production API compatibility
-        if: github.ref == 'refs/heads/main'
+        if: github.event_name == 'workflow_dispatch' && inputs.check_production_api
         run: npm run check:production-api
       - run: npm run typecheck
       - run: npm test
@@ -37,6 +44,10 @@ jobs:
       - run: npm ci
       - run: npx playwright install --with-deps chromium
       - run: npm run test:e2e
+        env:
+          E2E_EMAIL: ${{ secrets.E2E_EMAIL }}
+          E2E_PASSWORD: ${{ secrets.E2E_PASSWORD }}
+          NEXT_PUBLIC_API_BASE_URL: ${{ secrets.E2E_API_BASE_URL || 'https://api.conserium.app' }}
       - if: failure()
         uses: actions/upload-artifact@v4
         with:

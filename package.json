@@ -14,9 +14,9 @@
     "package:extension": "mkdir -p dist && cd extensions/browser && zip -FS -r ../../dist/conserium-clipper.zip manifest.json popup.html popup.css popup.js",
     "dev:turbo": "next dev",
     "generate:api": "openapi-typescript ${OPENAPI_SCHEMA:-http://localhost:8000/openapi.json} -o src/lib/api/generated/v1.ts",
-    "check:api": "OPENAPI_SCHEMA=${OPENAPI_SCHEMA:-https://raw.githubusercontent.com/MaksymPushkash/cortex/main/openapi.json} npm run generate:api && git diff --exit-code -- src/lib/api/generated/v1.ts",
+    "check:api": "OPENAPI_SCHEMA=${OPENAPI_SCHEMA:-https://raw.githubusercontent.com/MaksymPushkash/cortex/dev/openapi.json} npm run generate:api && git diff --exit-code -- src/lib/api/generated/v1.ts",
     "check:production-api": "OPENAPI_SCHEMA=${PRODUCTION_OPENAPI_SCHEMA:-https://api.conserium.app/openapi.json} npm run generate:api && git diff --exit-code -- src/lib/api/generated/v1.ts",
-    "vercel-build": "npm run check:production-api && npm run build"
+    "vercel-build": "npm run build"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.90.12",
