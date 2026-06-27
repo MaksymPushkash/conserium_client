@@ -31,7 +31,9 @@ export function useRepoSyncsWorkflow() {
     onSuccess: async (result) => {
       const totalChanges = result.created + result.updated + result.skipped + result.deleted;
       setLastRunSummary(
-        totalChanges === 0
+        result.repo_sync.status === "queued"
+          ? "Repository sync queued. Processing will continue in the background."
+          : totalChanges === 0
           ? "No Markdown files changed on this branch."
           : `Created ${result.created}, updated ${result.updated}, skipped ${result.skipped}, deleted ${result.deleted}.`,
       );

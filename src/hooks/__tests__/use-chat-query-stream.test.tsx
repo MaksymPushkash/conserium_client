@@ -148,6 +148,7 @@ describe("useChatQueryStream", () => {
         total_context_tokens: 0,
         compression_strategy: "none",
       },
+      suggested_follow_up_questions: [],
       debug: null,
     });
     const { result, updateMessage, setConversationId } = renderChatHook({ streaming: false });

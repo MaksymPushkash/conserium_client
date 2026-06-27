@@ -13,13 +13,6 @@ import type {
 } from "@/lib/types";
 import { filenameFromContentDisposition } from "./exports";
 import { apiClient, unwrapApiResponse } from "./generated/client";
-import {
-  normalizeDocument,
-  normalizeDocumentConnections,
-  normalizeDocumentList,
-  normalizeDocumentSearch,
-  normalizeDocumentStatus,
-} from "./generated/normalizers";
 import { authenticatedFetch, readPayload, ApiError } from "./transport";
 
 export interface DocumentListParams {
@@ -32,9 +25,9 @@ export interface DocumentListParams {
 }
 
 export async function listDocuments(params: DocumentListParams = {}): Promise<DocumentListResponse> {
-  return normalizeDocumentList(unwrapApiResponse(
+  return unwrapApiResponse(
     await apiClient.GET("/api/v1/documents", { params: { query: params } }),
-  ));
+  );
 }
 
 export interface DocumentSearchParams {
@@ -47,15 +40,15 @@ export interface DocumentSearchParams {
 }
 
 export async function searchDocuments(params: DocumentSearchParams): Promise<DocumentSearchResponse> {
-  return normalizeDocumentSearch(unwrapApiResponse(
+  return unwrapApiResponse(
     await apiClient.GET("/api/v1/documents/search", { params: { query: params } }),
-  ));
+  );
 }
 
 export async function getDocument(id: string): Promise<DocumentResponse> {
-  return normalizeDocument(unwrapApiResponse(
+  return unwrapApiResponse(
     await apiClient.GET("/api/v1/documents/{document_id}", { params: { path: { document_id: id } } }),
-  ));
+  );
 }
 
 export async function getDocumentChunk(documentId: string, chunkId: string): Promise<DocumentChunkResponse> {
@@ -67,9 +60,9 @@ export async function getDocumentChunk(documentId: string, chunkId: string): Pro
 }
 
 export async function getDocumentStatus(documentId: string): Promise<DocumentStatusResponse> {
-  return normalizeDocumentStatus(unwrapApiResponse(
+  return unwrapApiResponse(
     await apiClient.GET("/api/v1/documents/{document_id}/status", { params: { path: { document_id: documentId } } }),
-  ));
+  );
 }
 
 export async function getDocumentQuestionHistory(documentId: string, limit = 5): Promise<DocumentQuestionHistoryResponse> {
@@ -81,41 +74,41 @@ export async function getDocumentQuestionHistory(documentId: string, limit = 5):
 }
 
 export async function getDocumentConnections(documentId: string, limit = 5): Promise<DocumentConnectionsResponse> {
-  return normalizeDocumentConnections(unwrapApiResponse(
+  return unwrapApiResponse(
     await apiClient.GET("/api/v1/documents/{document_id}/connections", {
       params: { path: { document_id: documentId }, query: { limit } },
     }),
-  ));
+  );
 }
 
 export async function renameDocument(id: string, payload: { title: string }): Promise<DocumentResponse> {
-  return normalizeDocument(unwrapApiResponse(
+  return unwrapApiResponse(
     await apiClient.PATCH("/api/v1/documents/{document_id}", {
       params: { path: { document_id: id } },
       body: payload,
     }),
-  ));
+  );
 }
 
 export async function moveDocument(id: string, payload: { collection_id: string | null }): Promise<DocumentResponse> {
-  return normalizeDocument(unwrapApiResponse(
+  return unwrapApiResponse(
     await apiClient.PATCH("/api/v1/documents/{document_id}/collection", {
       params: { path: { document_id: id } },
       body: payload,
     }),
-  ));
+  );
 }
 
 export async function retryDocument(id: string): Promise<DocumentResponse> {
-  return normalizeDocument(unwrapApiResponse(
+  return unwrapApiResponse(
     await apiClient.POST("/api/v1/documents/{document_id}/retry", { params: { path: { document_id: id } } }),
-  ));
+  );
 }
 
 export async function reprocessDocument(id: string): Promise<DocumentResponse> {
-  return normalizeDocument(unwrapApiResponse(
+  return unwrapApiResponse(
     await apiClient.POST("/api/v1/documents/{document_id}/reprocess", { params: { path: { document_id: id } } }),
-  ));
+  );
 }
 
 export async function deleteDocument(id: string): Promise<void> {

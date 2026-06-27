@@ -1,3 +1,3 @@
-import type { ApiSchema, RequiredApiFields } from "./generated";
+import type { ApiSchema } from "./generated";
 
-export type ObservabilitySummary = RequiredApiFields<ApiSchema<"ObservabilitySummaryResponse">, "queues">;
+export type ObservabilitySummary = ApiSchema<"ObservabilitySummaryResponse">;

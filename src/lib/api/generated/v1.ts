@@ -2570,12 +2570,20 @@ export interface components {
              */
             id: string;
             /**
+             * Invite Status
+             * @enum {string}
+             */
+            invite_status: "active" | "pending";
+            /**
              * Invited By User Id
              * Format: uuid
              */
             invited_by_user_id: string;
-            /** Role */
-            role: string;
+            /**
+             * Role
+             * @enum {string}
+             */
+            role: "viewer" | "editor";
             /** Updated At */
             updated_at: string | null;
             /** User Id */
@@ -2698,16 +2706,14 @@ export interface components {
              * Format: uuid
              */
             id: string;
-            /** Status */
-            status: string;
+            status: components["schemas"]["DocumentStatus"];
             /** Summary */
             summary: string | null;
             /** Tags */
             tags: string[];
             /** Title */
             title: string;
-            /** Type */
-            type: string;
+            type: components["schemas"]["DocumentType"];
             /** Updated At */
             updated_at: string | null;
         };
@@ -2743,21 +2749,21 @@ export interface components {
         /** CollectionWorkspaceGapResponse */
         CollectionWorkspaceGapResponse: {
             /** Coverage Ratio */
-            coverage_ratio?: number | null;
+            coverage_ratio: number | null;
             /** Id */
-            id?: string | null;
+            id: string | null;
             /** Missing Source Types */
-            missing_source_types?: string[];
+            missing_source_types: string[];
             /** Reason */
             reason: string;
             /** Severity */
             severity: string;
             /** Suggested Actions */
-            suggested_actions?: string[];
+            suggested_actions: string[];
             /** Title */
             title: string;
             /** Topic */
-            topic?: string | null;
+            topic: string | null;
         };
         /** CollectionWorkspaceQuestionResponse */
         CollectionWorkspaceQuestionResponse: {
@@ -2781,9 +2787,9 @@ export interface components {
             /** Gaps */
             gaps: components["schemas"]["CollectionWorkspaceGapResponse"][];
             /** Recent Comparisons */
-            recent_comparisons?: components["schemas"]["CollectionWorkspaceComparisonResponse"][];
+            recent_comparisons: components["schemas"]["CollectionWorkspaceComparisonResponse"][];
             /** Recent Drafts */
-            recent_drafts?: components["schemas"]["CollectionWorkspaceDraftResponse"][];
+            recent_drafts: components["schemas"]["CollectionWorkspaceDraftResponse"][];
             /** Recent Questions */
             recent_questions: components["schemas"]["CollectionWorkspaceQuestionResponse"][];
             stats: components["schemas"]["CollectionWorkspaceStatsResponse"];
@@ -2841,7 +2847,7 @@ export interface components {
             /** Collection Id */
             collection_id: string | null;
             /** Created At */
-            created_at?: string | null;
+            created_at: string | null;
             /** Dimensions */
             dimensions: string[];
             /** Evidence Rows */
@@ -2877,7 +2883,7 @@ export interface components {
             /** Assessment */
             assessment: string;
             /** Confidence */
-            confidence?: number | null;
+            confidence: number | null;
             /** Dimension */
             dimension: string;
             /**
@@ -2886,19 +2892,19 @@ export interface components {
              */
             grounding_type: string;
             /** Left Citation */
-            left_citation?: string | null;
+            left_citation: string | null;
             /** Left Evidence */
             left_evidence: string | null;
             /** Left Source Id */
-            left_source_id?: string | null;
+            left_source_id: string | null;
             /** Rationale */
-            rationale?: string | null;
+            rationale: string | null;
             /** Right Citation */
-            right_citation?: string | null;
+            right_citation: string | null;
             /** Right Evidence */
             right_evidence: string | null;
             /** Right Source Id */
-            right_source_id?: string | null;
+            right_source_id: string | null;
         };
         /** CompareListResponse */
         CompareListResponse: {
@@ -3120,7 +3126,7 @@ export interface components {
             /** Language */
             language: string | null;
             /** Last Used At */
-            last_used_at?: string | null;
+            last_used_at: string | null;
             /**
              * Query Count
              * @default 0
@@ -3130,11 +3136,11 @@ export interface components {
             source_url: string | null;
             status: components["schemas"]["DocumentStatus"];
             /** Suggested Questions */
-            suggested_questions?: string[];
+            suggested_questions: string[];
             /** Summary */
             summary: string | null;
             /** Tags */
-            tags?: string[];
+            tags: string[];
             /** Title */
             title: string;
             type: components["schemas"]["DocumentType"];
@@ -3166,7 +3172,7 @@ export interface components {
             /** Label */
             label: string;
             /** Message */
-            message?: string | null;
+            message: string | null;
             /** Progress */
             progress: number;
             /** State */
@@ -3211,7 +3217,7 @@ export interface components {
              */
             activity_temperature: string;
             /** Categories */
-            categories?: {
+            categories: {
                 [key: string]: unknown;
             }[] | null;
             /**
@@ -3229,7 +3235,7 @@ export interface components {
             /** Duplicate Of Id */
             duplicate_of_id: string | null;
             /** Entities */
-            entities?: {
+            entities: {
                 [key: string]: unknown;
             }[] | null;
             /** File Path */
@@ -3246,7 +3252,7 @@ export interface components {
             /** Language */
             language: string | null;
             /** Last Used At */
-            last_used_at?: string | null;
+            last_used_at: string | null;
             /**
              * Query Count
              * @default 0
@@ -3258,11 +3264,11 @@ export interface components {
             source_url: string | null;
             status: components["schemas"]["DocumentStatus"];
             /** Suggested Questions */
-            suggested_questions?: string[];
+            suggested_questions: string[];
             /** Summary */
             summary: string | null;
             /** Tags */
-            tags?: string[];
+            tags: string[];
             /** Title */
             title: string;
             type: components["schemas"]["DocumentType"];
@@ -3274,7 +3280,7 @@ export interface components {
              */
             user_id: string;
             /** Visual Metadata */
-            visual_metadata?: {
+            visual_metadata: {
                 [key: string]: unknown;
             } | null;
             /** Word Count */
@@ -3319,7 +3325,7 @@ export interface components {
              */
             document_id: string;
             /** Failure Reason */
-            failure_reason?: string | null;
+            failure_reason: string | null;
             /** Message */
             message: string;
             /** Progress */
@@ -3327,7 +3333,7 @@ export interface components {
             /** Status */
             status: string;
             /** Timeline */
-            timeline?: components["schemas"]["DocumentProcessingStepResponse"][];
+            timeline: components["schemas"]["DocumentProcessingStepResponse"][];
         };
         /**
          * DocumentType
@@ -3788,11 +3794,11 @@ export interface components {
             /** Evidence Count */
             evidence_count: number;
             /** Evidence Titles */
-            evidence_titles?: string[];
+            evidence_titles: string[];
             /** Id */
             id: string;
             /** Missing Source Types */
-            missing_source_types?: string[];
+            missing_source_types: string[];
             /** Name */
             name: string;
             /** Rationale */
@@ -3800,7 +3806,7 @@ export interface components {
             /** Severity */
             severity: string;
             /** Suggested Actions */
-            suggested_actions?: string[];
+            suggested_actions: string[];
             /** Why Detected */
             why_detected: string;
         };
@@ -3823,9 +3829,9 @@ export interface components {
         /** KnowledgeGapResponse */
         KnowledgeGapResponse: {
             /** Areas */
-            areas?: components["schemas"]["KnowledgeGapAreaResponse"][];
+            areas: components["schemas"]["KnowledgeGapAreaResponse"][];
             /** Collection Id */
-            collection_id?: string | null;
+            collection_id: string | null;
             /** Coverage Ratio */
             coverage_ratio: number;
             /** Covered Count */
@@ -3835,13 +3841,13 @@ export interface components {
             /** Missing Count */
             missing_count: number;
             /** Missing Source Types */
-            missing_source_types?: string[];
+            missing_source_types: string[];
             /** Rationale */
             rationale: string;
             /** Severity */
             severity: string;
             /** Suggested Actions */
-            suggested_actions?: string[];
+            suggested_actions: string[];
             /** Topic */
             topic: string;
             /** Why Detected */
@@ -3905,7 +3911,7 @@ export interface components {
             /** Kind */
             kind: string;
             /** Nodes */
-            nodes?: components["schemas"]["KnowledgeGraphNodeResponse"][];
+            nodes: components["schemas"]["KnowledgeGraphNodeResponse"][];
             /** Severity */
             severity: string;
             /** Title */
@@ -3923,7 +3929,7 @@ export interface components {
             /** Created At */
             created_at?: string | null;
             /** Detail */
-            detail?: string | null;
+            detail: string | null;
             /** Id */
             id: string;
             /**
@@ -3936,12 +3942,15 @@ export interface components {
              * @default false
              */
             is_pinned: boolean;
-            /** Kind */
-            kind: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "topic" | "document";
             /** Label */
             label: string;
             /** Source Names */
-            source_names?: string[];
+            source_names: string[];
             /** Suggested Questions */
             suggested_questions?: string[] | null;
             /** Summary */
@@ -4048,9 +4057,7 @@ export interface components {
             /** Source Document Id */
             source_document_id: string | null;
             /** Steps */
-            steps: {
-                [key: string]: unknown;
-            }[];
+            steps: components["schemas"]["LearningPathStepResponse"][];
             /** Title */
             title: string;
             /** Topic */
@@ -4062,6 +4069,24 @@ export interface components {
              * Format: uuid
              */
             user_id: string;
+        };
+        /** LearningPathStepResponse */
+        LearningPathStepResponse: {
+            /** Focus */
+            focus: string;
+            /** Id */
+            id: string;
+            /** Source Document Id */
+            source_document_id?: string | null;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "todo" | "done";
+            /** Summary */
+            summary: string;
+            /** Title */
+            title: string;
         };
         /** LoginRequest */
         LoginRequest: {
@@ -4237,7 +4262,7 @@ export interface components {
             openai: components["schemas"]["OpenAISummary"];
             query_latency: components["schemas"]["QueryLatencySummary"];
             /** Queues */
-            queues?: {
+            queues: {
                 [key: string]: number;
             };
             retrieval: components["schemas"]["RetrievalSummary"];
@@ -4298,7 +4323,7 @@ export interface components {
         /** PublicAskEventListResponse */
         PublicAskEventListResponse: {
             /** Items */
-            items?: components["schemas"]["PublicAskEventResponse"][];
+            items: components["schemas"]["PublicAskEventResponse"][];
         };
         /** PublicAskEventResponse */
         PublicAskEventResponse: {
@@ -4343,7 +4368,7 @@ export interface components {
             /** Summary */
             summary: string | null;
             /** Tags */
-            tags?: string[];
+            tags: string[];
             /** Title */
             title: string;
             type: components["schemas"]["DocumentType"];
@@ -4362,7 +4387,7 @@ export interface components {
             /** Sources */
             sources: components["schemas"]["PublicQuerySourceResponse"][];
             /** Suggested Follow Up Questions */
-            suggested_follow_up_questions?: string[];
+            suggested_follow_up_questions: string[];
         };
         /** PublicCollectionResponse */
         PublicCollectionResponse: {
@@ -4376,7 +4401,7 @@ export interface components {
             /** Description */
             description: string | null;
             /** Documents */
-            documents?: components["schemas"]["PublicCollectionDocumentResponse"][];
+            documents: components["schemas"]["PublicCollectionDocumentResponse"][];
             /**
              * Id
              * Format: uuid
@@ -4494,14 +4519,14 @@ export interface components {
              * Format: uuid
              */
             conversation_id: string;
-            debug?: components["schemas"]["QueryDebugResponse"] | null;
+            debug: components["schemas"]["QueryDebugResponse"] | null;
             /** Query */
             query: string;
             refrag_context: components["schemas"]["RefragContextResponse"];
             /** Sources */
             sources: components["schemas"]["QuerySourceResponse"][];
             /** Suggested Follow Up Questions */
-            suggested_follow_up_questions?: string[];
+            suggested_follow_up_questions: string[];
         };
         /** QuerySourceResponse */
         QuerySourceResponse: {
@@ -4533,6 +4558,19 @@ export interface components {
              */
             used_in_answer: boolean;
         };
+        /** QuizAttemptAnswerResponse */
+        QuizAttemptAnswerResponse: {
+            /** Correct */
+            correct: boolean;
+            /** Correct Option Id */
+            correct_option_id: string;
+            /** Option Id */
+            option_id: string;
+            /** Question Id */
+            question_id: string;
+            /** Weak Area */
+            weak_area?: string | null;
+        };
         /** QuizAttemptListResponse */
         QuizAttemptListResponse: {
             /** Items */
@@ -4545,9 +4583,7 @@ export interface components {
         /** QuizAttemptResponse */
         QuizAttemptResponse: {
             /** Answers */
-            answers: {
-                [key: string]: unknown;
-            }[];
+            answers: components["schemas"]["QuizAttemptAnswerResponse"][];
             /**
              * Created At
              * Format: date-time
@@ -4586,6 +4622,32 @@ export interface components {
             /** Total */
             total: number;
         };
+        /** QuizOptionResponse */
+        QuizOptionResponse: {
+            /** Id */
+            id: string;
+            /** Text */
+            text: string;
+        };
+        /** QuizQuestionResponse */
+        QuizQuestionResponse: {
+            /** Correct Option Id */
+            correct_option_id: string;
+            /** Explanation */
+            explanation: string;
+            /** Id */
+            id: string;
+            /** Options */
+            options: components["schemas"]["QuizOptionResponse"][];
+            /** Question */
+            question: string;
+            /** Source Document Id */
+            source_document_id?: string | null;
+            /** Source Title */
+            source_title?: string | null;
+            /** Weak Area */
+            weak_area: string;
+        };
         /** QuizResponse */
         QuizResponse: {
             /** Collection Id */
@@ -4601,9 +4663,7 @@ export interface components {
              */
             id: string;
             /** Questions */
-            questions: {
-                [key: string]: unknown;
-            }[];
+            questions: components["schemas"]["QuizQuestionResponse"][];
             /** Scope Type */
             scope_type: string;
             /** Source Document Id */
@@ -4865,12 +4925,17 @@ export interface components {
             /** Months */
             months: number;
         };
+        /** SubmitQuizAnswerRequest */
+        SubmitQuizAnswerRequest: {
+            /** Option Id */
+            option_id: string;
+            /** Question Id */
+            question_id: string;
+        };
         /** SubmitQuizRequest */
         SubmitQuizRequest: {
             /** Answers */
-            answers?: {
-                [key: string]: unknown;
-            }[];
+            answers?: components["schemas"]["SubmitQuizAnswerRequest"][];
         };
         /** SuggestedLearningResourceResponse */
         SuggestedLearningResourceResponse: {
@@ -4993,7 +5058,7 @@ export interface components {
             /** Documents */
             documents: components["schemas"]["TopicDocumentResponse"][];
             /** Events */
-            events?: components["schemas"]["TopicEventResponse"][];
+            events: components["schemas"]["TopicEventResponse"][];
             topic: components["schemas"]["TopicResponse"];
         };
         /** TopicDocumentResponse */
@@ -5026,7 +5091,7 @@ export interface components {
             /** Display Name */
             display_name: string | null;
             /** Source Names */
-            source_names?: string[];
+            source_names: string[];
             /** Topic Name */
             topic_name: string;
         };
@@ -5086,7 +5151,7 @@ export interface components {
              */
             pinned: boolean;
             /** Source Names */
-            source_names?: string[];
+            source_names: string[];
         };
         /** UpdateLearningPathStepRequest */
         UpdateLearningPathStepRequest: {
@@ -5301,15 +5366,21 @@ export interface components {
              * Format: uuid
              */
             id: string;
-            /** Invite Status */
-            invite_status: string;
+            /**
+             * Invite Status
+             * @enum {string}
+             */
+            invite_status: "active" | "pending";
             /**
              * Invited By User Id
              * Format: uuid
              */
             invited_by_user_id: string;
-            /** Role */
-            role: string;
+            /**
+             * Role
+             * @enum {string}
+             */
+            role: "viewer" | "editor";
             /** Updated At */
             updated_at: string | null;
             /** User Id */

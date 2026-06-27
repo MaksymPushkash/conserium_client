@@ -3,7 +3,6 @@
 import type { DocumentType, KnowledgeGraphConcern, KnowledgeGraphInsightsResponse, KnowledgeGraphResponse } from "@/lib/types";
 
 import { apiClient, unwrapApiResponse } from "./generated/client";
-import { normalizeKnowledgeGraphInsights, normalizeKnowledgeGraphResponse } from "./generated/normalizers";
 
 export interface KnowledgeGraphParams {
   document_limit?: number;
@@ -16,17 +15,17 @@ export interface KnowledgeGraphParams {
 }
 
 export async function getKnowledgeGraph(params: KnowledgeGraphParams = {}): Promise<KnowledgeGraphResponse> {
-  return normalizeKnowledgeGraphResponse(unwrapApiResponse(
+  return unwrapApiResponse(
     await apiClient.GET("/api/v1/knowledge-graph", { params: { query: knowledgeGraphQuery(params) } }),
-  ));
+  );
 }
 
 export async function getKnowledgeGraphInsights(
   params: KnowledgeGraphParams = {},
 ): Promise<KnowledgeGraphInsightsResponse> {
-  return normalizeKnowledgeGraphInsights(unwrapApiResponse(
+  return unwrapApiResponse(
     await apiClient.GET("/api/v1/knowledge-graph/insights", { params: { query: knowledgeGraphQuery(params) } }),
-  ));
+  );
 }
 
 function knowledgeGraphQuery(params: KnowledgeGraphParams) {

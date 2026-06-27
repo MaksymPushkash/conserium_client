@@ -1,17 +1,8 @@
-import type { ApiSchema, RequiredApiFields } from "./generated";
+import type { ApiSchema } from "./generated";
 
-export type KnowledgeGraphNode = Omit<RequiredApiFields<ApiSchema<"KnowledgeGraphNodeResponse">, "detail">, "kind"> & {
-  kind: "topic" | "document";
-};
+export type KnowledgeGraphNode = ApiSchema<"KnowledgeGraphNodeResponse">;
 export type KnowledgeGraphEdge = ApiSchema<"KnowledgeGraphEdgeResponse">;
-export type KnowledgeGraphResponse = Omit<ApiSchema<"KnowledgeGraphResponse">, "nodes"> & {
-  nodes: KnowledgeGraphNode[];
-};
-export type KnowledgeGraphInsight = Omit<
-  RequiredApiFields<ApiSchema<"KnowledgeGraphInsightResponse">, "nodes">,
-  "nodes"
-> & { nodes: KnowledgeGraphNode[] };
-export type KnowledgeGraphInsightsResponse = Omit<ApiSchema<"KnowledgeGraphInsightsResponse">, "items"> & {
-  items: KnowledgeGraphInsight[];
-};
+export type KnowledgeGraphResponse = ApiSchema<"KnowledgeGraphResponse">;
+export type KnowledgeGraphInsight = ApiSchema<"KnowledgeGraphInsightResponse">;
+export type KnowledgeGraphInsightsResponse = ApiSchema<"KnowledgeGraphInsightsResponse">;
 export type KnowledgeGraphConcern = ApiSchema<"KnowledgeGraphConcernResponse">;

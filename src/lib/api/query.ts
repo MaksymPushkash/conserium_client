@@ -3,10 +3,9 @@
 import type { QueryRequest, QueryResponse, QueryStreamDone, QueryStreamEvent } from "@/lib/types";
 import { ApiError, authenticatedFetch, errorMessage, readPayload } from "./transport";
 import { apiClient, unwrapApiResponse } from "./generated/client";
-import { normalizeQueryResponse } from "./generated/normalizers";
 
 export async function queryDocuments(payload: QueryRequest): Promise<QueryResponse> {
-  return normalizeQueryResponse(unwrapApiResponse(await apiClient.POST("/api/v1/query", { body: payload })));
+  return unwrapApiResponse(await apiClient.POST("/api/v1/query", { body: payload }));
 }
 
 export function parseQueryStreamEvent(raw: string): QueryStreamEvent | null {

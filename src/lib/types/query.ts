@@ -1,25 +1,16 @@
-import type { DocumentType } from "./documents";
 import type { ApiSchema } from "./generated";
 
-export type QueryRequest = Omit<ApiSchema<"QueryRequest">, "document_types"> & {
-  document_types?: DocumentType[] | null;
-};
+export type QueryRequest = ApiSchema<"QueryRequest">;
 export type QuerySource = ApiSchema<"QuerySourceResponse">;
 export type RefragChunk = ApiSchema<"RefragChunkResponse">;
 export type RefragContext = ApiSchema<"RefragContextResponse">;
 export type QueryDebug = ApiSchema<"QueryDebugResponse">;
 export type PublicAnswerShareSource = ApiSchema<"PublicAnswerShareSourceResponse">;
 export type AnswerShareSource = ApiSchema<"AnswerShareSourceResponse">;
-export type PublicAnswerShare = Omit<ApiSchema<"PublicAnswerShareResponse">, "sources"> & {
-  sources: PublicAnswerShareSource[];
-};
-export type AnswerShare = Omit<ApiSchema<"AnswerShareResponse">, "sources"> & { sources: AnswerShareSource[] };
-export type AnswerShareListResponse = Omit<ApiSchema<"AnswerShareListResponse">, "items"> & { items: AnswerShare[] };
-export type QueryResponse = Omit<ApiSchema<"QueryResponse">, "debug" | "refrag_context" | "sources"> & {
-  sources: QuerySource[];
-  refrag_context: RefragContext;
-  debug: QueryDebug | null;
-};
+export type PublicAnswerShare = ApiSchema<"PublicAnswerShareResponse">;
+export type AnswerShare = ApiSchema<"AnswerShareResponse">;
+export type AnswerShareListResponse = ApiSchema<"AnswerShareListResponse">;
+export type QueryResponse = ApiSchema<"QueryResponse">;
 
 export interface QueryStreamDone {
   query_id: string;
@@ -36,7 +27,4 @@ export interface QueryStreamEvent {
   data: Record<string, unknown>;
 }
 
-export type PublicCollectionQueryResponse = Omit<ApiSchema<"PublicCollectionQueryResponse">, "share" | "sources"> & {
-  sources: PublicAnswerShareSource[];
-  share: PublicAnswerShare;
-};
+export type PublicCollectionQueryResponse = ApiSchema<"PublicCollectionQueryResponse">;

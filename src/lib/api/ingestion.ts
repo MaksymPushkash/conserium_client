@@ -2,7 +2,6 @@
 
 import type { DocumentResponse } from "@/lib/types";
 import { apiClient, unwrapApiResponse } from "./generated/client";
-import { normalizeDocument } from "./generated/normalizers";
 import { request } from "./transport";
 
 export function ingestFile(
@@ -29,7 +28,7 @@ export async function ingestDocument(payload: {
   raw_content?: string | null;
   language?: string | null;
 }): Promise<DocumentResponse> {
-  return normalizeDocument(unwrapApiResponse(await apiClient.POST("/api/v1/ingest", { body: payload })));
+  return unwrapApiResponse(await apiClient.POST("/api/v1/ingest", { body: payload }));
 }
 
 export function ingestUrl(payload: { url: string; title?: string; collection_id?: string | null }): Promise<DocumentResponse> {
@@ -46,9 +45,9 @@ export async function ingestText(payload: {
   content: string;
   collection_id?: string | null;
 }): Promise<DocumentResponse> {
-  return normalizeDocument(unwrapApiResponse(
+  return unwrapApiResponse(
     await apiClient.POST("/api/v1/documents/ingest-text", {
       body: { title: payload.title, raw_text: payload.content, collection_id: payload.collection_id, type: "TEXT" },
     }),
-  ));
+  );
 }

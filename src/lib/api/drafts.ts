@@ -11,11 +11,6 @@ import type {
 } from "@/lib/types";
 
 import { apiClient, unwrapApiResponse } from "./generated/client";
-import {
-  normalizeDraft,
-  normalizeDraftDetail,
-  normalizeDraftVersions,
-} from "./generated/normalizers";
 
 export async function listDrafts(
   params: { collection_id?: string | null; limit?: number; offset?: number } = {},
@@ -24,23 +19,23 @@ export async function listDrafts(
 }
 
 export async function getDraft(id: string): Promise<DraftDetail> {
-  return normalizeDraftDetail(unwrapApiResponse(
+  return unwrapApiResponse(
     await apiClient.GET("/api/v1/drafts/{draft_id}", { params: { path: { draft_id: id } } }),
-  ));
+  );
 }
 
 export async function listDraftVersions(id: string): Promise<DraftVersionListResponse> {
-  return normalizeDraftVersions(unwrapApiResponse(
+  return unwrapApiResponse(
     await apiClient.GET("/api/v1/drafts/{draft_id}/versions", { params: { path: { draft_id: id } } }),
-  ));
+  );
 }
 
 export async function restoreDraftVersion(draftId: string, versionId: string): Promise<DraftDetail> {
-  return normalizeDraftDetail(unwrapApiResponse(
+  return unwrapApiResponse(
     await apiClient.POST("/api/v1/drafts/{draft_id}/versions/{version_id}/restore", {
       params: { path: { draft_id: draftId, version_id: versionId } },
     }),
-  ));
+  );
 }
 
 export async function deleteDraft(id: string): Promise<void> {
@@ -60,9 +55,9 @@ export async function generateDraftOutline(payload: DraftGenerateRequest): Promi
 }
 
 export async function generateDraft(payload: DraftGenerateRequest): Promise<DraftResponse> {
-  return normalizeDraft(unwrapApiResponse(
+  return unwrapApiResponse(
     await apiClient.POST("/api/v1/drafts/generate", { body: draftGenerateBody(payload) }),
-  ));
+  );
 }
 
 function draftGenerateBody(payload: DraftGenerateRequest) {

@@ -1,10 +1,7 @@
-import type { ApiSchema, RequiredApiFields } from "./generated";
+import type { ApiSchema } from "./generated";
 
-export type Topic = RequiredApiFields<ApiSchema<"TopicResponse">, "source_names">;
+export type Topic = ApiSchema<"TopicResponse">;
 export type TopicDocument = ApiSchema<"TopicDocumentResponse">;
-export type TopicEvent = RequiredApiFields<ApiSchema<"TopicEventResponse">, "source_names">;
-export type TopicListResponse = Omit<ApiSchema<"TopicListResponse">, "items"> & { items: Topic[] };
-export type TopicDetailResponse = Omit<ApiSchema<"TopicDetailResponse">, "topic" | "events"> & {
-  topic: Topic;
-  events: TopicEvent[];
-};
+export type TopicEvent = ApiSchema<"TopicEventResponse">;
+export type TopicListResponse = ApiSchema<"TopicListResponse">;
+export type TopicDetailResponse = ApiSchema<"TopicDetailResponse">;
